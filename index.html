@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<!-- 
+TODO
+* Add jquery min.map so as to not produce errors with each execution (likely a jQ 2 thing)
+* Fix initial value of date field when internet is accessible. Preferably use moment.js
+-->
+<html>
+<head>
+<link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" media="screen"
+     href="http://tarruda.github.com/bootstrap-datetimepicker/assets/css/bootstrap-datetimepicker.min.css">
+<script src="jquery-2.0.3.min.js"></script>
+<script src="moment-with-langs.min.js"></script><!-- Unused but useful -->
+<script type="text/javascript"
+     src="http://tarruda.github.com/bootstrap-datetimepicker/assets/js/bootstrap-datetimepicker.min.js">
+    </script>
+<script>
+$.noConflict();
+
+var nodejshost = "localhost";//"128.82.7.20";//"localhost";
+
+jQuery(document).ready(function($){
+      //$('#datetimepicker').datetimepicker({
+      //  format: 'dddd, dd MM yyyy HH:mm:ss Z'
+      //});
+	//console.log((new Date()).format("mm/dd/yyyy"));
+	//$("#date").attr("value",(new Date()).today());
+	//file:// cannot be used, use local apache
+	$("#submitButton").click(function(){
+		if($("#uri_r").val().length <= 0){
+			$("#message").html("You forgot a URI-R!");
+			$("#message").addClass("error");
+			return false;
+		}
+		$.ajax({
+			url: "http://"+nodejshost+":15421",
+			data: "URI-R="+$("#uri_r").val(),
+			headers: {"accept-datetime" : $("#date").val()}
+		}).done(function(data){
+			console.log(data);
+			$("#output").text(data);
+			var mDateTime = data.substr(0,data.indexOf("\","))+"\"}";
+
+			var mementoDatetimeObj = jQuery.parseJSON(mDateTime);
+			if(mementoDatetimeObj["Memento-Datetime"]){
+				$("#result").val(mementoDatetimeObj["Memento-Datetime"]);
+				$("#message").removeClass("error");
+				$("#message").html("");
+			}else if(mementoDatetimeObj["Error"]){
+				$("#result").val("");
+				$("#message").html(mementoDatetimeObj["Error"]);
+				$("#message").addClass("error");
+			}
+		}).fail(function(data){
+			$("#message").html("Something's wrong with the server. Is the node server running?");
+			$("#message").addClass("error");
+		});
+		//console.log($("#date").val());//need Mon, 17 Jul 2006 05:55:01 GMT
+		//console.log("Mon, 17 Jul 2006 05:55:01 GMT");
+		//console.log(moment($("#date").val(),"EEE, dd MMM yyyy HH:mm:ss Z")); //Is this correct for RFC1123
+		return false;
+	});
+	
+	// A means for defaults to be reinstated
+	$("#default").click(function(){
+		var target = "#"+$(this).attr("name");
+		$(target).val($(target).attr("alt"));
+	});
+	
+});
+</script>
+<style type="text/css">
+body {margin: 1.0em;}
+label {display: block; float: left; width: 150px;}
+.error {color: red; font-weight: bold;}
+#datetimepicker {display: none;}
+textarea {width: 100%; height: 500px; display: block; clear: both;margin: 1.0em 0 0 -1.0em;}
+</style>
+</head>
+<body>
+<form method="get" action="">
+ <label for="uri_r">URI-R:</label><input class="span2 defaultable" size="16" type="text" id="uri_r" value="http://matkelly.com" />
+
+<div id="datetimepicker" class="input-append date">
+	<label for="dateX">Accept-Datetime:</label>
+      <input type="text" id="bootstrapDate"></input>
+      <span class="add-on">
+        <i data-time-icon="icon-time" data-date-icon="icon-calendar"></i>
+      </span>
+    </div><br style="clear: both;" />
+    <label for="date">Accept-Datetime:</label><input type="text" id="date" class="defaultable" value="Mon, 17 Jul 2006 05:55:01 GMT" alt="Mon, 17 Jul 2006 05:55:01 GMT" /><span id="message"></span><br />
+	<label for="date">Memento-Datetime:</label><input type="text" id="result" readonly /><br />
+<input type="submit" id="submitButton" />
+<input type="button" id="default" name="date" value="Restore Default" />
+<textarea id="output" placeholder="Query output will be here"></textarea>
+
+<form>
+</body>
+</html>
