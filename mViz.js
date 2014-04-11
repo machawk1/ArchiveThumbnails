@@ -339,7 +339,7 @@ function getTimemap(response,uri,callback){
 						];
 
 						//next(res, d, 0);
-						resolve(0);
+						return resolve(0);
 					}
 				});
 			  });
@@ -374,34 +374,7 @@ function getTimemap(response,uri,callback){
 	 	console.log(err);
 	 })
 	 .then(gameOverMan);
-	 
-	 var srcs = [];
-	 var simhashes = [];
-	 function printSimhash(i){
-	 	res = null;
-	 	var mOptions = url.parse(t.mementos[i].uri);
-	 	//console.log(i+": "+mOptions.host+" "+mOptions.path);
-	 	var buffer2 = "";
-	 	var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
-			res.setEncoding('utf8');
-			res.on('data', function (data) {
-				buffer2 += data.toString();
-			});
-			res.on('end',function(d){
-				srcs.push(buffer2);
-				var sh = simhash((buffer2).split('')).join('');
-				console.log("Hash: "+getHexString(sh)+"  SrcLen: "+buffer2.length+"  Src: "+t.mementos[i].uri+"  statusCode: "+res.statusCode);
-				retStr += "Hash: "+getHexString(sh)+"  SrcLen: "+buffer2.length+"  Src: "+t.mementos[i].uri+"  statusCode: "+res.statusCode;
-				buffer2 = "";
-				simhashes.push(sh);
-			});
-	 	});
-	 	req.end();
-	 	buffer2 = "";
-	 	return null; //return i+1;
-	 	//next(res, d, i+1);
-	 }
-	 
+		 
 	 
 	 function gameOverMan(){
 	 	//console.log("Done");
