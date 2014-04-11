@@ -1,6 +1,7 @@
 /* *******************************
-*  mViz
-*  The server-side implementation of our in-progress memento visualization
+*  ArchiveThumbnails
+*  An implementation for Ahmed AlSum's ECIR 2014 paper:
+*   "Thumbnail Summarization Techniques for Web Archives"
 *  Mat Kelly <mkelly@cs.odu.edu> 
 * 
 ******************************* */
@@ -18,6 +19,7 @@ var request = require("request");
 var Step = require("step");
 var async = require("async");
 var Futures = require("futures");
+var Promise = require('es6-promise').Promise;
 var simhash = require('simhash')('md5');
 
 //var util = require("util"); //for util.inspect for debugging
@@ -302,8 +304,10 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 
 function getTimemap(response,uri,callback){
   	var options = {
-	  		host: 'mementoproxy.lanl.gov',
-	  		path: '/aggr/timemap/link/1/' + uri,
+	  		//host: 'mementoproxy.lanl.gov',
+	  		host: 'web.archive.org',
+	  		//path: '/aggr/timemap/link/1/' + uri,
+	  		path: '/web/timemap/link/' + uri,
 	  		port: 80,
 	  		method: 'GET'
 	  };
@@ -311,8 +315,7 @@ function getTimemap(response,uri,callback){
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
 	var sequence = Futures.sequence();
 	var t;
-	sequence
-	  .then(function(next, d) {
+	var promise = new Promise(function(resolve, reject){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
 				res.on('data', function (data) {
@@ -336,7 +339,8 @@ function getTimemap(response,uri,callback){
 							{host: m2.host, path: m2.path}
 						];
 
-						next(res, d, 0);
+						//next(res, d, 0);
+						resolve(0);
 						callback(); //call connection close
 					}
 				});
@@ -355,7 +359,8 @@ function getTimemap(response,uri,callback){
 			});
 	
 			req.end();
-	 })
+	 });
+	 promise
 	 .then(printSimhash)
 	 .then(printSimhash)
 	 .then(printSimhash)
@@ -375,7 +380,7 @@ function getTimemap(response,uri,callback){
 	 
 	 var srcs = [];
 	 var simhashes = [];
-	 function printSimhash(next, res, d, i){
+	 function printSimhash(i){
 	 	res = null;
 	 	var mOptions = url.parse(t.mementos[i].uri);
 	 	//console.log(i+": "+mOptions.host+" "+mOptions.path);
@@ -396,7 +401,8 @@ function getTimemap(response,uri,callback){
 	 	});
 	 	req.end();
 	 	buffer2 = "";
-	 	next(res, d, i+1);
+	 	return i+1;
+	 	//next(res, d, i+1);
 	 }
 	 
 	 
@@ -404,34 +410,44 @@ function getTimemap(response,uri,callback){
 	 	//console.log(srcs[srcs.length-1] == srcs[srcs.length-4]);
 	 }
 	 
-	//Usefull Functions
-	function checkBin(n){return/^[01]{1,64}$/.test(n)}
-	function checkDec(n){return/^[0-9]{1,64}$/.test(n)}
-	function checkHex(n){return/^[0-9A-Fa-f]{1,64}$/.test(n)}
-	function pad(s,z){s=""+s;return s.length<z?pad("0"+s,z):s}
-	function unpad(s){s=""+s;return s.replace(/^0+/,'')}
-
-	//Decimal operations
-	function Dec2Bin(n){if(!checkDec(n)||n<0)return 0;return n.toString(2)}
-	function Dec2Hex(n){if(!checkDec(n)||n<0)return 0;return n.toString(16)}
-
-	//Binary Operations
-	function Bin2Dec(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(10)}
-	function Bin2Hex(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(16)}
-
-	//Hexadecimal Operations
-	function Hex2Bin(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(2)}
-	function Hex2Dec(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(10)}
-	
-	function getHexString(onesAndZeros){
-		var str = "";
-		for(var i=0; i<onesAndZeros.length; i=i+16){
-	 		str += Bin2Hex(onesAndZeros.substr(i,16));
-	 	}
-	 	return str;
-	}
-	 
 }
+
+/* *********************************
+        UTILITY FUNCTIONS
+   *********************************
+TODO: break these out into a separate file
+*/
+	 
+//Usefull Functions
+function checkBin(n){return/^[01]{1,64}$/.test(n)}
+function checkDec(n){return/^[0-9]{1,64}$/.test(n)}
+function checkHex(n){return/^[0-9A-Fa-f]{1,64}$/.test(n)}
+function pad(s,z){s=""+s;return s.length<z?pad("0"+s,z):s}
+function unpad(s){s=""+s;return s.replace(/^0+/,'')}
+
+//Decimal operations
+function Dec2Bin(n){if(!checkDec(n)||n<0)return 0;return n.toString(2)}
+function Dec2Hex(n){if(!checkDec(n)||n<0)return 0;return n.toString(16)}
+
+//Binary Operations
+function Bin2Dec(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(10)}
+function Bin2Hex(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(16)}
+
+//Hexadecimal Operations
+function Hex2Bin(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(2)}
+function Hex2Dec(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(10)}
+
+function getHexString(onesAndZeros){
+	var str = "";
+	for(var i=0; i<onesAndZeros.length; i=i+16){
+		str += Bin2Hex(onesAndZeros.substr(i,16));
+	}
+	return str;
+}
+
+/* *********************************
+    end UTILITY FUNCTIONS
+********************************* */
 
 exports.main = main;
 main();
