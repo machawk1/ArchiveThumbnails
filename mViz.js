@@ -203,6 +203,7 @@ function Memento(uri,datetime,rel){
 	this.uri = uri;
 	this.datetime = datetime;
 	this.rel = rel;
+	this.simhash = null;
 }
 
 Memento.prototype.toString = function(){
@@ -357,28 +358,24 @@ function getTimemap(response,uri,callback){
 			req.end();
 	 })
 	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
-	 .then(printSimhash)
 	 .then(gameOverMan);
 	 
 	 var srcs = [];
 	 var simhashes = [];
+	 
 	 function printSimhash(next, res, d, i){
 	 	res = null;
+	 	
+	 	//a bug in url.parse does not consider uris that start with '//', 
+	 	//  the host field is parsed incorrectly, correct it here
+	 	if(t.mementos[i].uri.substr(0,2) == "//"){
+	 		t.mementos[i].uri = "http:"+t.mementos[i].uri;	
+	 	}
+	 	
 	 	var mOptions = url.parse(t.mementos[i].uri);
-	 	//console.log(i+": "+mOptions.host+" "+mOptions.path);
+	 	console.log(i+": "+mOptions.host+" "+mOptions.path);
+	 	
+	 	
 	 	var buffer2 = "";
 	 	var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
 			res.setEncoding('utf8');
@@ -387,21 +384,31 @@ function getTimemap(response,uri,callback){
 			});
 			res.on('end',function(d){
 				srcs.push(buffer2);
-				var sh = simhash((buffer2).split('')).join('');
-				console.log("Hash: "+getHexString(sh)+"  SrcLen: "+buffer2.length+"  Src: "+t.mementos[i].uri+"  statusCode: "+res.statusCode);
+				var simhashBin = simhash((buffer2).split('')).join('');
+				var simhashHex = getHexString(simhashBin);
+				console.log("Hash: "+simhashHex+"  SrcLen: "+buffer2.length+"  Src: "+t.mementos[i].uri+"  statusCode: "+res.statusCode);
 				buffer2 = "";
-				simhashes.push(sh);;
+				simhashes.push(simhashHex);
+				t.mementos[i].simhash = simhashHex;
+				if(i+1 < t.mementos.length){
+					return printSimhash(next,res,d,i+1)
+				}else {
+					return "done";
+				}
+				
+				//console.log(t.mementos.length - simhashes.length);
 				//console.log(simhashes);
 			});
 	 	});
 	 	req.end();
 	 	buffer2 = "";
-	 	next(res, d, i+1);
+	 	//next(res, d, i+1);
 	 }
 	 
 	 
 	 function gameOverMan(){
 	 	//console.log(srcs[srcs.length-1] == srcs[srcs.length-4]);
+	 	console.log("done with code");
 	 }
 	 
 	//Usefull Functions
