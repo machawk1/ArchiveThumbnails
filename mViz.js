@@ -364,7 +364,6 @@ function getTimemap(response,uri,callback){
 	 	t.mementos.forEach(function(memento){
 	 		arrayOfSetSimhashFunctions.push(memento.setSimhash());
 	 	});
-	 	
 	 	return Promise.all(
 	 		arrayOfSetSimhashFunctions
 	 	);
@@ -373,13 +372,36 @@ function getTimemap(response,uri,callback){
 	 	console.log("Error!");
 	 	console.log(err);
 	 })
-	 .then(gameOverMan);
+	 .then(sortMementosByMementoDatetime)
+	 .then(calculateHammingDistances)
+	 .then(printMementoInformation);
 		 
 	 
-	 function gameOverMan(){
+	 function sortMementosByMementoDatetime(){
+	 	//t.sortByDatetime();
+	 }
+	 function calculateHammingDistances(){
+	 	t.mementos.forEach(function(memento,m,ary){
+	 		if(m > 0){
+	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[m-1].simhash);
+	 		}else if(m == 0){return;}
+	 	});
+	 }
+	 
+	 function printMementoInformation(){
 	 	//console.log("Done");
 	 	console.log(t.mementos);
-	 	response.write(t.mementos);
+	 	//response.write(t.mementos);
+	 }
+	 
+	 function getHamming(str1,str2){
+	 	if(str1.length != str2.length){throw "Unequal lengths when both strings must be equal to calculate hamming distance.";}
+	 	
+	 	var d = 0;
+	 	for(var ii=0; ii<str1.length; ii++){
+	 		if(str1[ii] != str2[ii]){d++;}
+	 	}
+	 	return d;
 	 }
 	 
 }
