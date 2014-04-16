@@ -1,6 +1,7 @@
 /* *******************************
-*  mViz
-*  The server-side implementation of our in-progress memento visualization
+*  ArchiveThumbnails
+*  An implementation for Ahmed AlSum's ECIR 2014 paper:
+*   "Thumbnail Summarization Techniques for Web Archives"
 *  Mat Kelly <mkelly@cs.odu.edu> 
 * 
 ******************************* */
@@ -18,6 +19,7 @@ var request = require("request");
 var Step = require("step");
 var async = require("async");
 var Futures = require("futures");
+var Promise = require('es6-promise').Promise;
 var simhash = require('simhash')('md5');
 
 //var util = require("util"); //for util.inspect for debugging
@@ -36,10 +38,13 @@ var timegate_path = "/aggr/timegate/";
 var PORT = 15421;
 //var timemap;
 
-var trace = []; //An array for us to follow the negotiation after-the-fact
-
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
 //curl -I -H "Accept-Datetime: Thu, 01 Apr 2010 00:00:00 GMT" http://mementoproxy.lanl.gov/aggr/timegate/http://matkelly.com
+
+
+
+
+
 
 /**
 * Initially called to invoke the server instance
@@ -56,7 +61,7 @@ function main(){
 	 // IE8 does not allow domains to be specified, just the *
 	 // headers["Access-Control-Allow-Origin"] = req.headers.origin;
 	 headers["Access-Control-Allow-Origin"] = "*";
-	 headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS";
+	 headers["Access-Control-Allow-Methods"] = "GET";
 	 headers["Access-Control-Allow-Credentials"] = false;
 	 headers["Access-Control-Max-Age"] = '86400'; // 24 hours
 	 headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime";
@@ -99,27 +104,12 @@ function main(){
 	  }
 	  
 	  
-	  var callbacks = [echoMementoDatetimeToResponse,getTimemapCallback,closeConnection,returnJSONError];
-	  //console.log(request.headers);
+	  var callbacks = [getTimemapCallback];
+	  
 	  										  //uri, date,                              host,         path,         appendURItoFetch,callbacks
 	  var mementoDatetime = getMementoDateTime(uri_r,request.headers['accept-datetime'],timegate_host,timegate_path,true,callbacks);
 	  return;
-	  /*
-	  console.log("mementoDatetime is "+mementoDatetime);
 	  
-	  if(!mementoDatetime){
-	  	return;
-	  	response.writeHead(200, {"Content-Type": "text/html"});
-	  	console.log("Serving an HTML form");
-	  	
-	  	var buffer = fs.readFileSync('./index.html');
-		response.write(buffer.toString("utf8", 0, buffer.length));
-	
-	  	//response.end();
-	  }else {
-	  	  console.log("Memento-Datetime was served. Done.");
-		  response.end();
-		}*/
 	}
 	
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
@@ -210,6 +200,38 @@ Memento.prototype.toString = function(){
 	return JSON.stringify(this);
 }
 
+Memento.prototype.setSimhash = function(){
+	var thaturi = this.uri;
+	var thatmemento = this;
+	return (new Promise(function(resolve,reject){
+		var buffer2 = "";
+		var memento = this;
+		var mOptions = url.parse(thaturi);
+		
+		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
+			res.setEncoding('utf8');
+			res.on('data', function (data) {
+				buffer2 += data.toString();
+			});
+			res.on('end',function(d){
+				var sh = simhash((buffer2).split('')).join('');
+				retStr = getHexString(sh);
+				//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
+				buffer2 = "";
+				resolve(retStr);
+			});
+			res.on('error',function(err){
+				reject(Error("Network Error"));
+			});
+		});
+		req.end();
+		buffer2 = "";	
+	})).then(function(str){
+		thatmemento.simhash = retStr;
+		return retStr;
+	}); 
+}
+
 /**
 * Based on a URI and an accept-datetime, return the closest Memento-Datetime
 * @param uri  The URI-R to use as the basis of the request to the archive
@@ -225,8 +247,7 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 	if(appendURItoFetch){
 		pathToFetch += uri;
 	}
-	console.log("Getting Memento-Datetime for:\r\n\tURI-R: "+host+pathToFetch+"\r\n\tAccept-Datetime: "+date);
-	
+		
  	var options_gmdt = {
 	  		host: host,
 	  		path: pathToFetch,
@@ -236,41 +257,20 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 	  };
 	var locationHeader = "";  
 	
-	trace.push(new HTTPRequest(options_gmdt.method,options_gmdt.host+options_gmdt.path,options_gmdt.headers));
 	var req_gmdt = http.request(options_gmdt, function(res_gmdt) {
-		trace.push(new HTTPResponse(
-			res_gmdt.statusCode,
-			{
-			 	"Memento-Datetime": res_gmdt.headers['memento-datetime']
-			}
-		));
 		if(res_gmdt.headers['location'] && res_gmdt.statusCode != 200){
 			console.log("Received a "+res_gmdt.statusCode+" code, going to "+res_gmdt.headers['location']);
 			var locationUrl = url.parse(res_gmdt.headers['location']);
 			return getMementoDateTime(uri,date,locationUrl.host,locationUrl.pathname,false,callbacks);
 		}else if(!(res_gmdt.headers['memento-datetime'])){ //bad URI, e.g., example.comx
-			var jsonErrorCallback = callbacks[callbacks.length - 1];
-			if(jsonErrorCallback.name == "returnJSONError"){
-				jsonErrorCallback("The URI-R you requested has no mementos.");
-			}else {
-				console.log("We should have access to the error callback here but did not. Something's not right");
-			}
+			jsonErrorCallback("The URI-R you requested has no mementos.");
 			return;
 		}else {
 			
 			console.log("Memento-Datetime is "+res_gmdt.headers['memento-datetime']);
 			for(var cb=0; cb<callbacks.length; cb++){	//execute the callbacks in-order
 				var callback = callbacks[cb];
-				if(callback.name.indexOf("echoMementoDatetimeToResponse") > -1){
-					callback(res_gmdt.headers['memento-datetime']);
-				}else if(callback.name.indexOf("closeConnection") > -1){
-					//console.log("Closing connection");
-					//callback();
-					//console.log("Echoing trace");
-					//console.log(trace);
-				}else if(callback.name == "returnJSONError"){
-					//returnJSONError() available but not needed in this context though critical to be on the tail-end of the callback list.
-				}else if(callback.name == "getTimemapCallback"){
+				if(callback.name == "getTimemapCallback"){
 					var uri = options_gmdt.path.substr(options_gmdt.path.indexOf("http://"));
 					callback(uri,callbacks[2]); //to overcome a race condition, pass the closeConnection callback to the last operation that is to write back to the client					
 				}else {
@@ -303,8 +303,10 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 
 function getTimemap(response,uri,callback){
   	var options = {
-	  		host: 'mementoproxy.lanl.gov',
-	  		path: '/aggr/timemap/link/1/' + uri,
+	  		//host: 'mementoproxy.lanl.gov',
+	  		host: 'web.archive.org',
+	  		//path: '/aggr/timemap/link/1/' + uri,
+	  		path: '/web/timemap/link/' + uri,
 	  		port: 80,
 	  		method: 'GET'
 	  };
@@ -312,8 +314,7 @@ function getTimemap(response,uri,callback){
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
 	var sequence = Futures.sequence();
 	var t;
-	sequence
-	  .then(function(next, d) {
+	var promise = new Promise(function(resolve, reject){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
 				res.on('data', function (data) {
@@ -325,7 +326,7 @@ function getTimemap(response,uri,callback){
 						console.log("Timemap acquired for "+uri);
 						t = new TimeMap(buffer);
 						t.createMementos();
-						response.write("\"TimeMap\": "+t.toString("utf8", 0, t.mementos.length)+"}");
+						//response.write("\"TimeMap\": "+t.toString("utf8", 0, t.mementos.length)+"}");
 				
 						console.log("Fetching HTML for "+t.mementos.length+" mementos.");
 				
@@ -337,8 +338,8 @@ function getTimemap(response,uri,callback){
 							{host: m2.host, path: m2.path}
 						];
 
-						next(res, d, 0);
-						callback(); //call connection close
+						//next(res, d, 0);
+						return resolve(0);
 					}
 				});
 			  });
@@ -356,7 +357,23 @@ function getTimemap(response,uri,callback){
 			});
 	
 			req.end();
+	 });
+	 var retStr = "";
+	 promise.then(function(i){
+	 	var arrayOfSetSimhashFunctions = [];
+	 	t.mementos.forEach(function(memento){
+	 		arrayOfSetSimhashFunctions.push(memento.setSimhash());
+	 	});
+	 	
+	 	return Promise.all(
+	 		arrayOfSetSimhashFunctions
+	 	);
 	 })
+	 .catch(function(err){
+	 	console.log("Error!");
+	 	console.log(err);
+	 })
+<<<<<<< HEAD
 	 .then(printSimhash)
 	 .then(gameOverMan);
 	 
@@ -409,36 +426,55 @@ function getTimemap(response,uri,callback){
 	 function gameOverMan(){
 	 	//console.log(srcs[srcs.length-1] == srcs[srcs.length-4]);
 	 	console.log("done with code");
+=======
+	 .then(gameOverMan);
+		 
+	 
+	 function gameOverMan(){
+	 	//console.log("Done");
+	 	console.log(t.mementos);
+	 	response.write(t.mementos);
+>>>>>>> 9869dd1bb3e37f9b683c2f07abde3accb314d713
 	 }
 	 
-	//Usefull Functions
-	function checkBin(n){return/^[01]{1,64}$/.test(n)}
-	function checkDec(n){return/^[0-9]{1,64}$/.test(n)}
-	function checkHex(n){return/^[0-9A-Fa-f]{1,64}$/.test(n)}
-	function pad(s,z){s=""+s;return s.length<z?pad("0"+s,z):s}
-	function unpad(s){s=""+s;return s.replace(/^0+/,'')}
-
-	//Decimal operations
-	function Dec2Bin(n){if(!checkDec(n)||n<0)return 0;return n.toString(2)}
-	function Dec2Hex(n){if(!checkDec(n)||n<0)return 0;return n.toString(16)}
-
-	//Binary Operations
-	function Bin2Dec(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(10)}
-	function Bin2Hex(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(16)}
-
-	//Hexadecimal Operations
-	function Hex2Bin(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(2)}
-	function Hex2Dec(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(10)}
-	
-	function getHexString(onesAndZeros){
-		var str = "";
-		for(var i=0; i<onesAndZeros.length; i=i+16){
-	 		str += Bin2Hex(onesAndZeros.substr(i,16));
-	 	}
-	 	return str;
-	}
-	 
 }
+
+/* *********************************
+        UTILITY FUNCTIONS
+   *********************************
+TODO: break these out into a separate file
+*/
+	 
+//Usefull Functions
+function checkBin(n){return/^[01]{1,64}$/.test(n)}
+function checkDec(n){return/^[0-9]{1,64}$/.test(n)}
+function checkHex(n){return/^[0-9A-Fa-f]{1,64}$/.test(n)}
+function pad(s,z){s=""+s;return s.length<z?pad("0"+s,z):s}
+function unpad(s){s=""+s;return s.replace(/^0+/,'')}
+
+//Decimal operations
+function Dec2Bin(n){if(!checkDec(n)||n<0)return 0;return n.toString(2)}
+function Dec2Hex(n){if(!checkDec(n)||n<0)return 0;return n.toString(16)}
+
+//Binary Operations
+function Bin2Dec(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(10)}
+function Bin2Hex(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(16)}
+
+//Hexadecimal Operations
+function Hex2Bin(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(2)}
+function Hex2Dec(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(10)}
+
+function getHexString(onesAndZeros){
+	var str = "";
+	for(var i=0; i<onesAndZeros.length; i=i+16){
+		str += Bin2Hex(onesAndZeros.substr(i,16));
+	}
+	return str;
+}
+
+/* *********************************
+    end UTILITY FUNCTIONS
+********************************* */
 
 exports.main = main;
 main();
