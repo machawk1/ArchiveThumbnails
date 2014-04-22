@@ -67,25 +67,38 @@ function main(){
 	 headers["Access-Control-Allow-Credentials"] = false;
 	 headers["Access-Control-Max-Age"] = '86400'; // 24 hours
 	 headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime";
-	 response.writeHead(200, headers);
 	 
-	 if (request.method === 'OPTIONS') {
+	 
+	 if (request.method != 'GET') {
+	 	  response.writeHead(405, headers);
 		  response.end();
 		  return;  
 	 }
 	 
 	 
+	 
+	 
 	  var pathname = url.parse(request.url).pathname;
-		console.log(request.headers);
+
 	  var query = url.parse(request.url, true).query;
+	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
+	  	response.writeHead(400, headers);
+		response.end();
+		return;  
+	  }
+	  
 	  var uri_r = query['URI-R'];
+	  
 	  if(!uri_r.match(/^[a-zA-Z]+:\/\//)){uri_r = 'http://' + uri_r;}//prepend scheme if necessary
+	  
+	  headers["Content-Type"] = "application/json";
+	  response.writeHead(200, headers);
 	  
 	  if(!validator.isURL(uri_r)){ //return "invalid URL"
 	  	returnJSONError("Invalid URI");
 	  	return;
 	  }else {
-	  	console.log("isaurl? "+validator.isURL(uri_r));
+	  	console.log("Validation, checking if URI is valid: "+validator.isURL(uri_r));
 	  } 
 
 	  function echoMementoDatetimeToResponse(mementoDatetime){
@@ -266,14 +279,15 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 	  };
 	var locationHeader = "";  
 	
-	var req_gmdt = http.request(options_gmdt, function(res_gmdt) {
+	var req_gmdt = http.request(options_gmdt, function(res_gmdt) {	
 		if(res_gmdt.headers['location'] && res_gmdt.statusCode != 200){
 			console.log("Received a "+res_gmdt.statusCode+" code, going to "+res_gmdt.headers['location']);
 			var locationUrl = url.parse(res_gmdt.headers['location']);
 			return getMementoDateTime(uri,date,locationUrl.host,locationUrl.pathname,false,callbacks);
-		}else if(!(res_gmdt.headers['memento-datetime'])){ //bad URI, e.g., example.comx
+		/*}else if(!(res_gmdt.headers['memento-datetime'])){ //bad URI, e.g., example.comx
+			console.log(res_gmdt);
 			jsonErrorCallback("The URI-R you requested has no mementos.");
-			return;
+			return;*/
 		}else {
 			
 			console.log("Memento-Datetime is "+res_gmdt.headers['memento-datetime']);
@@ -376,10 +390,8 @@ function getTimemap(response,uri,callback){
 			total: t.mementos.length
 		})
 	 	t.mementos.forEach(function(memento,m){
-	 		//memento.setSimhash()
 	 		arrayOfSetSimhashFunctions.push(memento.setSimhash());
 	 		bar.tick(1);
-	 		//console.log("\n");
 	 	});
 
 	 	return Promise.all(
@@ -438,7 +450,7 @@ function getTimemap(response,uri,callback){
 	 }
 	 
 	 function printMementoInformation(){
-	 	console.log("Done");
+	 	console.log("Done");	 	
 	 	response.write(JSON.stringify(t.mementos));
 		response.end();
 	 	
