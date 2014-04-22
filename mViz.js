@@ -15,12 +15,14 @@ var http = require("http");
 //var http = require('http').http;
 var url = require("url");
 var util = require("util");
-var request = require("request");
+//var request = require("request");
 var Step = require("step");
 var async = require("async");
 var Futures = require("futures");
 var Promise = require('es6-promise').Promise;
 var simhash = require('simhash')('md5');
+
+var ProgressBar = require("progress");
 
 //var util = require("util"); //for util.inspect for debugging
 
@@ -73,7 +75,6 @@ function main(){
 	 }
 	 
 	 
-	 
 	  var pathname = url.parse(request.url).pathname;
 		console.log(request.headers);
 	  var query = url.parse(request.url, true).query;
@@ -114,7 +115,7 @@ function main(){
 	
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
 	http.createServer(respond).listen(PORT);
-}
+
 
 /**
 * A data structure that allows a trace of the negotiation to be returned
@@ -207,12 +208,17 @@ Memento.prototype.setSimhash = function(){
 		var buffer2 = "";
 		var memento = this;
 		var mOptions = url.parse(thaturi);
-		
+		//console.log("Simhashing "+thaturi);
+		console.log("");
 		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
 			res.setEncoding('utf8');
 			res.on('data', function (data) {
 				buffer2 += data.toString();
 			});
+			if(res.statusCode != 200){
+				//throw "Error with "+thaturi+":\n\tThis has to be handled (esp 302s), else the simhash is 000";
+				resolve("3");
+			}
 			res.on('end',function(d){
 				var sh = simhash((buffer2).split('')).join('');
 				retStr = getHexString(sh);
@@ -221,13 +227,16 @@ Memento.prototype.setSimhash = function(){
 				resolve(retStr);
 			});
 			res.on('error',function(err){
+				console.log("REJECT!");
 				reject(Error("Network Error"));
+				console.log("Simhash rejected");
 			});
 		});
 		req.end();
-		buffer2 = "";	
+		//buffer2 = "";	
 	})).then(function(str){
 		thatmemento.simhash = retStr;
+		//console.log("Then done "+thatmemento.uri+" "+retStr);
 		return retStr;
 	}); 
 }
@@ -302,6 +311,7 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 */
 
 function getTimemap(response,uri,callback){
+	console.time('timer');
   	var options = {
 	  		//host: 'mementoproxy.lanl.gov',
 	  		host: 'web.archive.org',
@@ -313,7 +323,7 @@ function getTimemap(response,uri,callback){
 	  
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
 	var sequence = Futures.sequence();
-	var t;
+	var t, retStr = "";
 	var promise = new Promise(function(resolve, reject){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
@@ -339,7 +349,7 @@ function getTimemap(response,uri,callback){
 						];
 
 						//next(res, d, 0);
-						return resolve(0);
+						return resolve(res);
 					}
 				});
 			  });
@@ -349,24 +359,35 @@ function getTimemap(response,uri,callback){
 			  console.log(e);
 			});
 			req.on('socket', function (socket) { // slow connection is slow
-				socket.setTimeout(3000);  
-				socket.on('timeout', function() {
-					console.log("The server took too long to respond and we're only getting older so we aborted.");
-					req.abort();
-				});
+				//socket.setTimeout(3000);  
+				//socket.on('timeout', function() {
+				//	console.log("The server took too long to respond and we're only getting older so we aborted.");
+				//	req.abort();
+				//});
 			});
 	
 			req.end();
-	 });
-	 var retStr = "";
-	 promise.then(function(i){
+	 }).then(function(){
 	 	var arrayOfSetSimhashFunctions = [];
-	 	t.mementos.forEach(function(memento){
+	 	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
+	 		complete: '=',
+			incomplete: ' ',
+			width: 20,
+			total: t.mementos.length
+		})
+	 	t.mementos.forEach(function(memento,m){
+	 		//memento.setSimhash()
 	 		arrayOfSetSimhashFunctions.push(memento.setSimhash());
+	 		bar.tick(1);
+	 		//console.log("\n");
 	 	});
+
 	 	return Promise.all(
 	 		arrayOfSetSimhashFunctions
-	 	);
+	 	).catch(function(err){
+	 		console.log("OMFG, an error!");
+	 		console.log(err);
+	 	});
 	 })
 	 .catch(function(err){
 	 	console.log("Error!");
@@ -374,29 +395,65 @@ function getTimemap(response,uri,callback){
 	 })
 	 .then(sortMementosByMementoDatetime)
 	 .then(calculateHammingDistances)
+	//.then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
 	 .then(printMementoInformation);
 		 
 	 
 	 function sortMementosByMementoDatetime(){
+	 	//response.write(JSON.stringify(hashes));
+		//response.end();
+
+	 	//return resolve(hashes)
+	 	//resolve(100);
 	 	//t.sortByDatetime();
 	 }
 	 function calculateHammingDistances(){
+	 		
+	 	var hammingbar = new ProgressBar("  Hamming [:bar] :percent :etas", {
+	 		complete: '=',
+			incomplete: ' ',
+			width: 20,
+			total: t.mementos.length-1
+		});
+	 	
+	 	console.log("Calculating hamming distances");
 	 	t.mementos.forEach(function(memento,m,ary){
 	 		if(m > 0){
+	 			//console.log("Comparing "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[m-1].simhash);
+	 			hammingbar.tick(1);
+	 			console.log("\n");
 	 		}else if(m == 0){return;}
 	 	});
+	 	console.log("\n");
+	 }
+	 
+	 function calculateCaptureTimeDeltas(){
+	 	console.log("Calculating capture time deltas");
+	 	t.mementos.forEach(function(memento,m,ary){
+	 		if(m > 0){
+	 			t.mementos[m].captureTimeDelta = getTimeDifferenceBetweenTwoMementos(t.mementos[m],t.mementos[m-1]);
+	 		}else if(m == 0){return;}
+	 	});	 
 	 }
 	 
 	 function printMementoInformation(){
-	 	//console.log("Done");
+	 	console.log("Done");
+	 	response.write(JSON.stringify(t.mementos));
+		response.end();
+	 	
+	 	console.timeEnd('timer');
 	 	console.log(t.mementos);
+	 	console.log("Done");
+	 	console.log(res);
+	 	
 	 	//response.write(t.mementos);
 	 }
 	 
 	 function getHamming(str1,str2){
-	 	if(str1.length != str2.length){throw "Unequal lengths when both strings must be equal to calculate hamming distance.";}
-	 	
+	 	if(str1.length != str2.length){
+	 	throw "Unequal lengths when both strings must be equal to calculate hamming distance.";}
+		
 	 	var d = 0;
 	 	for(var ii=0; ii<str1.length; ii++){
 	 		if(str1[ii] != str2[ii]){d++;}
@@ -404,6 +461,13 @@ function getTimemap(response,uri,callback){
 	 	return d;
 	 }
 	 
+	 function getTimeDifferenceBetweenTwoMementos(m1, m2){
+	 	console.log("Finding time delta for "+m1.uri);
+	 	console.log(m1.uri.find(/[0-9]{14}/g));
+	 }
+	 
+}
+
 }
 
 /* *********************************
