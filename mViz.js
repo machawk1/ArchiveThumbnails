@@ -23,7 +23,7 @@ var Promise = require('es6-promise').Promise;
 var simhash = require('simhash')('md5');
 
 var ProgressBar = require("progress");
-
+var memwatch = require('memwatch');
 //var util = require("util"); //for util.inspect for debugging
 
 // And now for something completely different: phantomjs dependencies!
@@ -52,13 +52,17 @@ var PORT = 15421;
 * Initially called to invoke the server instance
 */
 function main(){
+	memwatch.on('leak', function(info) { console.error(info); });
+	console.log("Thumbnails service started.");
+	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
+
+	
 	/**
 	* Handle an HTTP request and respond appropriately
 	* @param request  The request object from the client representing query information
 	* @param response Currently active HTTP response to the client used to return information to the client based on the request
 	*/
 	function respond(request, response) {
-	 //from https://gist.github.com/nilcolor/816580
 	 var headers = {};
 	 // IE8 does not allow domains to be specified, just the *
 	 // headers["Access-Control-Allow-Origin"] = req.headers.origin;
@@ -70,6 +74,7 @@ function main(){
 	 
 	 
 	 if (request.method != 'GET') {
+	 	  console.log("Bad method "+request.method+" sent from client. Try HTTP GET");
 	 	  response.writeHead(405, headers);
 		  response.end();
 		  return;  
@@ -82,7 +87,9 @@ function main(){
 
 	  var query = url.parse(request.url, true).query;
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
+	    console.log("No URI-R sent with request. Try http://localhost:15421/?URI-R=http://matkelly.com");
 	  	response.writeHead(400, headers);
+	  	response.write(getHTMLSubmissionForm());
 		response.end();
 		return;  
 	  }
@@ -91,8 +98,10 @@ function main(){
 	  
 	  if(!uri_r.match(/^[a-zA-Z]+:\/\//)){uri_r = 'http://' + uri_r;}//prepend scheme if necessary
 	  
-	  headers["Content-Type"] = "application/json";
+	 
+	  headers["Content-Type"] = "text/html"; //application/json
 	  response.writeHead(200, headers);
+	 
 	  
 	  if(!validator.isURL(uri_r)){ //return "invalid URL"
 	  	returnJSONError("Invalid URI");
@@ -124,6 +133,13 @@ function main(){
 	  var mementoDatetime = getMementoDateTime(uri_r,request.headers['accept-datetime'],timegate_host,timegate_path,true,callbacks);
 	  return;
 	  
+	}
+
+	function getHTMLSubmissionForm(){
+		var form = "<html><head></head><body><form method=\"get\" action=\"/\">";
+		form +=    " <label for=\"uri_r\" style=\"float: left;\">URI-R:</label><input type=\"text\" name=\"URI-R\" />";
+		form +=	   " <input type=\"submit\" />";
+		return form;
 	}
 	
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
@@ -208,6 +224,7 @@ function Memento(uri,datetime,rel){
 	this.datetime = datetime;
 	this.rel = rel;
 	this.simhash = null;
+	this.captureTimeDelta = -1;
 }
 
 Memento.prototype.toString = function(){
@@ -407,7 +424,8 @@ function getTimemap(response,uri,callback){
 	 })
 	 .then(sortMementosByMementoDatetime)
 	 .then(calculateHammingDistances)
-	//.then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
+	 .then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
+	 .then(applyKMedoids)
 	 .then(printMementoInformation);
 		 
 	 
@@ -434,7 +452,7 @@ function getTimemap(response,uri,callback){
 	 			//console.log("Comparing "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[m-1].simhash);
 	 			hammingbar.tick(1);
-	 			console.log("\n");
+	 			console.log("");
 	 		}else if(m == 0){return;}
 	 	});
 	 	console.log("\n");
@@ -442,29 +460,68 @@ function getTimemap(response,uri,callback){
 	 
 	 function calculateCaptureTimeDeltas(){
 	 	console.log("Calculating capture time deltas");
-	 	t.mementos.forEach(function(memento,m,ary){
+	 	t.mementos.forEach(function(memento,m,ary){	 		
 	 		if(m > 0){
-	 			t.mementos[m].captureTimeDelta = getTimeDifferenceBetweenTwoMementos(t.mementos[m],t.mementos[m-1]);
+	 			t.mementos[m].captureTimeDelta = getTimeDiffBetweenTwoMementoURIs(t.mementos[m].uri,t.mementos[m-1].uri);
+	 			
 	 		}else if(m == 0){return;}
 	 	});	 
 	 }
 	 
-	 function printMementoInformation(){
-	 	console.log("Done");	 	
+	 function applyKMedoids(){
+	 	//1. Initialize: randomly select k of the n data points as the medoids
+	 	//var arr = t.mementos.clone();
+	 	//var k = 5; //for testing
+	 	//var selectedK = getRandomSubsetOfMementosArray(arr,k);
+		//2. Associate each data point to the closest medoid. ("closest" here is defined using any valid distance metric, most commonly Euclidean distance, Manhattan distance or Minkowski distance)
+		//3. For each medoid m
+		//     3a. For each non-medoid data point o
+		//     3b. Swap m and o and compute the total cost of the configuration
+		//4. Select the configuration with the lowest cost.
+		//5. Repeat steps 2 to 4 until there is no change in the medoid.
+	 }
+	 
+	 // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
+	 function getRandomSubsetOfMementosArray(arr,siz){
+	 		
+			var shuffled = arr.slice(0), i = arr.length, temp, index;
+			while (i--) {
+				index = Math.floor((i + 1) * Math.random());
+				temp = shuffled[index];
+				shuffled[index] = shuffled[i];
+				shuffled[i] = temp;
+			}
+			return shuffled.slice(0, size);
+	 }
+	 
+	 function printMementoInformation(){	
+	 	var CRLF = "\r\n"; var TAB = "\t"; 
+	 	response.write("<html><head>");
+	 	response.write("<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>");
+		response.write("<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>");
+	 	response.write("<script>var returnedJSON =");	
 	 	response.write(JSON.stringify(t.mementos));
+	 	response.write(";</script><script>");
+	 	response.write("$(document).ready(function(){" + CRLF);
+	 	response.write("console.log(returnedJSON.length);");
+	 	response.write(CRLF + "var str = \"<table>\";"+
+	 	CRLF + "for(var i=0; i<returnedJSON.length; i++){"+
+	 	CRLF + TAB + "str += \"<tr><td>\"+returnedJSON[i].datetime+\"</td><td>\"+returnedJSON[i].uri+\"</td></tr>\";"+
+	 	CRLF + "}"+
+	 	CRLF + "str += \"</table>\";" +
+	 	CRLF + "$('body').append(str);" +
+	 	CRLF + "});"
+	 	);
+	 	response.write("</script></head><body></body></html>");
 		response.end();
-	 	
+	 	console.log("Done echoing to client");
 	 	console.timeEnd('timer');
-	 	console.log(t.mementos);
-	 	console.log("Done");
-	 	console.log(res);
-	 	
-	 	//response.write(t.mementos);
 	 }
 	 
 	 function getHamming(str1,str2){
 	 	if(str1.length != str2.length){
-	 	throw "Unequal lengths when both strings must be equal to calculate hamming distance.";}
+	 		throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
+	 	}
 		
 	 	var d = 0;
 	 	for(var ii=0; ii<str1.length; ii++){
@@ -473,9 +530,20 @@ function getTimemap(response,uri,callback){
 	 	return d;
 	 }
 	 
-	 function getTimeDifferenceBetweenTwoMementos(m1, m2){
-	 	console.log("Finding time delta for "+m1.uri);
-	 	console.log(m1.uri.find(/[0-9]{14}/g));
+	 function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI){
+	 	var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];	//newer
+	 	var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];	//older
+
+	 	if(newerDate && olderDate){
+	 		try{
+	 			var diff = (parseInt(newerDate) - parseInt(olderDate));
+	 			return diff;
+	 		}catch(e){
+	 			console.log(e.message);
+	 		}
+	 	}else {
+	 		throw new Exception("Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t"+newerMemento.uri+"\r\n\t"+olderMemento.uri);
+	 	}
 	 }
 	 
 }
