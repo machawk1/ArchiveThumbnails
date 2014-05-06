@@ -34,8 +34,11 @@ var fs = require("fs");
 var validator = require('validator');
 var underscore = require('underscore');
 
+var webshot = require("webshot"); //phantomjs wrapper
+
 var timegate_host = "mementoproxy.lanl.gov";
 var timegate_path = "/aggr/timegate/";
+
 
 var PORT = 15421;
 //var timemap;
@@ -426,6 +429,7 @@ function getTimemap(response,uri,callback){
 	 .then(calculateHammingDistances)
 	 .then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
 	 .then(applyKMedoids)
+	 .then(createScreenshotsForAllMementos)
 	 .then(printMementoInformation);
 		 
 	 
@@ -437,6 +441,19 @@ function getTimemap(response,uri,callback){
 	 	//resolve(100);
 	 	//t.sortByDatetime();
 	 }
+	 
+	 function createScreenshotsForAllMementos(){
+	 	t.mementos.forEach(function(memento,m,ary){
+	 		console.log("Creating a screenshot for "+t.mementos[m].uri);
+	 		var filename = encodeURIComponent(t.mementos[m].uri)+".png";
+
+	 		webshot(t.mementos[m].uri, filename, function(err) {
+	 			if(err){console.log("Error creating a screenshot for "+t.mementos[m].uri);}
+	 			else {console.log("Screenshot created for "+t.mementos[m].uri);}
+	 		});
+	 	});
+	 }
+	 
 	 function calculateHammingDistances(){
 	 		
 	 	var hammingbar = new ProgressBar("  Hamming [:bar] :percent :etas", {
@@ -503,14 +520,14 @@ function getTimemap(response,uri,callback){
 	 	response.write(JSON.stringify(t.mementos));
 	 	response.write(";</script><script>");
 	 	response.write("$(document).ready(function(){" + CRLF);
-	 	response.write("console.log(returnedJSON.length);");
+	 	response.write("console.log(returnedJSON);");
 	 	response.write(CRLF + "var str = \"<table>\";"+
-	 	CRLF + "for(var i=0; i<returnedJSON.length; i++){"+
-	 	CRLF + TAB + "str += \"<tr><td>\"+returnedJSON[i].datetime+\"</td><td>\"+returnedJSON[i].uri+\"</td></tr>\";"+
-	 	CRLF + "}"+
-	 	CRLF + "str += \"</table>\";" +
-	 	CRLF + "$('body').append(str);" +
-	 	CRLF + "});"
+			CRLF + "for(var i=0; i<returnedJSON.length; i++){"+
+			CRLF + TAB + "str += \"<tr><td>\"+returnedJSON[i].datetime+\"</td><td>\"+returnedJSON[i].uri+\"</td></tr>\";"+
+			CRLF + "}"+
+			CRLF + "str += \"</table>\";" +
+			CRLF + "$('body').append(str);" +
+			CRLF + "});"
 	 	);
 	 	response.write("</script></head><body></body></html>");
 		response.end();
