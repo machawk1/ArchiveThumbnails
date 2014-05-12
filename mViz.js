@@ -32,6 +32,7 @@ var phantom = require('node-phantom');
 //https://github.com/alexscheelmeyer/node-phantom
 
 var fs = require("fs");
+var path = require('path');
 var validator = require('validator');
 var underscore = require('underscore');
 
@@ -258,6 +259,7 @@ Memento.prototype.setSimhash = function(){
 		//console.log("Simhashing "+thaturi);
 		console.log("");
 		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
+		
 			res.setEncoding('utf8');
 			res.on('data', function (data) {
 				buffer2 += data.toString();
@@ -267,11 +269,18 @@ Memento.prototype.setSimhash = function(){
 				resolve("3");
 			}
 			res.on('end',function(d){
-				var sh = simhash((buffer2).split('')).join('');
-				retStr = getHexString(sh);
-				//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
-				buffer2 = "";
-				resolve(retStr);
+				console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
+				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
+					var sh = simhash((buffer2).split('')).join('');
+					retStr = getHexString(sh);
+					//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
+					buffer2 = "";
+					resolve(retStr);
+				}else{
+					//we need to delete this memento, it's a duplicate and a "soft 302" from archive.org
+					console.log("BALETED!");
+					resolve("isA302DeleteMe");
+				}
 			});
 			res.on('error',function(err){
 				console.log("REJECT!");
@@ -282,6 +291,8 @@ Memento.prototype.setSimhash = function(){
 		req.end();
 		//buffer2 = "";	
 	})).then(function(str){
+		console.log("Simhash length: "+retStr.length+" "+retStr+" "+thaturi);
+		
 		thatmemento.simhash = retStr;
 		//console.log("Then done "+thatmemento.uri+" "+retStr);
 		return retStr;
@@ -437,7 +448,16 @@ function getTimemap(response,uri,callback){
 	 	).catch(function(err){
 	 		console.log("OMFG, an error!");
 	 		console.log(err);
-	 	}).then(function(){callback("");});
+	 	}).then(function(){
+	 		//remove all mementos whose payload body was a Wayback soft 302
+	 		for (var i = t.mementos.length-1; i >= 0; i--) {
+				if (t.mementos[i].simhash === "isA302DeleteMe") {
+					t.mementos.splice(i, 1);
+				}
+			}
+			
+	 		callback("");
+	 	});
 	 },
 	 //}};
 	 //})
@@ -480,7 +500,7 @@ function getTimemap(response,uri,callback){
 		//	}
 	 	//);
 
-		async.each(t.mementos,createScreenshotForMemento,function(err){console.log("DoneX");console.log(err); console.log("DoneY"); callback("");});
+		async.each(t.mementos,createScreenshotForMemento,function(err){callback("");});
 		//return Promise.all(arrayOfCreateScreenshotFunctions,function(){console.log("Something failed.");});
 	 }
 	 
@@ -495,9 +515,9 @@ function getTimemap(response,uri,callback){
 		
 		var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize
 		memento.screenshotURI = filename;
-		console.log("1");
+
 		try{
-			fs.open(filename,'r');
+			fs.openSync(path.join(__dirname+filename),'r',function(e,r){console.log(e);console.log(r);});
 			console.log(filename+" already exists");
 			callback();
 			return;
@@ -533,11 +553,13 @@ function getTimemap(response,uri,callback){
 	 	
 	 	console.log("Calculating hamming distances");
 	 	t.mementos.forEach(function(memento,m,ary){
+	 		console.log(m);
 	 		if(m > 0){
 	 			//console.log("Comparing "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
+	 			console.log("Hamming "+t.mementos[m].uri+" "+t.mementos[m-1].uri+" "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[m-1].simhash);
 	 			hammingbar.tick(1);
-	 			console.log("");
+	 			console.log(t.mementos[m].uri+" hammed!");
 	 		}else if(m == 0){return;}
 	 	});
 	 	console.log("\n");
@@ -585,30 +607,16 @@ function getTimemap(response,uri,callback){
 	 
 	 function printMementoInformation(callback){	
 	 	var CRLF = "\r\n"; var TAB = "\t"; 
-	 	response.write("<html><head>");
-	 	response.write("<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>");
-		response.write("<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>");
-	 	response.write("<script>var returnedJSON =");	
-	 	response.write(JSON.stringify(t.mementos));
-	 	response.write(";</script><script>");
-	 	response.write("$(document).ready(function(){" + CRLF);
-	 	response.write(       "console.log(returnedJSON);");
-	 	response.write(CRLF + "var str = \"<table>\";"+
-			CRLF +            "for(var i=0; i<returnedJSON.length; i++){"+
-			CRLF + TAB +         "str += \"<tr><td><img width=50 height=50 src=\'"+imageServer+"spinner.gif\' title=\'"+imageServer+"\"+returnedJSON[i].screenshotURI+\"' /></td><td>\"+returnedJSON[i].datetime+\"</td><td>\"+returnedJSON[i].uri+\"</td></tr>\";"+
-			CRLF +             "}"+
-			CRLF +             "str += \"</table>\";" +
-			CRLF +             "$('body').append(str);" +
-			CRLF +             "setTimeout(function(){" +
-			CRLF + TAB +            "$('img').each(function(){" +
-			CRLF + TAB + TAB +			"$(this).fadeOut(400,function(){;" +
-			CRLF + TAB + TAB + TAB +        "$(this).attr('src',$(this).attr('title'));" +
-			CRLF + TAB + TAB +          "}).fadeIn(400);" +
-			CRLF + TAB +            "});" +
-			CRLF +             "},10000);" +
-			CRLF +     "});"
-	 	);
-	 	response.write("</script></head><body></body></html>");
+	 	var respString = 
+	 		"<html><head>" + CRLF +
+	 		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
+			"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
+	 		"<script>var returnedJSON =" + CRLF +
+	 		JSON.stringify(t.mementos) + CRLF +
+	 		";</script>" + CRLF +
+	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
+	 		"</head><body></body></html>";
+	 	response.write(respString);
 		response.end();
 	 	console.log("Done echoing to client");
 	 	console.timeEnd('timer');
@@ -616,14 +624,20 @@ function getTimemap(response,uri,callback){
 	 }
 	 
 	 function getHamming(str1,str2){
+	 	console.log("About to ham");
 	 	if(str1.length != str2.length){
+	 		console.log("Oh noes! Hamming went awry!");
+	 		console.log(str1+" "+str2+" "+str1.length+" "+str2.length);
 	 		throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
 	 	}
-		
+		console.log("Commence the hamming!");
 	 	var d = 0;
 	 	for(var ii=0; ii<str1.length; ii++){
-	 		if(str1[ii] != str2[ii]){d++;}
+	 		//console.log(ii+"/"+str1.length+": "+str1[ii]+" "+str2[ii]);
+	 		if(str1[ii] != str2[ii]){console.log("incremening d!");d++;}
+	 		//console.log("d = "+d);
 	 	}
+	 	console.log("done hamming");
 	 	return d;
 	 }
 	 
