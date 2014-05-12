@@ -20,6 +20,7 @@ var Step = require("step");
 var async = require("async");
 var Futures = require("futures");
 var Promise = require('es6-promise').Promise;
+var Async = require("async");
 var simhash = require('simhash')('md5');
 
 var ProgressBar = require("progress");
@@ -41,6 +42,7 @@ var timegate_path = "/aggr/timegate/";
 
 
 var PORT = 15421;
+var imageServer = "http://localhost:1338/";
 //var timemap;
 
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
@@ -85,10 +87,22 @@ function main(){
 	 
 	 
 	 
-	 
 	  var pathname = url.parse(request.url).pathname;
 
 	  var query = url.parse(request.url, true).query;
+	  
+	  if(query['img']){
+	 	//return image data here
+	 	var fileExtension = query['img'].substr("-3");
+	 	console.log("fetching "+query['img']+" content");
+
+	 	var img = fs.readFileSync(__dirname+"/"+query['img']);
+	 	response.writeHead(200, {'Content-Type': 'image/'+fileExtension });
+	 	response.end(img, 'binary');
+	 	
+	 	return;
+	 }	 
+	  
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
 	    console.log("No URI-R sent with request. Try http://localhost:15421/?URI-R=http://matkelly.com");
 	  	response.writeHead(400, headers);
@@ -358,7 +372,9 @@ function getTimemap(response,uri,callback){
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
 	var sequence = Futures.sequence();
 	var t, retStr = "";
-	var promise = new Promise(function(resolve, reject){
+	//var promise = new Promise(function(resolve, reject){
+	async.series([
+		function(callback){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
 				res.on('data', function (data) {
@@ -383,7 +399,7 @@ function getTimemap(response,uri,callback){
 						];
 
 						//next(res, d, 0);
-						return resolve(res);
+						callback("");
 					}
 				});
 			  });
@@ -401,7 +417,9 @@ function getTimemap(response,uri,callback){
 			});
 	
 			req.end();
-	 }).then(function(){
+		},
+	 //}).then(function(){
+	 function(callback){
 	 	var arrayOfSetSimhashFunctions = [];
 	 	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
 	 		complete: '=',
@@ -419,42 +437,92 @@ function getTimemap(response,uri,callback){
 	 	).catch(function(err){
 	 		console.log("OMFG, an error!");
 	 		console.log(err);
-	 	});
-	 })
-	 .catch(function(err){
-	 	console.log("Error!");
+	 	}).then(function(){callback("");});
+	 },
+	 //}};
+	 //})
+	 //.catch(function(err){
+	 //	console.log("Error!");
+	 //	console.log(err);
+	 //})
+	 function(callback){sortMementosByMementoDatetime(callback);},//.then(sortMementosByMementoDatetime)
+	 function(callback){calculateHammingDistances(callback);},//.then(calculateHammingDistances)
+	 function(callback){calculateCaptureTimeDeltas(callback);},//.then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
+	 function(callback){applyKMedoids(callback);},//.then(applyKMedoids)
+	 function(callback){createScreenshotsForAllMementos(callback);}],
+	 function(callback){printMementoInformation(callback);},//.then(printMementoInformation)
+	 function(err, result){
+	 	console.log("ERROR!");
 	 	console.log(err);
-	 })
-	 .then(sortMementosByMementoDatetime)
-	 .then(calculateHammingDistances)
-	 .then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
-	 .then(applyKMedoids)
-	 .then(createScreenshotsForAllMementos)
-	 .then(printMementoInformation);
-		 
-	 
-	 function sortMementosByMementoDatetime(){
+	 }); 
+
+
+
+	 function sortMementosByMementoDatetime(callback){
 	 	//response.write(JSON.stringify(hashes));
 		//response.end();
 
 	 	//return resolve(hashes)
 	 	//resolve(100);
 	 	//t.sortByDatetime();
+	 	callback("");
 	 }
 	 
-	 function createScreenshotsForAllMementos(){
-	 	t.mementos.forEach(function(memento,m,ary){
-	 		console.log("Creating a screenshot for "+t.mementos[m].uri);
-	 		var filename = encodeURIComponent(t.mementos[m].uri)+".png";
-
-	 		webshot(t.mementos[m].uri, filename, function(err) {
-	 			if(err){console.log("Error creating a screenshot for "+t.mementos[m].uri);}
-	 			else {console.log("Screenshot created for "+t.mementos[m].uri);}
-	 		});
+	 function createScreenshotsForAllMementos(callback){
+	 	var arrayOfCreateScreenshotFunctions = [];
+	 	
+	 	t.mementos.forEach(function(memento,m){
+	 		arrayOfCreateScreenshotFunctions.push(function(callback){createScreenshotForMemento(memento.uri,callback);});
 	 	});
+	 	//async.parallel(arrayOfCreateScreenshotFunctions,
+		//	function(err,result){
+		//		console.log("Done!");
+		//	}
+	 	//);
+
+		async.each(t.mementos,createScreenshotForMemento,function(err){console.log("DoneX");console.log(err); console.log("DoneY"); callback("");});
+		//return Promise.all(arrayOfCreateScreenshotFunctions,function(){console.log("Something failed.");});
 	 }
 	 
-	 function calculateHammingDistances(){
+	 function createScreenshotForMemento(memento,callback){
+	 	var uri = memento.uri;
+	 	console.log("Setting up create screenshot function for "+uri);
+	 	//return (new Promise(function(resolve,reject){
+	 	console.log(uri);
+		console.log("Creating a screenshot for "+uri);
+		
+		
+		
+		var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize
+		memento.screenshotURI = filename;
+		console.log("1");
+		try{
+			fs.open(filename,'r');
+			console.log(filename+" already exists");
+			callback();
+			return;
+		}catch(e){
+			console.log(filename+" does not exist, generating SS.");
+		}
+		
+		webshot(uri, filename, function(err) {
+			if(err){
+				console.log("Error creating a screenshot for "+uri);
+				console.log(err);
+				//return resolve("yay!");
+				callback("Screenshot failed!");
+			}else {
+				fs.chmodSync("./"+filename, '755');
+				console.log("Screenshot created for "+uri);
+				//resolve("Screenshot created for "+uri);
+				//return reject("error!");
+				callback();
+			}
+		});
+
+	 }
+	 
+	 function calculateHammingDistances(callback){
 	 		
 	 	var hammingbar = new ProgressBar("  Hamming [:bar] :percent :etas", {
 	 		complete: '=',
@@ -473,9 +541,10 @@ function getTimemap(response,uri,callback){
 	 		}else if(m == 0){return;}
 	 	});
 	 	console.log("\n");
+	 	callback("");
 	 }
 	 
-	 function calculateCaptureTimeDeltas(){
+	 function calculateCaptureTimeDeltas(callback){
 	 	console.log("Calculating capture time deltas");
 	 	t.mementos.forEach(function(memento,m,ary){	 		
 	 		if(m > 0){
@@ -483,9 +552,10 @@ function getTimemap(response,uri,callback){
 	 			
 	 		}else if(m == 0){return;}
 	 	});	 
+	 	callback("");
 	 }
 	 
-	 function applyKMedoids(){
+	 function applyKMedoids(callback){
 	 	//1. Initialize: randomly select k of the n data points as the medoids
 	 	//var arr = t.mementos.clone();
 	 	//var k = 5; //for testing
@@ -496,6 +566,8 @@ function getTimemap(response,uri,callback){
 		//     3b. Swap m and o and compute the total cost of the configuration
 		//4. Select the configuration with the lowest cost.
 		//5. Repeat steps 2 to 4 until there is no change in the medoid.
+		console.log("Applying K Medoids");
+		callback("");
 	 }
 	 
 	 // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
@@ -511,7 +583,7 @@ function getTimemap(response,uri,callback){
 			return shuffled.slice(0, size);
 	 }
 	 
-	 function printMementoInformation(){	
+	 function printMementoInformation(callback){	
 	 	var CRLF = "\r\n"; var TAB = "\t"; 
 	 	response.write("<html><head>");
 	 	response.write("<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>");
@@ -520,19 +592,27 @@ function getTimemap(response,uri,callback){
 	 	response.write(JSON.stringify(t.mementos));
 	 	response.write(";</script><script>");
 	 	response.write("$(document).ready(function(){" + CRLF);
-	 	response.write("console.log(returnedJSON);");
+	 	response.write(       "console.log(returnedJSON);");
 	 	response.write(CRLF + "var str = \"<table>\";"+
-			CRLF + "for(var i=0; i<returnedJSON.length; i++){"+
-			CRLF + TAB + "str += \"<tr><td>\"+returnedJSON[i].datetime+\"</td><td>\"+returnedJSON[i].uri+\"</td></tr>\";"+
-			CRLF + "}"+
-			CRLF + "str += \"</table>\";" +
-			CRLF + "$('body').append(str);" +
-			CRLF + "});"
+			CRLF +            "for(var i=0; i<returnedJSON.length; i++){"+
+			CRLF + TAB +         "str += \"<tr><td><img width=50 height=50 src=\'"+imageServer+"spinner.gif\' title=\'"+imageServer+"\"+returnedJSON[i].screenshotURI+\"' /></td><td>\"+returnedJSON[i].datetime+\"</td><td>\"+returnedJSON[i].uri+\"</td></tr>\";"+
+			CRLF +             "}"+
+			CRLF +             "str += \"</table>\";" +
+			CRLF +             "$('body').append(str);" +
+			CRLF +             "setTimeout(function(){" +
+			CRLF + TAB +            "$('img').each(function(){" +
+			CRLF + TAB + TAB +			"$(this).fadeOut(400,function(){;" +
+			CRLF + TAB + TAB + TAB +        "$(this).attr('src',$(this).attr('title'));" +
+			CRLF + TAB + TAB +          "}).fadeIn(400);" +
+			CRLF + TAB +            "});" +
+			CRLF +             "},10000);" +
+			CRLF +     "});"
 	 	);
 	 	response.write("</script></head><body></body></html>");
 		response.end();
 	 	console.log("Done echoing to client");
 	 	console.timeEnd('timer');
+	 	//callback("");
 	 }
 	 
 	 function getHamming(str1,str2){
