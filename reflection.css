@@ -1,6 +1,12 @@
 body {background-color: black;}
+h1 {color: white; text-align: center; font-family: 'Arial',sans-serif; text-shadow: 0px 2px 5px blue;}
+h2 {color: white;  font-size: 14px; font-family: 'Arial',sans-serif; font-weight: normal;  }
+.caption {background: linear-gradient(#333 33%, #000); ;width: 500px; text-align: center; margin-left: -150px; margin-top: -2px; z-index: 1;border: 3px solid white; display: none; border-top: 0; padding-top: 10px;border-radius: 25px; border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: 0px 10px 20px 0px #000;}
+
+/* Above does not have to do with reflection, extract it out to a separate file in production */
+
 .image-block { width:78px; margin:0px 10px; float:left; }
-.image-block > img {border: 1px solid black; box-shadow: 0px 0px 25px 5px #000;}
+.image-block > img {border: 1px solid black; box-shadow: 0px 0px 25px 5px #000; background-color: white;} /* White background for those mementos whose SS bg is invisible */
 .reflection { position:relative; }
 .reflection img {
     -webkit-transform: scaleY(-1);
@@ -19,3 +25,5 @@ filter: progid:DXImageTransform.Microsoft.Gradient( gradientType=0, startColor=0
 }
 .ui-state-active > img{box-shadow: 0px 0px 50px 10px #000;border: 3px ridge #999; border-bottom: 0; }
 .ui-state-active .reflection img {z-index:10; position: relative; }
+.ui-state-active h2 {display: block;} /* Only show the current titles */
+.ui-state-active .caption {display: block;}

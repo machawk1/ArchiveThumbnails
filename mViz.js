@@ -112,7 +112,8 @@ function main(){
 		return;  
 	  }
 	  
-	  var uri_r = query['URI-R'];
+	  uri_r = query['URI-R'];
+	  
 	  
 	  if(!uri_r.match(/^[a-zA-Z]+:\/\//)){uri_r = 'http://' + uri_r;}//prepend scheme if necessary
 	  
@@ -518,11 +519,11 @@ function getTimemap(response,uri,callback){
 
 		try{
 			fs.openSync(path.join(__dirname+filename),'r',function(e,r){console.log(e);console.log(r);});
-			console.log(filename+" already exists");
+			console.log(path.join(__dirname+filename)+" already exists");
 			callback();
 			return;
 		}catch(e){
-			console.log(filename+" does not exist, generating SS.");
+			console.log(path.join(__dirname+filename)+" does not exist, generating SS.");
 		}
 		
 		webshot(uri, filename, function(err) {
@@ -619,7 +620,7 @@ function getTimemap(response,uri,callback){
 	 			JSON.stringify(t.mementos) + CRLF +
 	 		";</script>" + CRLF +
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
-	 		"</head><body></body></html>";
+	 		"</head><body><h1>Thumbnails for "+uri_r+"</h1></body></html>";
 	 	response.write(respString);
 		response.end();
 	 	console.log("Done echoing to client");
@@ -703,4 +704,5 @@ function getHexString(onesAndZeros){
 ********************************* */
 
 exports.main = main;
+var uri_r = "";
 main();
