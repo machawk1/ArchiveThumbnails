@@ -15,6 +15,7 @@ var http = require("http");
 //var http = require('http').http;
 var url = require("url");
 var util = require("util");
+var connect = require('connect');
 //var request = require("request");
 var Step = require("step");
 var async = require("async");
@@ -43,7 +44,8 @@ var timegate_path = "/aggr/timegate/";
 
 
 var PORT = 15421;
-var imageServer = "http://localhost:1338/";
+var imageServerPort = 1338;
+var imageServer = "http://localhost:"+imageServerPort+"/";
 //var timemap;
 
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
@@ -59,9 +61,15 @@ var imageServer = "http://localhost:1338/";
 */
 function main(){
 	memwatch.on('leak', function(info) { console.error(info); });
+	startImageServer();
 	console.log("Thumbnails service started.");
 	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
 
+	
+	function startImageServer() {
+		connect.createServer(connect.static(__dirname)).listen(imageServerPort);
+		util.puts('Image Server listening on Port ' + imageServerPort + '...');
+	}
 	
 	/**
 	* Handle an HTTP request and respond appropriately
