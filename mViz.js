@@ -609,10 +609,14 @@ function getTimemap(response,uri,callback){
 	 	var CRLF = "\r\n"; var TAB = "\t"; 
 	 	var respString = 
 	 		"<html><head>" + CRLF +
+	 		"<base href=\'"+imageServer+"\' />" + CRLF +
 	 		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
 			"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
+	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
+	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
+	 		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
 	 		"<script>var returnedJSON =" + CRLF +
-	 		JSON.stringify(t.mementos) + CRLF +
+	 			JSON.stringify(t.mementos) + CRLF +
 	 		";</script>" + CRLF +
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	 		"</head><body></body></html>";

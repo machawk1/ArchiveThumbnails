@@ -1,0 +1,6 @@
+(function( $, window, document, undefined ) {
+
+$.coverflow = {
+	renderer : {},
+	support : {}
+};

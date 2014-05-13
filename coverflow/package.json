@@ -1,0 +1,56 @@
+{
+  "name": "CoverflowJS",
+  "title": "CoverflowJS",
+  "description": "A jQuery UI powered coverflow component that takes advantage of CSS3 features",
+  "version": "3.0.1",
+  "author": {
+    "name": "Paul Baukus, Addy Osmani, Sebastian Sauer, Brandon Belvin, April Barrett",
+    "url": "https://github.com/coverflowjs/coverflow"
+  },
+  "maintainers": [
+    {
+      "name": "Addy Osmani",
+      "email": "addyosmani@gmail.com",
+      "url": "http://addyosmani.com"
+    },
+    {
+      "name": "Sebastian Sauer",
+      "email": "info@dynpages.de",
+      "url": "http://jscouch.com"
+    },
+    {
+      "name": "Brandon Belvin",
+      "email": "brandon.belvin@gmail.com",
+      "url": "http://brandonbelvin.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/coverflowjs/coverflow.git"
+  },
+  "bugs": "https://github.com/coverflowjs/coverflow/issues",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/coverflowjs/coverflow/blob/master/MIT-LICENSE.txt"
+    }
+  ],
+  "scripts": {
+    "test": "grunt qunit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.4.2",
+    "grunt-contrib-jshint": "~0.8.0",
+    "grunt-contrib-uglify": "~0.4.0",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-qunit": "~0.4.0",
+    "grunt-contrib-copy": "~0.5.0",
+    "grunt-compare-size": "~0.4.0",
+    "grunt-git-authors": "~1.2.0",
+    "grunt-autoprefixer": "~0.7.2",
+    "grunt-contrib-less": "~0.10.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-contrib-requirejs": "~0.4.1"
+  }
+}
