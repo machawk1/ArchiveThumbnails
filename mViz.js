@@ -43,7 +43,7 @@ var timegate_host = "mementoproxy.lanl.gov";
 var timegate_path = "/aggr/timegate/";
 
 
-var PORT = 15421;
+var thumbnailServicePort = 15421;
 var imageServerPort = 1338;
 var imageServer = "http://localhost:"+imageServerPort+"/";
 //var timemap;
@@ -62,13 +62,13 @@ var imageServer = "http://localhost:"+imageServerPort+"/";
 function main(){
 	memwatch.on('leak', function(info) { console.error(info); });
 	startImageServer();
-	console.log("Thumbnails service started.");
+	console.log("Thumbnails service started on Port "+thumbnailServicePort);
 	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
 
 	
 	function startImageServer() {
 		connect.createServer(connect.static(__dirname)).listen(imageServerPort);
-		util.puts('Image Server listening on Port ' + imageServerPort + '...');
+		util.puts('Local resource (css, js, etc.) server listening on Port ' + imageServerPort + '...');
 	}
 	
 	/**
@@ -133,9 +133,7 @@ function main(){
 	  if(!validator.isURL(uri_r)){ //return "invalid URL"
 	  	returnJSONError("Invalid URI");
 	  	return;
-	  }else {
-	  	console.log("Validation, checking if URI is valid: "+validator.isURL(uri_r));
-	  } 
+	  }
 
 	  function echoMementoDatetimeToResponse(mementoDatetime){
 		response.write("{\"Memento-Datetime\": \""+mementoDatetime.toString("utf8", 0, mementoDatetime.length)+"\",");
@@ -170,7 +168,7 @@ function main(){
 	}
 	
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
-	http.createServer(respond).listen(PORT);
+	http.createServer(respond).listen(thumbnailServicePort);
 
 
 /**
@@ -266,7 +264,7 @@ Memento.prototype.setSimhash = function(){
 		var memento = this;
 		var mOptions = url.parse(thaturi);
 		//console.log("Simhashing "+thaturi);
-		console.log("");
+		//console.log("");
 		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
 		
 			res.setEncoding('utf8');
@@ -278,7 +276,7 @@ Memento.prototype.setSimhash = function(){
 				resolve("3");
 			}
 			res.on('end',function(d){
-				console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
+				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
 					var sh = simhash((buffer2).split('')).join('');
 					retStr = getHexString(sh);
@@ -287,7 +285,6 @@ Memento.prototype.setSimhash = function(){
 					resolve(retStr);
 				}else{
 					//we need to delete this memento, it's a duplicate and a "soft 302" from archive.org
-					console.log("BALETED!");
 					resolve("isA302DeleteMe");
 				}
 			});
@@ -300,7 +297,7 @@ Memento.prototype.setSimhash = function(){
 		req.end();
 		//buffer2 = "";	
 	})).then(function(str){
-		console.log("Simhash length: "+retStr.length+" "+retStr+" "+thaturi);
+		//console.log("Simhash length: "+retStr.length+" "+retStr+" "+thaturi);
 		
 		thatmemento.simhash = retStr;
 		//console.log("Then done "+thatmemento.uri+" "+retStr);
@@ -344,7 +341,7 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 			return;*/
 		}else {
 			
-			console.log("Memento-Datetime is "+res_gmdt.headers['memento-datetime']);
+			//console.log("Memento-Datetime is "+res_gmdt.headers['memento-datetime']);
 			for(var cb=0; cb<callbacks.length; cb++){	//execute the callbacks in-order
 				var callback = callbacks[cb];
 				if(callback.name == "getTimemapCallback"){
@@ -379,7 +376,6 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 */
 
 function getTimemap(response,uri,callback){
-	console.time('timer');
   	var options = {
 	  		//host: 'mementoproxy.lanl.gov',
 	  		host: 'web.archive.org',
@@ -451,35 +447,34 @@ function getTimemap(response,uri,callback){
 	 		arrayOfSetSimhashFunctions.push(memento.setSimhash());
 	 		bar.tick(1);
 	 	});
-
+		
+		console.time('simhashing');
 	 	return Promise.all(
 	 		arrayOfSetSimhashFunctions
 	 	).catch(function(err){
 	 		console.log("OMFG, an error!");
 	 		console.log(err);
 	 	}).then(function(){
+	 		var mementosRemoved = 0;
 	 		//remove all mementos whose payload body was a Wayback soft 302
 	 		for (var i = t.mementos.length-1; i >= 0; i--) {
 				if (t.mementos[i].simhash === "isA302DeleteMe") {
 					t.mementos.splice(i, 1);
+					mementosRemoved++;
 				}
 			}
 			
+			console.timeEnd('simhashing');
+			console.log(mementosRemoved+" mementos removed due to Wayback 'soft 3xxs'");
 	 		callback("");
 	 	});
 	 },
-	 //}};
-	 //})
-	 //.catch(function(err){
-	 //	console.log("Error!");
-	 //	console.log(err);
-	 //})
-	 function(callback){sortMementosByMementoDatetime(callback);},//.then(sortMementosByMementoDatetime)
-	 function(callback){calculateHammingDistances(callback);},//.then(calculateHammingDistances)
-	 function(callback){calculateCaptureTimeDeltas(callback);},//.then(calculateCaptureTimeDeltas) //this can be combine with previous call to turn 2n-->1n
-	 function(callback){applyKMedoids(callback);},//.then(applyKMedoids)
+	 function(callback){sortMementosByMementoDatetime(callback);},
+	 function(callback){calculateHammingDistances(callback);},
+	 function(callback){calculateCaptureTimeDeltas(callback);},//this can be combine with previous call to turn 2n-->1n
+	 function(callback){applyKMedoids(callback);},
 	 function(callback){createScreenshotsForAllMementos(callback);}],
-	 function(callback){printMementoInformation(callback);},//.then(printMementoInformation)
+	 function(callback){printMementoInformation(callback);},
 	 function(err, result){
 	 	console.log("ERROR!");
 	 	console.log(err);
@@ -503,11 +498,6 @@ function getTimemap(response,uri,callback){
 	 	t.mementos.forEach(function(memento,m){
 	 		arrayOfCreateScreenshotFunctions.push(function(callback){createScreenshotForMemento(memento.uri,callback);});
 	 	});
-	 	//async.parallel(arrayOfCreateScreenshotFunctions,
-		//	function(err,result){
-		//		console.log("Done!");
-		//	}
-	 	//);
 
 		async.each(t.mementos,createScreenshotForMemento,function(err){callback("");});
 		//return Promise.all(arrayOfCreateScreenshotFunctions,function(){console.log("Something failed.");});
@@ -515,23 +505,17 @@ function getTimemap(response,uri,callback){
 	 
 	 function createScreenshotForMemento(memento,callback){
 	 	var uri = memento.uri;
-	 	console.log("Setting up create screenshot function for "+uri);
-	 	//return (new Promise(function(resolve,reject){
-	 	console.log(uri);
-		console.log("Creating a screenshot for "+uri);
-		
-		
-		
-		var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize
-		memento.screenshotURI = filename;
 
+		var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
+		memento.screenshotURI = filename;
+		
 		try{
-			fs.openSync(path.join(__dirname+filename),'r',function(e,r){console.log(e);console.log(r);});
-			console.log(path.join(__dirname+filename)+" already exists");
+			fs.openSync(path.join(__dirname+"/"+filename),'r',function(e,r){console.log(e);console.log(r);});
+			console.log(filename+" already exists...continuing");
 			callback();
 			return;
 		}catch(e){
-			console.log(path.join(__dirname+filename)+" does not exist, generating SS.");
+			console.log(filename+" does not exist...generating");
 		}
 		
 		webshot(uri, filename, function(err) {
@@ -560,23 +544,26 @@ function getTimemap(response,uri,callback){
 			total: t.mementos.length-1
 		});
 	 	
-	 	console.log("Calculating hamming distances");
+	 	//console.log("Calculating hamming distances");
+	 	console.time('hamming');
 	 	t.mementos.forEach(function(memento,m,ary){
-	 		console.log(m);
+	 		//console.log(m);
 	 		if(m > 0){
 	 			//console.log("Comparing "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
-	 			console.log("Hamming "+t.mementos[m].uri+" "+t.mementos[m-1].uri+" "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
+	 			//console.log("Hamming "+t.mementos[m].uri+" "+t.mementos[m-1].uri+" "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[m-1].simhash);
 	 			hammingbar.tick(1);
-	 			console.log(t.mementos[m].uri+" hammed!");
+	 			
+	 			//console.log(t.mementos[m].uri+" hammed!");
 	 		}else if(m == 0){return;}
 	 	});
-	 	console.log("\n");
+	 	
+	 	console.timeEnd('hamming');
 	 	callback("");
 	 }
 	 
 	 function calculateCaptureTimeDeltas(callback){
-	 	console.log("Calculating capture time deltas");
+	 	//console.log("Calculating capture time deltas");
 	 	t.mementos.forEach(function(memento,m,ary){	 		
 	 		if(m > 0){
 	 			t.mementos[m].captureTimeDelta = getTimeDiffBetweenTwoMementoURIs(t.mementos[m].uri,t.mementos[m-1].uri);
@@ -628,29 +615,27 @@ function getTimemap(response,uri,callback){
 	 			JSON.stringify(t.mementos) + CRLF +
 	 		";</script>" + CRLF +
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
-	 		"</head><body><h1>Thumbnails for "+uri_r+"</h1></body></html>";
+	 	
+	 		"</head><body><h1>Thumbnails for "+uri_r+"</h1>" + CRLF +
+	 		
+	 		"</body></html>";
 	 	response.write(respString);
 		response.end();
 	 	console.log("Done echoing to client");
-	 	console.timeEnd('timer');
+	 	
 	 	//callback("");
 	 }
 	 
 	 function getHamming(str1,str2){
-	 	console.log("About to ham");
 	 	if(str1.length != str2.length){
 	 		console.log("Oh noes! Hamming went awry!");
 	 		console.log(str1+" "+str2+" "+str1.length+" "+str2.length);
 	 		throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
 	 	}
-		console.log("Commence the hamming!");
 	 	var d = 0;
 	 	for(var ii=0; ii<str1.length; ii++){
-	 		//console.log(ii+"/"+str1.length+": "+str1[ii]+" "+str2[ii]);
-	 		if(str1[ii] != str2[ii]){console.log("incremening d!");d++;}
-	 		//console.log("d = "+d);
-	 	}
-	 	console.log("done hamming");
+	 		if(str1[ii] != str2[ii]){d++;}
+	 	};
 	 	return d;
 	 }
 	 

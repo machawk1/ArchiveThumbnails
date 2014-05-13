@@ -8,7 +8,7 @@ $(document).ready(function(){
     cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
 	cfstr += "<div class=\"caption\">";
 	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
-	cfstr += "<h2>"+returnedJSON[i].uri+"</h2>";
+	cfstr += "<h2><a href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
 	cfstr += "</div>"; /* End caption, ideally this should use figure and figcaption tags */
 	cfstr += "<div class=\"reflection\">";
   	cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
@@ -33,6 +33,7 @@ $(document).ready(function(){
 	}).fadeIn(400);
   });
 
+  
     
 
   
