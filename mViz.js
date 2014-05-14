@@ -281,6 +281,10 @@ Memento.prototype.setSimhash = function(){
 					var sh = simhash((buffer2).split('')).join('');
 					retStr = getHexString(sh);
 					//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
+					
+					if(retStr == "00000000"){
+						resolve("isA302DeleteMe"); //Gateway timeout from the archives, remove from consideration
+					}
 					buffer2 = "";
 					resolve(retStr);
 				}else{
