@@ -25,10 +25,10 @@ $(document).ready(function(){
   
   var beforeCount = $("div.image-block").length;
   
-  //dim those with low hamming distance
-  $("div.image-block").filter(function() {
-  	return $(this).attr("data-hammingDistance") < "4";
-  }).remove();
+  //dim those with low hamming distance, UPDATE: this is now done server-side
+  //$("div.image-block").filter(function() {
+  //	return $(this).attr("data-hammingDistance") < "4";
+  //}).remove();
   
   var afterCount = $("div.image-block").length;
   
@@ -46,8 +46,8 @@ $(document).ready(function(){
 	}).fadeIn(400);
   });
   
-  $("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
-  
+  //$("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
+  $("body").append("<p id=\"count\">"+metadata+"</p>");
   
   
     

@@ -256,6 +256,8 @@ Memento.prototype.toString = function(){
 	return JSON.stringify(this);
 }
 
+
+var iii = 0;
 Memento.prototype.setSimhash = function(){
 	var thaturi = this.uri;
 	var thatmemento = this;
@@ -263,8 +265,7 @@ Memento.prototype.setSimhash = function(){
 		var buffer2 = "";
 		var memento = this;
 		var mOptions = url.parse(thaturi);
-		//console.log("Simhashing "+thaturi);
-		//console.log("");
+
 		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
 		
 			res.setEncoding('utf8');
@@ -276,14 +277,18 @@ Memento.prototype.setSimhash = function(){
 				resolve("3");
 			}
 			res.on('end',function(d){
+				//++iii;
+				//console.log((iii)+" mementos done");
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
 					var sh = simhash((buffer2).split('')).join('');
 					retStr = getHexString(sh);
 					//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
-					
-					
-					if(retStr == "00000000"){
+					//console.log("retstr is "+retStr);
+					if(!retStr || retStr == "00000000"){
+						//normalize so not undefined
+						retStr = "00000000";
+						
 						resolve("isA302DeleteMe"); //Gateway timeout from the archives, remove from consideration
 					}
 					buffer2 = "";
@@ -303,6 +308,7 @@ Memento.prototype.setSimhash = function(){
 		//buffer2 = "";	
 	})).then(function(str){
 		//console.log("Simhash length: "+retStr.length+" "+retStr+" "+thaturi);
+		if(!retStr){retStr = "00000000";}
 		
 		thatmemento.simhash = retStr;
 		//console.log("Then done "+thatmemento.uri+" "+retStr);
@@ -340,13 +346,7 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 			console.log("Received a "+res_gmdt.statusCode+" code, going to "+res_gmdt.headers['location']);
 			var locationUrl = url.parse(res_gmdt.headers['location']);
 			return getMementoDateTime(uri,date,locationUrl.host,locationUrl.pathname,false,callbacks);
-		/*}else if(!(res_gmdt.headers['memento-datetime'])){ //bad URI, e.g., example.comx
-			console.log(res_gmdt);
-			jsonErrorCallback("The URI-R you requested has no mementos.");
-			return;*/
 		}else {
-			
-			//console.log("Memento-Datetime is "+res_gmdt.headers['memento-datetime']);
 			for(var cb=0; cb<callbacks.length; cb++){	//execute the callbacks in-order
 				var callback = callbacks[cb];
 				if(callback.name == "getTimemapCallback"){
@@ -381,11 +381,13 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 */
 
 function getTimemap(response,uri,callback){
+	var timemapHost = "web.archive.org";
+	var timemapPath = '/web/timemap/link/' + uri;
   	var options = {
 	  		//host: 'mementoproxy.lanl.gov',
-	  		host: 'web.archive.org',
+	  		host: timemapHost,
 	  		//path: '/aggr/timemap/link/1/' + uri,
-	  		path: '/web/timemap/link/' + uri,
+	  		path: timemapPath,
 	  		port: 80,
 	  		method: 'GET'
 	  };
@@ -393,6 +395,7 @@ function getTimemap(response,uri,callback){
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
 	var sequence = Futures.sequence();
 	var t, retStr = "";
+	var metadata = "";
 	//var promise = new Promise(function(resolve, reject){
 	async.series([
 		function(callback){
@@ -404,7 +407,7 @@ function getTimemap(response,uri,callback){
 				res.on('end',function(d){
 
 					if(buffer.length > 100){  //magic number = arbitrary
-						console.log("Timemap acquired for "+uri);
+						console.log("Timemap acquired for "+uri+" from "+timemapHost+timemapPath);
 						t = new TimeMap(buffer);
 						t.createMementos();
 						//response.write("\"TimeMap\": "+t.toString("utf8", 0, t.mementos.length)+"}");
@@ -475,9 +478,10 @@ function getTimemap(response,uri,callback){
 	 	});
 	 },
 	 function(callback){sortMementosByMementoDatetime(callback);},
-	 function(callback){calculateHammingDistances(callback);},
+	 //function(callback){calculateHammingDistances(callback);},
+	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
 	 function(callback){calculateCaptureTimeDeltas(callback);},//this can be combine with previous call to turn 2n-->1n
-	 function(callback){applyKMedoids(callback);},
+	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
 	 function(callback){createScreenshotsForAllMementos(callback);}],
 	 function(callback){printMementoInformation(callback);},
 	 function(err, result){
@@ -566,6 +570,36 @@ function getTimemap(response,uri,callback){
 	 	console.timeEnd('hamming');
 	 	callback("");
 	 }
+
+	 function calculateHammingDistancesWithOnlineFiltering(callback){
+	 	console.time('Hamming And Filtering, a synchronous operation');
+		
+		var lastSignificantMementoIndexBasedOnHamming = 0;
+		var copyOfMementos = [t.mementos[0]];
+	 	t.mementos.forEach(function(memento,m,ary){
+	 		if(m > 0){
+	 			console.log("Getting Hamming for "+t.mementos[m].uri+" ("+t.mementos[m].simhash+") vs. "+t.mementos[lastSignificantMementoIndexBasedOnHamming].uri+ " ("+t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash+")");
+	 			
+	 			//if(t.mementos[m].simhash == null || t.mementos[m].simhash == "(null)"){return;}
+	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
+	 			
+	 			if(t.mementos[m].hammingDistance >= 4){
+	 				lastSignificantMementoIndexBasedOnHamming = m;
+	 				copyOfMementos.push(t.mementos[m]);
+	 			}
+	 			
+	 			//console.log(t.mementos[m].uri+" hammed!");
+	 		}else if(m == 0){return;}
+	 	});
+	 	console.log((t.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
+	 	metadata = copyOfMementos.length+" of "+t.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
+	 	t.mementos = copyOfMementos.slice(0);
+	 	console.log(t.mementos.length+" mementos remain");
+	 	copyOfMementos = null;
+	 	
+
+	 	callback("");
+	 }
 	 
 	 function calculateCaptureTimeDeltas(callback){
 	 	//console.log("Calculating capture time deltas");
@@ -617,8 +651,9 @@ function getTimemap(response,uri,callback){
 	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
 	 		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
 	 		"<script>var returnedJSON =" + CRLF +
-	 			JSON.stringify(t.mementos) + CRLF +
-	 		";</script>" + CRLF +
+	 			JSON.stringify(t.mementos) + ";" + CRLF +
+	 			"var metadata = '"+metadata+"';" + CRLF +
+	 		"</script>" + CRLF +
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	 	
 	 		"</head><body><h1>Thumbnails for "+uri_r+"</h1>" + CRLF +
@@ -635,7 +670,13 @@ function getTimemap(response,uri,callback){
 	 	if(str1.length != str2.length){
 	 		console.log("Oh noes! Hamming went awry!");
 	 		console.log(str1+" "+str2+" "+str1.length+" "+str2.length);
-	 		throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
+	 		//throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
+	 		
+	 		//resilience instead of crashing
+	 		console.log("Unequal lengths when both strings must be equal to calculate hamming distance.");
+	 		return 0;
+	 	}else if(str1 === str2) {
+	 		return 0;
 	 	}
 	 	var d = 0;
 	 	for(var ii=0; ii<str1.length; ii++){
