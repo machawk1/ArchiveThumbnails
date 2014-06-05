@@ -49,7 +49,33 @@ $(document).ready(function(){
   //$("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
   $("body").append("<p id=\"count\">"+metadata+"</p>");
   
-  
+  $("body").append("<ul id=\"viewSwitcher\"><li class=\"active\"><a id=\"switcher_coverFlow\">CoverFlow</a></li><li><a id=\"switcher_gridView\">Grid View</a></li><li><a id=\"switcher_anotherView\">Another View</a></li></ul>");
+  $("#viewSwitcher li a").click(function(){ //activate view
+  	if($(this).parent().hasClass("active")){return;} //do nothing if the current view button is clicked
+  	
+  	$(".active").removeClass("active");
+  	$(this).parent().addClass("active");
+  	if($(this).attr("id") == "switcher_gridView" && $("#gv").length == 0){
+  		var cf = $("#coverflow");
+  		var gv = cf.clone();
+  		gv.attr("id","gv");
+  		gv.removeClass();
+  		gv.css("width","100%").fadeOut();
+  		gv.children().removeAttr("class").removeAttr("style").css("float","left").css("display","block");
+
+  		$("#coverflow").after(gv);
+  		$("#gv .reflection").remove(); //can't use the selector until it's attached to the DOM
+  		$("#coverflow").fadeOut();
+  		$("#gv").fadeIn();
+  	}else if($(this).attr("id") == "switcher_coverFlow"){
+  		$("#gv").fadeOut();
+  		$("#coverflow").fadeIn();
+  	}else if($(this).attr("id") == "switcher_gridView"){
+  		$("#coverflow").fadeOut();
+  		$("#gv").fadeIn();
+  	}
+  	
+  });
     
 
   

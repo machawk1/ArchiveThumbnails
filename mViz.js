@@ -480,7 +480,7 @@ function getTimemap(response,uri,callback){
 	 function(callback){sortMementosByMementoDatetime(callback);},
 	 //function(callback){calculateHammingDistances(callback);},
 	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
-	 function(callback){calculateCaptureTimeDeltas(callback);},//this can be combine with previous call to turn 2n-->1n
+	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
 	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
 	 function(callback){createScreenshotsForAllMementos(callback);}],
 	 function(callback){printMementoInformation(callback);},
@@ -657,13 +657,10 @@ function getTimemap(response,uri,callback){
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	 	
 	 		"</head><body><h1>Thumbnails for "+uri_r+"</h1>" + CRLF +
-	 		
 	 		"</body></html>";
 	 	response.write(respString);
 		response.end();
 	 	console.log("Done echoing to client");
-	 	
-	 	//callback("");
 	 }
 	 
 	 function getHamming(str1,str2){
