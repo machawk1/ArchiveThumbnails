@@ -24,6 +24,7 @@ ul#viewSwitcher li.active:hover {cursor: default;}
     transform: scaleY(-1);
     filter: flipv; opacity:0.20;
     filter: alpha(opacity='20');
+    background-color: white;
 }
 .overlay { position:absolute; top:0px; left:0px; width:78px; height:120px;
 background-image: -moz-linear-gradient( center bottom, rgb(255,255,255) 60%, rgba(255,255,255,0) 75%);

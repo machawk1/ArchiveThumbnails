@@ -65,6 +65,8 @@ $(document).ready(function(){
 
   		$("#coverflow").after(gv);
   		$("#gv .reflection").remove(); //can't use the selector until it's attached to the DOM
+  		$("#gv div").css("border","1px solid black");
+  		$("#gv div img").css("background-color","white");
   		$("#coverflow").fadeOut();
   		$("#gv").fadeIn();
   	}else if($(this).attr("id") == "switcher_coverFlow"){
