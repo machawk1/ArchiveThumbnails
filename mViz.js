@@ -250,6 +250,7 @@ function Memento(uri,datetime,rel){
 	this.rel = rel;
 	this.simhash = null;
 	this.captureTimeDelta = -1;
+	this.hammingDistance = -1;
 }
 
 Memento.prototype.toString = function(){
@@ -514,7 +515,11 @@ function getTimemap(response,uri,callback){
 	 
 	 function createScreenshotForMemento(memento,callback){
 	 	var uri = memento.uri;
-
+		if(memento.hammingDistance < 4 && memento.hammingDistance >= 0){
+			memento.screenshotURI = null;
+			callback();
+			return;
+		}
 		var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
 		memento.screenshotURI = filename;
 		
@@ -583,9 +588,9 @@ function getTimemap(response,uri,callback){
 	 			//if(t.mementos[m].simhash == null || t.mementos[m].simhash == "(null)"){return;}
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
 	 			
-	 			if(t.mementos[m].hammingDistance >= 4){
+	 			if(t.mementos[m].hammingDistance >= 4){ //filter the mementos if hamming distance is too small
 	 				lastSignificantMementoIndexBasedOnHamming = m;
-	 				copyOfMementos.push(t.mementos[m]);
+	 				//copyOfMementos.push(t.mementos[m]);	//only push mementos that pass threshold requirements
 	 			}
 	 			
 	 			//console.log(t.mementos[m].uri+" hammed!");
@@ -593,7 +598,7 @@ function getTimemap(response,uri,callback){
 	 	});
 	 	console.log((t.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
 	 	metadata = copyOfMementos.length+" of "+t.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
-	 	t.mementos = copyOfMementos.slice(0);
+	 	//t.mementos = copyOfMementos.slice(0);
 	 	console.log(t.mementos.length+" mementos remain");
 	 	copyOfMementos = null;
 	 	
@@ -640,6 +645,11 @@ function getTimemap(response,uri,callback){
 			return shuffled.slice(0, size);
 	 }
 	 
+	 
+	 /**
+	 * HTML to return back as user interface to client
+	 * @param callback The function to call once this function has completed executed, invoked by caller
+	 */
 	 function printMementoInformation(callback){	
 	 	var CRLF = "\r\n"; var TAB = "\t"; 
 	 	var respString = 
@@ -647,9 +657,13 @@ function getTimemap(response,uri,callback){
 	 		"<base href=\'"+imageServer+"\' />" + CRLF +
 	 		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
 			"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
+			"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
+			"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
 	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
 	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
+	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
 	 		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
+	 		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
 	 		"<script>var returnedJSON =" + CRLF +
 	 			JSON.stringify(t.mementos) + ";" + CRLF +
 	 			"var metadata = '"+metadata+"';" + CRLF +

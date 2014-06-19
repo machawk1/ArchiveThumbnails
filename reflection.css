@@ -11,6 +11,13 @@ ul#viewSwitcher li:hover {background-color: #ccc; cursor: pointer;}
 ul#viewSwitcher li.active {border: 3px solid green; background-color: green; color: white;}
 ul#viewSwitcher li.active:hover {cursor: default;}
 
+#gv .hoverText {position: relative; top: 0; left: 0; font-size: 10px; color: blue;}
+#gv .hoverText h2 {margin: 0;}
+figure {padding: 0; margin: 0;}
+.insufficientHamming {display: none;}
+
+#timeline {background-color: white; display:none;}
+
 /* Above does not have to do with reflection, extract it out to a separate file in production */
 
 .image-block { width:78px; margin:0px 10px; float:left; }

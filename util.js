@@ -3,6 +3,8 @@ $(document).ready(function(){
   //var str = "<table>";
   var cfstr = "<div id=\"coverflow\">";
   for(var i=0; i<returnedJSON.length; i++){
+  	if(i != 0  && returnedJSON[i].hammingDistance < 4){continue;} //don't show the low hamming distance images in coverflow
+  	
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
     cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
@@ -18,6 +20,7 @@ $(document).ready(function(){
     cfstr += "</div>";
     cfstr += "</div>";
   }
+
   //str += "</table>";
   cfstr += "</div>";
   //$('body').append(str);
@@ -41,15 +44,22 @@ $(document).ready(function(){
   
   // Get the subset of images that are ready, delay loading the rest while the server reprocesses
   $('img').each(function(){
+  	var title = $(this).attr("title");
+    //var displayImage = (title.substr(-4) != "null");
     $(this).fadeOut(400,function(){;
-	  $(this).attr('src',$(this).attr('title'));
+
+     // if(displayImage){ //don't do a title/src swap for images w/ hamming distance that didn't make the threshold cut
+	  	$(this).attr('src',$(this).attr('title'));
+	  //}else {
+	  //	$(this).parent().addClass("insufficientHamming").css("display","none");
+	 // }
 	}).fadeIn(400);
   });
   
   //$("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
   $("body").append("<p id=\"count\">"+metadata+"</p>");
   
-  $("body").append("<ul id=\"viewSwitcher\"><li class=\"active\"><a id=\"switcher_coverFlow\">CoverFlow</a></li><li><a id=\"switcher_gridView\">Grid View</a></li><li><a id=\"switcher_anotherView\">Another View</a></li></ul>");
+  $("body").append("<ul id=\"viewSwitcher\"><li class=\"active\"><a id=\"switcher_coverFlow\">CoverFlow</a></li><li><a id=\"switcher_gridView\">Grid View</a></li><li><a id=\"switcher_timeline\">Timeline</a></li><li><a id=\"switcher_anotherView\">Another View</a></li></ul>");
   $("#viewSwitcher li a").click(function(){ //activate view
   	if($(this).parent().hasClass("active")){return;} //do nothing if the current view button is clicked
   	
@@ -67,18 +77,72 @@ $(document).ready(function(){
   		$("#gv .reflection").remove(); //can't use the selector until it's attached to the DOM
   		$("#gv div").css("border","1px solid black");
   		$("#gv div img").css("background-color","white");
+  		
+  		$("#gv > div").each(function(){
+  			$(this).append("<figure>"+$(this).html()+"<figcaption>"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
+  			//$(this).append("<figure>"+$(this).html()+"</figure>");
+  			
+  			$(this).find(".caption").remove();
+  			$(this).children("img").remove();
+  		});
+  		
+  		
+  		/*$("#gv div img").mouseover(function(){
+  			var txt = "<div class=\"hoverText\">"+$(this).next().html()+"</div>";
+  			$(txt).insertBefore($(this));
+  		}).mouseout(function(){
+  			$(".hoverText").remove();
+  		});*/
   		$("#coverflow").fadeOut();
   		$("#gv").fadeIn();
   	}else if($(this).attr("id") == "switcher_coverFlow"){
   		$("#gv").fadeOut();
+  		$("#timeline").fadeOut();
   		$("#coverflow").fadeIn();
   	}else if($(this).attr("id") == "switcher_gridView"){
   		$("#coverflow").fadeOut();
+  		$("#timeline").fadeOut();
   		$("#gv").fadeIn();
+  	}else if($(this).attr("id") == "switcher_timeline"){
+  		$("#coverflow").fadeOut();
+  		$("#gv").fadeOut();
+  		$("#timeline").fadeIn();
   	}
   	
   });
-    
+  
+  var data = [];
+  
+  /*[  {id: 1, content: 'item 1', start: '2013-04-20'},
+    {id: 2, content: 'item 2', start: '2013-04-14'},
+    {id: 3, content: 'item 3', start: '2013-04-18'},
+    {id: 4, content: 'item 4', start: '2013-04-16', end: '2013-04-19'},
+    {id: 5, content: 'item 5', start: '2013-04-25'},
+    {id: 6, content: 'item 6', start: '2013-04-27'}
+  ];*/
+  for(var i=0; i<returnedJSON.length; i++){
+  	var memento = {
+  		id: i, 
+  		type: "point", 
+  		start: new Date(returnedJSON[i].datetime)
+  	};
+  	if(returnedJSON[i].hammingDistance < 4 && i!=0){
+  		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
+  		memento.group = "notInSummarization";
+  		memento.content = returnedJSON[i].datetime;
+	}else  {
+		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
+		memento.group = "inSummarization";
+		memento.content = "<img src=\""+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
+	}
+	data.push(memento);
+	memento = null;
+  }
+  
+  var options = {};//{stack: false,};
+  $("body").append("<div id=\"timeline\"></div>");
+  var container = document.getElementById('timeline');
+  var timeline = new vis.Timeline(container, data, options);
 
   
 });
