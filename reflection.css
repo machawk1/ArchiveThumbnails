@@ -17,6 +17,8 @@ figure {padding: 0; margin: 0;}
 .insufficientHamming {display: none;}
 
 #timeline {background-color: white; display:none;}
+.vis.timeline .item.dot.inSummarization {border-color: green;}
+.vis.timeline .item.dot.notInSummarization {border-color: red;}
 
 /* Above does not have to do with reflection, extract it out to a separate file in production */
 

@@ -662,6 +662,7 @@ function getTimemap(response,uri,callback){
 	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
 	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
 	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
+	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +
 	 		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
 	 		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
 	 		"<script>var returnedJSON =" + CRLF +

@@ -77,14 +77,19 @@ $(document).ready(function(){
   		$("#gv .reflection").remove(); //can't use the selector until it's attached to the DOM
   		$("#gv div").css("border","1px solid black");
   		$("#gv div img").css("background-color","white");
+  		$("#gv div").addClass("f1_container");
   		
   		$("#gv > div").each(function(){
-  			$(this).append("<figure>"+$(this).html()+"<figcaption>"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
+  			$(this).append("<figure class=\"shadow f1_card\"><div class=\"font face\">"+$(this).html()+"</div><figcaption class=\"back face center\">"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
   			//$(this).append("<figure>"+$(this).html()+"</figure>");
   			
   			$(this).find(".caption").remove();
   			$(this).children("img").remove();
   		});
+  		
+  		$('.f1_container').click(function() {
+			$(this).toggleClass('active');
+		});
   		
   		
   		/*$("#gv div img").mouseover(function(){
@@ -94,6 +99,7 @@ $(document).ready(function(){
   			$(".hoverText").remove();
   		});*/
   		$("#coverflow").fadeOut();
+  		$("#timeline").fadeOut();
   		$("#gv").fadeIn();
   	}else if($(this).attr("id") == "switcher_coverFlow"){
   		$("#gv").fadeOut();
@@ -113,27 +119,27 @@ $(document).ready(function(){
   
   var data = [];
   
-  /*[  {id: 1, content: 'item 1', start: '2013-04-20'},
-    {id: 2, content: 'item 2', start: '2013-04-14'},
-    {id: 3, content: 'item 3', start: '2013-04-18'},
-    {id: 4, content: 'item 4', start: '2013-04-16', end: '2013-04-19'},
-    {id: 5, content: 'item 5', start: '2013-04-25'},
-    {id: 6, content: 'item 6', start: '2013-04-27'}
-  ];*/
   for(var i=0; i<returnedJSON.length; i++){
   	var memento = {
   		id: i, 
   		type: "point", 
-  		start: new Date(returnedJSON[i].datetime)
+  		start: new Date(returnedJSON[i].datetime),
+  		stack: false,
+  		zoomMax: 94670778000,
+  		zoomMin: 10000
   	};
+  	
+  	var inSummarization = []; var notInSummarization = [];
   	if(returnedJSON[i].hammingDistance < 4 && i!=0){
   		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
-  		memento.group = "notInSummarization";
-  		memento.content = returnedJSON[i].datetime;
+  		memento.className = "notInSummarization";
+  		//memento.content = "";//returnedJSON[i].datetime;
+  		notInSummarization.push(memento);
 	}else  {
 		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
-		memento.group = "inSummarization";
-		memento.content = "<img src=\""+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
+		memento.className = "inSummarization";
+		memento.content = "<img src=\""+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;";//+returnedJSON[i].datetime;
+		inSummarization.push(memento);
 	}
 	data.push(memento);
 	memento = null;
