@@ -7,7 +7,7 @@ $(document).ready(function(){
   	
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
-    cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
+    cfstr += "<img onError=\"this.onerror=null;this.src='http://localhost:1338/missingThumbnail.png'\" width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
 	cfstr += "<div class=\"caption\">";
 	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
 	cfstr += "<h2><a target=\"_blank\" href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
@@ -25,6 +25,11 @@ $(document).ready(function(){
   cfstr += "</div>";
   //$('body').append(str);
   $('body').append(cfstr);
+  $('#showJSON').click(function(){
+  	if($('#json').length){$("#json").remove(); $(this).html("Show JSON"); return;}
+  	$('body').append("<textarea id=\"json\">"+JSON.stringify(returnedJSON,undefined, 2)+"</textarea>");
+	$(this).html("Hide JSON"); 
+  });
   
   var beforeCount = $("div.image-block").length;
   
@@ -133,22 +138,23 @@ $(document).ready(function(){
   	if(returnedJSON[i].hammingDistance < 4 && i!=0){
   		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
   		memento.className = "notInSummarization";
-  		//memento.content = "";//returnedJSON[i].datetime;
+  		memento.content = "";//returnedJSON[i].datetime;
+  		//memento.content = returnedJSON[i].datetime;
   		notInSummarization.push(memento);
 	}else  {
 		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
 		memento.className = "inSummarization";
-		memento.content = "<img src=\""+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;";//+returnedJSON[i].datetime;
+		memento.content = "<img src=\""+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
 		inSummarization.push(memento);
 	}
 	data.push(memento);
 	memento = null;
   }
   
-  var options = {};//{stack: false,};
+  var options = {height: '300px'};//{stack: false,};
   $("body").append("<div id=\"timeline\"></div>");
   var container = document.getElementById('timeline');
-  var timeline = new vis.Timeline(container, data, options);
+  var timeline = new vis.Timeline(container, new vis.DataSet(data), options);
 
   
 });

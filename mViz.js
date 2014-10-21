@@ -128,7 +128,9 @@ function main(){
 	 
 	  headers["Content-Type"] = "text/html"; //application/json
 	  response.writeHead(200, headers);
-	 
+	  
+	  console.log("Client requested "+query['URI-R']);
+	  
 	  
 	  if(!validator.isURL(uri_r)){ //return "invalid URL"
 	  	returnJSONError("Invalid URI");
@@ -217,6 +219,14 @@ function TimeMap(str){
 			if(dts){dt = dts[0].substring(10,dts[0].length - 1);}
 			
 			var foundMementoObject = new Memento(uri,dt,rel); //could be a timegate or timemap as well
+			
+			
+			if(!rel){
+				console.log("rel was undefined");
+				console.log(mementoEntry);
+				return;	
+			}
+			
 			
 			if(rel.indexOf("memento") > -1){//isA memento
 				this.mementos.push(foundMementoObject);
@@ -340,13 +350,20 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 	  		method: 'HEAD',
 	  	 	headers: {"Accept-Datetime": date}
 	  };
+	  
 	var locationHeader = "";  
 	
+	
+	console.log("Trying to fetch TimeMap from "+options_gmdt.host+options_gmdt.path);
+	console.time("tmfetch");
 	var req_gmdt = http.request(options_gmdt, function(res_gmdt) {	
+		console.timeEnd("tmfetch");
 		if(res_gmdt.headers['location'] && res_gmdt.statusCode != 200){
 			console.log("Received a "+res_gmdt.statusCode+" code, going to "+res_gmdt.headers['location']);
 			var locationUrl = url.parse(res_gmdt.headers['location']);
+			console.time("memFetch");
 			return getMementoDateTime(uri,date,locationUrl.host,locationUrl.pathname,false,callbacks);
+			
 		}else {
 			for(var cb=0; cb<callbacks.length; cb++){	//execute the callbacks in-order
 				var callback = callbacks[cb];
@@ -364,6 +381,10 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 
 	req_gmdt.on('error', function(e) { // Houston, do we have an Internet connection?
 	  console.log('problem with request: ' + e.message); 
+	});
+	
+	req_gmdt.on('connect',function(req,socket,head){
+		console.log("XServer trying to connect to "+req.url);
 	});
 	req_gmdt.on('socket', function (socket) { // slow connection is slow
 		/*socket.setTimeout(7000);  
@@ -445,6 +466,7 @@ function getTimemap(response,uri,callback){
 		},
 	 //}).then(function(){
 	 function(callback){
+	 	console.time("memFetch");
 	 	var arrayOfSetSimhashFunctions = [];
 	 	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
 	 		complete: '=',
@@ -671,7 +693,7 @@ function getTimemap(response,uri,callback){
 	 		"</script>" + CRLF +
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	 	
-	 		"</head><body><h1>Thumbnails for "+uri_r+"</h1>" + CRLF +
+	 		"</head><body><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
 	 		"</body></html>";
 	 	response.write(respString);
 		response.end();

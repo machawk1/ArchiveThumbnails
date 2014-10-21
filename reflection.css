@@ -20,6 +20,11 @@ figure {padding: 0; margin: 0;}
 .vis.timeline .item.dot.inSummarization {border-color: green;}
 .vis.timeline .item.dot.notInSummarization {border-color: red;}
 
+#showJSON {display:block; position: absolute; top: 0px; left: 0px; }
+#showJSON:hover {cursor: pointer; }
+#json {width: 25%; height: 25%; position: absolute; top: 15px; left: 5px; z-index: 999;}
+
+
 /* Above does not have to do with reflection, extract it out to a separate file in production */
 
 .image-block { width:78px; margin:0px 10px; float:left; }
