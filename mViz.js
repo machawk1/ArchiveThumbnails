@@ -14,8 +14,10 @@
 var http = require("http");
 //var http = require('http').http;
 var url = require("url");
+var querystring = require("querystring");
 var util = require("util");
 var connect = require('connect');
+var serveStatic = require("serve-static");
 //var request = require("request");
 var Step = require("step");
 var async = require("async");
@@ -67,7 +69,7 @@ function main(){
 
 	
 	function startImageServer() {
-		connect.createServer(connect.static(__dirname)).listen(imageServerPort);
+		connect().use(serveStatic(__dirname)).listen(imageServerPort);
 		util.puts('Local resource (css, js, etc.) server listening on Port ' + imageServerPort + '...');
 	}
 	
@@ -99,7 +101,6 @@ function main(){
 	  var pathname = url.parse(request.url).pathname;
 
 	  var query = url.parse(request.url, true).query;
-	  
 	  if(query['img']){
 	 	//return image data here
 	 	var fileExtension = query['img'].substr("-3");
@@ -122,11 +123,18 @@ function main(){
 	  
 	  uri_r = query['URI-R'];
 	  
+	  var access = "interface";
+	  if(query['access']){ //access={wayback,embed}
+	  	access = query['access']; //probably the most inelegant way to do this assignment
+	  }
+	  headers["X-Means-Of-Access"] = access;
+	  
 	  
 	  if(!uri_r.match(/^[a-zA-Z]+:\/\//)){uri_r = 'http://' + uri_r;}//prepend scheme if necessary
 	  
 	 
 	  headers["Content-Type"] = "text/html"; //application/json
+	  
 	  response.writeHead(200, headers);
 	  
 	  console.log("Client requested "+query['URI-R']);
