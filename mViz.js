@@ -575,7 +575,14 @@ function getTimemap(response,uri,callback){
 			console.log(filename+" does not exist...generating");
 		}
 		
-		webshot(uri, filename, function(err) {
+		var options = {
+			'phantomConfig': {
+				'ignore-ssl-errors': true,
+				'local-to-remote-url-access': true
+			}
+		};
+		
+		webshot(uri, filename, options, function(err) {
 			if(err){
 				console.log("Error creating a screenshot for "+uri);
 				console.log(err);
