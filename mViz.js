@@ -121,7 +121,7 @@ function main(){
 	 }	 
 	  
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
-	    console.log("No URI-R sent with request. Try http://localhost:15421/?URI-R=http://matkelly.com");
+	    console.log("No URI-R sent with request. "+request.url+" was sent. Try http://localhost:15421/?URI-R=http://matkelly.com");
 	  	response.writeHead(400, headers);
 	  	response.write(getHTMLSubmissionForm());
 		response.end();
@@ -309,8 +309,10 @@ Memento.prototype.setSimhash = function(){
 				//console.log((iii)+" mementos done");
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
-					var sh = simhash((buffer2).split('')).join('');
+					
+					var sh = simhash((buffer2).split("")).join("");
 					retStr = getHexString(sh);
+
 					//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
 					//console.log("retstr is "+retStr);
 					if(!retStr || retStr == "00000000"){
@@ -731,7 +733,7 @@ function getTimemap(response,uri,callback){
 	 
 	 function getHamming(str1,str2){
 	 	if(str1.length != str2.length){
-	 		console.log("Oh noes! Hamming went awry!");
+	 		console.log("Oh noes! Hamming went awry! The lengths are not equal!");
 	 		console.log(str1+" "+str2+" "+str1.length+" "+str2.length);
 	 		//throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
 	 		
@@ -795,8 +797,8 @@ function Hex2Dec(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(10)}
 
 function getHexString(onesAndZeros){
 	var str = "";
-	for(var i=0; i<onesAndZeros.length; i=i+16){
-		str += Bin2Hex(onesAndZeros.substr(i,16));
+	for(var i=0; i<onesAndZeros.length; i=i+4){
+		str += Bin2Hex(onesAndZeros.substr(i,4));
 	}
 	return str;
 }
