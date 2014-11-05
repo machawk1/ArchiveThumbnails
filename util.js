@@ -15,7 +15,7 @@ $(document).ready(function(){
 	cfstr += "<h2>Hamming Distance: "+(returnedJSON[i].hammingDistance?returnedJSON[i].hammingDistance:"N/A")+"</h2>";
 	cfstr += "</div>"; /* End caption, ideally this should use figure and figcaption tags */
 	cfstr += "<div class=\"reflection\">";
-  	cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
+  	cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
     cfstr += "<div class=\"overlay\"></div>";
     cfstr += "</div>";
     cfstr += "</div>";
@@ -169,15 +169,13 @@ function checkAgainIfImageExists(imgIn){
 
 function replaceImageIfAvailable(img){
 	var src = $(img).attr("title");
-	console.log("Trying to set "+"#"+$(img).attr("id")+" to "+src);
-	//$("#"+$(img).attr("id")).attr("src",src);
-	//return; //the below won't currently work because of CORS, even with the Access-Control-Allow-Origin on the imageServer
+
 	$.ajax({
 		url: src
 	}).success(function(){
-		console.log("Success!");
 		$("#"+$(img).attr("id")).attr("src",src);
-	}).fail(function(){
+		$("#"+$(img).attr("id")+"_reflection").attr("src",src);
+	}).fail(function(){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
 		console.log("Failed. The image might not be generated yet. Trying again in 3.");
 		setTimeout(replaceImageIfAvailable,3000,$(img));
 	});
