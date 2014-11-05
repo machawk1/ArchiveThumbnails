@@ -625,13 +625,14 @@ function getTimemap(response,uri,callback){
 		var lastSignificantMementoIndexBasedOnHamming = 0;
 		var copyOfMementos = [t.mementos[0]];
 	 	t.mementos.forEach(function(memento,m,ary){
-	 		if(m > 0){
-	 			console.log("Comparing hamming distances (simhash,uri)\n" + 
-	 				t.mementos[m].simhash+" "+t.mementos[m].uri + "\n" + 
-	 			    t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + t.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
-	 			
-	 			//if(t.mementos[m].simhash == null || t.mementos[m].simhash == "(null)"){return;}
+	 		if(m > 0){	 			
+	 			if((t.mementos[m].simhash.match(/0/g) || []).length == 32){return;}
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
+
+	 			console.log("Comparing hamming distances (simhash,uri) = "+t.mementos[m].hammingDistance +"\n" + 
+	 				" > testing: "+t.mementos[m].simhash+" "+t.mementos[m].uri + "\n" + 
+	 			    " > pivot:   "+t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + t.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
+
 	 			
 	 			if(t.mementos[m].hammingDistance >= 4){ //filter the mementos if hamming distance is too small
 	 				lastSignificantMementoIndexBasedOnHamming = m;
