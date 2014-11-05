@@ -7,7 +7,7 @@ $(document).ready(function(){
   	
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
-    cfstr += "<img onError=\"this.onerror=null;this.src='http://localhost:1338/missingThumbnail.png'\" width=200 height=200 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
+    cfstr += "<img onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='http://localhost:1338/missingThumbnail.png';\" width=200 height=200 src='http://localhost:1338/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
 	cfstr += "<div class=\"caption\">";
 	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
 	cfstr += "<h2><a target=\"_blank\" href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
@@ -158,3 +158,27 @@ $(document).ready(function(){
 
   
 });
+
+
+function checkAgainIfImageExists(imgIn){
+	console.log("running checkAgainIfImageExists()");
+	console.log(imgIn);
+	console.log($(imgIn).attr("id")+"A");
+	setTimeout(replaceImageIfAvailable,3000,$(imgIn));
+}
+
+function replaceImageIfAvailable(img){
+	var src = $(img).attr("title");
+	console.log("Trying to set "+"#"+$(img).attr("id")+" to "+src);
+	//$("#"+$(img).attr("id")).attr("src",src);
+	//return; //the below won't currently work because of CORS, even with the Access-Control-Allow-Origin on the imageServer
+	$.ajax({
+		url: src
+	}).success(function(){
+		console.log("Success!");
+		$("#"+$(img).attr("id")).attr("src",src);
+	}).fail(function(){
+		console.log("Failed. The image might not be generated yet. Trying again in 3.");
+		setTimeout(replaceImageIfAvailable,3000,$(img));
+	});
+}

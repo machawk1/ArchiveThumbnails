@@ -14,7 +14,7 @@
 var http = require("http");
 //var http = require('http').http;
 var url = require("url");
-var querystring = require("querystring");
+var querystring = require("querystring"); // possibly unnecessary, as we no longer need to parse but just read as an object
 var util = require("util");
 var connect = require('connect');
 var serveStatic = require("serve-static");
@@ -31,8 +31,7 @@ var memwatch = require('memwatch');
 //var util = require("util"); //for util.inspect for debugging
 
 // And now for something completely different: phantomjs dependencies!
-var phantom = require('node-phantom');
-//https://github.com/alexscheelmeyer/node-phantom
+var phantom = require('node-phantom'); //https://github.com/alexscheelmeyer/node-phantom
 
 var fs = require("fs");
 var path = require('path');
@@ -48,6 +47,7 @@ var timegate_path = "/aggr/timegate/";
 var thumbnailServicePort = 15421;
 var imageServerPort = 1338;
 var imageServer = "http://localhost:"+imageServerPort+"/";
+
 //var timemap;
 
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
@@ -69,7 +69,14 @@ function main(){
 
 	
 	function startImageServer() {
-		connect().use(serveStatic(__dirname)).listen(imageServerPort);
+		
+		
+		connect().use(
+			serveStatic(
+				__dirname,
+				{'setHeaders':function (res,path){res.setHeader("Access-Control-Allow-Origin","*");}}
+			)
+		).listen(imageServerPort);
 		util.puts('Local resource (css, js, etc.) server listening on Port ' + imageServerPort + '...');
 	}
 	
@@ -169,7 +176,9 @@ function main(){
 	  return;
 	  
 	}
-
+	/**
+	* Default form to enter URI-R if one is not supplied in the query string
+	*/
 	function getHTMLSubmissionForm(){
 		var form = "<html><head></head><body><form method=\"get\" action=\"/\">";
 		form +=    " <label for=\"uri_r\" style=\"float: left;\">URI-R:</label><input type=\"text\" name=\"URI-R\" />";
@@ -426,11 +435,13 @@ function getTimemap(response,uri,callback){
 	var sequence = Futures.sequence();
 	var t, retStr = "";
 	var metadata = "";
+
 	//var promise = new Promise(function(resolve, reject){
 	async.series([
 		function(callback){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
+				
 				res.on('data', function (data) {
 					buffer += data.toString();
 				});
@@ -613,7 +624,9 @@ function getTimemap(response,uri,callback){
 		var copyOfMementos = [t.mementos[0]];
 	 	t.mementos.forEach(function(memento,m,ary){
 	 		if(m > 0){
-	 			console.log("Getting Hamming for "+t.mementos[m].uri+" ("+t.mementos[m].simhash+") vs. "+t.mementos[lastSignificantMementoIndexBasedOnHamming].uri+ " ("+t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash+")");
+	 			console.log("Comparing hamming distances (simhash,uri)\n" + 
+	 				t.mementos[m].simhash+" "+t.mementos[m].uri + "\n" + 
+	 			    t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + t.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
 	 			
 	 			//if(t.mementos[m].simhash == null || t.mementos[m].simhash == "(null)"){return;}
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
@@ -682,6 +695,14 @@ function getTimemap(response,uri,callback){
 	 */
 	 function printMementoInformation(callback){	
 	 	var CRLF = "\r\n"; var TAB = "\t"; 
+	 	
+	 	//This is a dumb, wrong implementation but will fit the bill until I can either 
+	 	//...extract the available faux HTTP header or pass the needed value through the callback chain
+	 	//var access = "interface";
+	 	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
+	 	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
+	 	
+	 	
 	 	var respString = 
 	 		"<html><head>" + CRLF +
 	 		"<base href=\'"+imageServer+"\' />" + CRLF +
@@ -701,7 +722,7 @@ function getTimemap(response,uri,callback){
 	 		"</script>" + CRLF +
 	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	 	
-	 		"</head><body><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
+	 		"</head><body ><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
 	 		"</body></html>";
 	 	response.write(respString);
 		response.end();
