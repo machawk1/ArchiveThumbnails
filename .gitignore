@@ -9,3 +9,6 @@
 
 # except for .gitignore
 !.gitignore
+
+# Produced images start with this
+http*

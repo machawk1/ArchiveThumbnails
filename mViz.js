@@ -12,6 +12,7 @@
 *  The expected return value is the resolved Accept-Datetime
 */
 var http = require("http");
+var express = require("express");
 //var http = require('http').http;
 var url = require("url");
 var querystring = require("querystring"); // possibly unnecessary, as we no longer need to parse but just read as an object
@@ -40,6 +41,9 @@ var underscore = require('underscore');
 
 var webshot = require("webshot"); //phantomjs wrapper
 
+/* *********** END REQUIRES ******************* */
+var app = express();
+
 var timegate_host = "mementoproxy.lanl.gov";
 var timegate_path = "/aggr/timegate/";
 
@@ -53,7 +57,7 @@ var imageServer = "http://localhost:"+imageServerPort+"/";
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
 //curl -I -H "Accept-Datetime: Thu, 01 Apr 2010 00:00:00 GMT" http://mementoproxy.lanl.gov/aggr/timegate/http://matkelly.com
 
-
+var HAMMING_DISTANCE_THRESHOLD = 4;
 
 
 
@@ -187,8 +191,9 @@ function main(){
 	}
 	
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
-	http.createServer(respond).listen(thumbnailServicePort);
-
+	//http.createServer(respond).listen(thumbnailServicePort);
+	app.get("/", respond);
+	app.listen(thumbnailServicePort);
 
 /**
 * A data structure that allows a trace of the negotiation to be returned
@@ -641,7 +646,7 @@ function getTimemap(response,uri,callback){
 	 			    " > pivot:   "+t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + t.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
 
 	 			
-	 			if(t.mementos[m].hammingDistance >= 4){ //filter the mementos if hamming distance is too small
+	 			if(t.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD){ //filter the mementos if hamming distance is too small
 	 				lastSignificantMementoIndexBasedOnHamming = m;
 	 				//copyOfMementos.push(t.mementos[m]);	//only push mementos that pass threshold requirements
 	 			}
