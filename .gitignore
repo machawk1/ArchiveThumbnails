@@ -1,0 +1,11 @@
+# Wintel binary
+*.exe
+
+# Mac binary
+*.app
+
+# Mac meta
+.DS_Store
+
+# except for .gitignore
+!.gitignore
