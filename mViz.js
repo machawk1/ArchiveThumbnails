@@ -563,6 +563,18 @@ function getTimemap(response,uri,callback){
 	 	callback("");
 	 }
 	 
+	 //Fischer-Yates shuffle so we don't fetch the memento in-order but preserve 
+	 // them as objects and associated attributes
+	 function shuffleArray(array) { 
+		for (var i = array.length - 1; i > 0; i--) {
+			var j = Math.floor(Math.random() * (i + 1));
+			var temp = array[i];
+			array[i] = array[j];
+			array[j] = temp;
+		}
+		return array;
+	}
+	 
 	 function createScreenshotsForAllMementos(callback){
 	 	var arrayOfCreateScreenshotFunctions = [];
 	 	
@@ -575,8 +587,8 @@ function getTimemap(response,uri,callback){
 	 	t.mementos.filter(hasScreenshot).forEach(function(memento,m){
 	 		arrayOfCreateScreenshotFunctions.push(function(callback){createScreenshotForMemento(memento.uri,callback);});
 	 	});
-
-		async.each(t.mementos.filter(hasScreenshot),createScreenshotForMemento,function(err){callback("");});
+		
+		async.each(shuffleArray(t.mementos.filter(hasScreenshot)),createScreenshotForMemento,function(err){callback("");});
 		//return Promise.all(arrayOfCreateScreenshotFunctions,function(){console.log("Something failed.");});
 	 }
 	 
