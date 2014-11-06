@@ -7,7 +7,7 @@ $(document).ready(function(){
   	
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
-    cfstr += "<img onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='http://localhost:1338/missingThumbnail.png';\" width=200 height=200 src='http://localhost:1338/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
+    cfstr += "<img onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='http://localhost:1338/_images/missingThumbnail.png';\" width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
 	cfstr += "<div class=\"caption\">";
 	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
 	cfstr += "<h2><a target=\"_blank\" href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
@@ -15,7 +15,7 @@ $(document).ready(function(){
 	cfstr += "<h2>Hamming Distance: "+(returnedJSON[i].hammingDistance?returnedJSON[i].hammingDistance:"N/A")+"</h2>";
 	cfstr += "</div>"; /* End caption, ideally this should use figure and figcaption tags */
 	cfstr += "<div class=\"reflection\">";
-  	cfstr += "<img width=200 height=200 src='http://localhost:1338/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
+  	cfstr += "<img width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' />\r\n";
     cfstr += "<div class=\"overlay\"></div>";
     cfstr += "</div>";
     cfstr += "</div>";
