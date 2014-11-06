@@ -566,11 +566,17 @@ function getTimemap(response,uri,callback){
 	 function createScreenshotsForAllMementos(callback){
 	 	var arrayOfCreateScreenshotFunctions = [];
 	 	
-	 	t.mementos.forEach(function(memento,m){
+	 	
+	 	function hasScreenshot(e){
+	 		return e.screenshotURI != null;
+	 	}
+
+		//filter the screenshots to favor those only with a screenshot URI
+	 	t.mementos.filter(hasScreenshot).forEach(function(memento,m){
 	 		arrayOfCreateScreenshotFunctions.push(function(callback){createScreenshotForMemento(memento.uri,callback);});
 	 	});
 
-		async.each(t.mementos,createScreenshotForMemento,function(err){callback("");});
+		async.each(t.mementos.filter(hasScreenshot),createScreenshotForMemento,function(err){callback("");});
 		//return Promise.all(arrayOfCreateScreenshotFunctions,function(){console.log("Something failed.");});
 	 }
 	 
@@ -591,7 +597,7 @@ function getTimemap(response,uri,callback){
 			callback();
 			return;
 		}catch(e){
-			console.log(memento.screenshotURI+" does not exist...generating");
+			console.log((new Date()).getTime()+" "+memento.screenshotURI+" does not exist...generating");
 		}
 		
 		var options = {
@@ -608,7 +614,7 @@ function getTimemap(response,uri,callback){
 				callback("Screenshot failed!");
 			}else {
 				fs.chmodSync("./"+filename, '755');
-				console.log("Screenshot created for "+uri);
+				console.log((new Date()).getTime()+" "+"Screenshot created for "+uri);
 				callback();
 			}
 		});
@@ -752,7 +758,7 @@ function getTimemap(response,uri,callback){
 	 		"</body></html>";
 	 	response.write(respString);
 		response.end();
-	 	console.log("Done echoing to client");
+	 	console.log("Done echoing HTML to client");
 	 	callback("");
 	 }
 	 
