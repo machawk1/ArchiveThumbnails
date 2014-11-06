@@ -531,14 +531,27 @@ function getTimemap(response,uri,callback){
 	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
 	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
 	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
-	 function(callback){createScreenshotsForAllMementos(callback);}],
+	 function(callback){assignmentRelevantMementosAScreenshotURI(callback);},
 	 function(callback){printMementoInformation(callback);},
+	 function(callback){createScreenshotsForAllMementos(callback);}],	 
 	 function(err, result){
 	 	console.log("ERROR!");
 	 	console.log(err);
 	 }); 
 
-
+	function assignmentRelevantMementosAScreenshotURI(callback){
+		t.mementos.forEach(function(memento,m){
+			var uri = memento.uri;
+			if(memento.hammingDistance < 4 && memento.hammingDistance >= 0){
+				memento.screenshotURI = null;
+			}else {
+				var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
+				memento.screenshotURI = filename;
+			}
+		});
+		callback("");
+	}
+	
 
 	 function sortMementosByMementoDatetime(callback){
 	 	//response.write(JSON.stringify(hashes));
@@ -563,21 +576,22 @@ function getTimemap(response,uri,callback){
 	 
 	 function createScreenshotForMemento(memento,callback){
 	 	var uri = memento.uri;
+	 	
 		if(memento.hammingDistance < 4 && memento.hammingDistance >= 0){
 			memento.screenshotURI = null;
 			callback();
 			return;
 		}
-		var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
-		memento.screenshotURI = filename;
+		var filename = memento.screenshotURI
+
 		
 		try{
-			fs.openSync(path.join(__dirname+"/"+filename),'r',function(e,r){console.log(e);console.log(r);});
-			console.log(filename+" already exists...continuing");
+			fs.openSync(path.join(__dirname+"/"+memento.screenshotURI),'r',function(e,r){console.log(e);console.log(r);});
+			console.log(memento.screenshotURI+" already exists...continuing");
 			callback();
 			return;
 		}catch(e){
-			console.log(filename+" does not exist...generating");
+			console.log(memento.screenshotURI+" does not exist...generating");
 		}
 		
 		var options = {
@@ -591,13 +605,10 @@ function getTimemap(response,uri,callback){
 			if(err){
 				console.log("Error creating a screenshot for "+uri);
 				console.log(err);
-				//return resolve("yay!");
 				callback("Screenshot failed!");
 			}else {
 				fs.chmodSync("./"+filename, '755');
 				console.log("Screenshot created for "+uri);
-				//resolve("Screenshot created for "+uri);
-				//return reject("error!");
 				callback();
 			}
 		});
@@ -742,6 +753,7 @@ function getTimemap(response,uri,callback){
 	 	response.write(respString);
 		response.end();
 	 	console.log("Done echoing to client");
+	 	callback("");
 	 }
 	 
 	 function getHamming(str1,str2){
