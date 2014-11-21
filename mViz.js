@@ -66,7 +66,9 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
 * Initially called to invoke the server instance
 */
 function main(){
-	memwatch.on('leak', function(info) { console.error(info); });
+	memwatch.on('leak', function(info) { console.log("You're leaking!");console.error(info); });
+	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
+	
 	startImageServer();
 	console.log("Thumbnails service started on Port "+thumbnailServicePort);
 	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
@@ -298,9 +300,10 @@ Memento.prototype.setSimhash = function(){
 		var buffer2 = "";
 		var memento = this;
 		var mOptions = url.parse(thaturi);
-
-		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
+		console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
 		
+		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
+			//var hd = new memwatch.HeapDiff();
 			res.setEncoding('utf8');
 			res.on('data', function (data) {
 				buffer2 += data.toString();
@@ -312,6 +315,7 @@ Memento.prototype.setSimhash = function(){
 			res.on('end',function(d){
 				//++iii;
 				//console.log((iii)+" mementos done");
+				
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
 					
@@ -327,6 +331,9 @@ Memento.prototype.setSimhash = function(){
 						resolve("isA302DeleteMe"); //Gateway timeout from the archives, remove from consideration
 					}
 					buffer2 = "";
+					buffer2 = null;
+					console.log(retStr+" - "+ mOptions.host+ mOptions.path);
+							
 					resolve(retStr);
 				}else{
 					//we need to delete this memento, it's a duplicate and a "soft 302" from archive.org
@@ -340,6 +347,7 @@ Memento.prototype.setSimhash = function(){
 			});
 		});
 		req.end();
+		//req = null;
 		//buffer2 = "";	
 	})).then(function(str){
 		//console.log("Simhash length: "+retStr.length+" "+retStr+" "+thaturi);
@@ -425,7 +433,7 @@ function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
 * Given a URI and a datetime, return a timemap
 * @param uri The URI-R in-question
 */
-
+//TODO: currently a god function that does WAY more than simply getting a timemap
 function getTimemap(response,uri,callback){
 	var timemapHost = "web.archive.org";
 	var timemapPath = '/web/timemap/link/' + uri;
@@ -437,12 +445,13 @@ function getTimemap(response,uri,callback){
 	  		port: 80,
 	  		method: 'GET'
 	  };
-	  
+	
+	console.log("Path: "+options.host+"/"+options.path);
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
 	var sequence = Futures.sequence();
 	var t, retStr = "";
 	var metadata = "";
-
+	
 	//var promise = new Promise(function(resolve, reject){
 	async.series([
 		function(callback){
@@ -457,11 +466,12 @@ function getTimemap(response,uri,callback){
 					if(buffer.length > 100){  //magic number = arbitrary
 						console.log("Timemap acquired for "+uri+" from "+timemapHost+timemapPath);
 						t = new TimeMap(buffer);
+						t.originalURI = uri; //need this for a filename for caching
 						t.createMementos();
 						//response.write("\"TimeMap\": "+t.toString("utf8", 0, t.mementos.length)+"}");
 				
 						console.log("Fetching HTML for "+t.mementos.length+" mementos.");
-				
+						
 						//fetchHTML(t.mementos,0);
 						var m1 = url.parse(t.mementos[0].uri);
 						var m2 = url.parse(t.mementos[1].uri);
@@ -500,10 +510,15 @@ function getTimemap(response,uri,callback){
 			width: 20,
 			total: t.mementos.length
 		})
-	 	t.mementos.forEach(function(memento,m){
+		
+		for(var m=0; m<t.mementos.length; m++){
+			arrayOfSetSimhashFunctions.push(t.mementos[m].setSimhash());
+	 		bar.tick(1);
+		}
+	 	/*t.mementos.forEach(function(memento,m){
 	 		arrayOfSetSimhashFunctions.push(memento.setSimhash());
 	 		bar.tick(1);
-	 	});
+	 	});*/
 		
 		console.time('simhashing');
 	 	return Promise.all(
@@ -525,8 +540,9 @@ function getTimemap(response,uri,callback){
 			console.log(mementosRemoved+" mementos removed due to Wayback 'soft 3xxs'");
 	 		callback("");
 	 	});
-	 },
-	 function(callback){sortMementosByMementoDatetime(callback);},
+	 }, //the chain V
+	 function(callback){saveSimhashesToCache(callback);},
+	 //function(callback){sortMementosByMementoDatetime(callback);},
 	 //function(callback){calculateHammingDistances(callback);},
 	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
 	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
@@ -538,11 +554,28 @@ function getTimemap(response,uri,callback){
 	 	console.log("ERROR!");
 	 	console.log(err);
 	 }); 
-
+	
+	
+	function saveSimhashesToCache(callback){
+		
+		var strToWrite = "";
+		for(var m=0; m<t.mementos.length; m++){
+			strToWrite += t.mementos[m].simhash + " " + t.mementos[m].uri + "\r\n";
+		}
+		
+		console.log("Done getting simhashes from array");
+		var cacheFile = new SimhashCacheFile(t.originalURI);
+		console.log("done creating file");
+		cacheFile.replaceContentWith(strToWrite);
+		console.log("done writing file");
+	
+		callback("");
+	}
+	
 	function assignmentRelevantMementosAScreenshotURI(callback){
 		t.mementos.forEach(function(memento,m){
 			var uri = memento.uri;
-			if(memento.hammingDistance < 4 && memento.hammingDistance >= 0){
+			if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
 				memento.screenshotURI = null;
 			}else {
 				var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
@@ -595,7 +628,7 @@ function getTimemap(response,uri,callback){
 	 function createScreenshotForMemento(memento,callback){
 	 	var uri = memento.uri;
 	 	
-		if(memento.hammingDistance < 4 && memento.hammingDistance >= 0){
+		if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
 			memento.screenshotURI = null;
 			callback();
 			return;
@@ -665,11 +698,16 @@ function getTimemap(response,uri,callback){
 		
 		var lastSignificantMementoIndexBasedOnHamming = 0;
 		var copyOfMementos = [t.mementos[0]];
-	 	t.mementos.forEach(function(memento,m,ary){
+		
+		console.log("Calculate hamming distance of "+t.mementos.length+" mementos");
+		for(var m=0; m<t.mementos.length; m++){
+			console.log("Analyzing memento "+m+": "+t.mementos[m].uri);
 	 		if(m > 0){	 			
 	 			if((t.mementos[m].simhash.match(/0/g) || []).length == 32){return;}
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
-
+				t.mementos[m].hammingBasis = t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash;
+				
+				
 	 			console.log("Comparing hamming distances (simhash,uri) = "+t.mementos[m].hammingDistance +"\n" + 
 	 				" > testing: "+t.mementos[m].simhash+" "+t.mementos[m].uri + "\n" + 
 	 			    " > pivot:   "+t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + t.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
@@ -681,8 +719,8 @@ function getTimemap(response,uri,callback){
 	 			}
 	 			
 	 			//console.log(t.mementos[m].uri+" hammed!");
-	 		}else if(m == 0){return;}
-	 	});
+	 		}else if(m == 0){continue; return;}
+	 	}
 	 	console.log((t.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
 	 	metadata = copyOfMementos.length+" of "+t.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
 	 	//t.mementos = copyOfMementos.slice(0);
@@ -812,6 +850,32 @@ function getTimemap(response,uri,callback){
 }
 
 }
+
+function SimhashCacheFile(forUri){
+		//operation = "replace","append","read"
+		
+		//TODO, check if it already exists
+		this.path = "./simhashes_"+forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
+		
+		this.replaceContentWith = function(str){
+			this.deleteCacheFile();
+			this.writeFileContents(str);
+		};
+		
+		this.writeFileContents = function(str){
+			fs.appendFileSync(this.path,str);
+			console.log("Wrote simhash to "+this.path);
+		};
+		
+		this.deleteCacheFile = function(){
+			fs.unlinkSync(this.path)
+		};
+		
+		this.exists = function(){
+			console.log("This is not the right thing to do. exists() is async and requires a callback. Change flow of caller");
+			fs.exists(this.path,function(){});
+		}
+	}
 
 /* *********************************
         UTILITY FUNCTIONS
