@@ -858,8 +858,11 @@ function SimhashCacheFile(forUri){
 		this.path = "./simhashes_"+forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
 		
 		this.replaceContentWith = function(str){
+			console.log("in replaceContentWith()");
 			this.deleteCacheFile();
+			console.log("done deleting()");
 			this.writeFileContents(str);
+			console.log("done writing!");
 		};
 		
 		this.writeFileContents = function(str){
@@ -868,7 +871,8 @@ function SimhashCacheFile(forUri){
 		};
 		
 		this.deleteCacheFile = function(){
-			fs.unlinkSync(this.path)
+			//fs.unlinkSync(this.path)
+			fs.unlink(this.path,function(){})
 		};
 		
 		this.exists = function(){
