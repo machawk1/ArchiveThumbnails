@@ -60,38 +60,44 @@ var imageServer = "http://localhost:"+imageServerPort+"/";
 var HAMMING_DISTANCE_THRESHOLD = 4;
 
 
+/* ******************************
+   TODO: reorder functions (main first) to be more maintainable 20141205
+****************************** */
+
 
 
 /**
-* Initially called to invoke the server instance
+* Create access point for resources local to the interface to be queried. This differs
+*  from handling requests from clients.
 */
-function main(){
-	memwatch.on('leak', function(info) { console.log("You're leaking!");console.error(info); });
-	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
-	
-	startImageServer();
-	console.log("Thumbnails service started on Port "+thumbnailServicePort);
-	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
+function startImageServer() {
+	connect().use(
+		serveStatic(
+			__dirname,
+			{'setHeaders':function (res,path){res.setHeader("Access-Control-Allow-Origin","*");}}
+		)
+	).listen(imageServerPort);
+	util.puts('Local resource (css, js, etc.) server listening on Port ' + imageServerPort + '...');
+}
 
-	
-	function startImageServer() {
-		
-		
-		connect().use(
-			serveStatic(
-				__dirname,
-				{'setHeaders':function (res,path){res.setHeader("Access-Control-Allow-Origin","*");}}
-			)
-		).listen(imageServerPort);
-		util.puts('Local resource (css, js, etc.) server listening on Port ' + imageServerPort + '...');
+
+function PublicEndpoint(){
+	/**
+	* Default form to enter URI-R if one is not supplied in the query string
+	*/
+	this.getHTMLSubmissionForm = function(){
+		var form = "<html><head></head><body><form method=\"get\" action=\"/\">";
+		form +=    " <label for=\"uri_r\" style=\"float: left;\">URI-R:</label><input type=\"text\" name=\"URI-R\" />";
+		form +=	   " <input type=\"submit\" />";
+		return form;
 	}
-	
+
 	/**
 	* Handle an HTTP request and respond appropriately
 	* @param request  The request object from the client representing query information
 	* @param response Currently active HTTP response to the client used to return information to the client based on the request
 	*/
-	function respond(request, response) {
+	this.respondToClient = function(request, response){
 	 var headers = {};
 	 // IE8 does not allow domains to be specified, just the *
 	 // headers["Access-Control-Allow-Origin"] = req.headers.origin;
@@ -129,7 +135,7 @@ function main(){
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
 	    console.log("No URI-R sent with request. "+request.url+" was sent. Try http://localhost:15421/?URI-R=http://matkelly.com");
 	  	response.writeHead(400, headers);
-	  	response.write(getHTMLSubmissionForm());
+	  	response.write(this.getHTMLSubmissionForm());
 		response.end();
 		return;  
 	  }
@@ -180,22 +186,32 @@ function main(){
 	  										  //uri, date,                              host,         path,         appendURItoFetch,callbacks
 	  var mementoDatetime = getMementoDateTime(uri_r,request.headers['accept-datetime'],timegate_host,timegate_path,true,callbacks);
 	  return;
-	  
 	}
-	/**
-	* Default form to enter URI-R if one is not supplied in the query string
-	*/
-	function getHTMLSubmissionForm(){
-		var form = "<html><head></head><body><form method=\"get\" action=\"/\">";
-		form +=    " <label for=\"uri_r\" style=\"float: left;\">URI-R:</label><input type=\"text\" name=\"URI-R\" />";
-		form +=	   " <input type=\"submit\" />";
-		return form;
-	}
+
+}
+
+/**
+* Initially called to invoke the server instance
+*/
+function main(){
+	memwatch.on('leak', function(info) { console.log("You're leaking!");console.error(info); });
+	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
+	
+	startImageServer();
+	console.log("Thumbnails service started on Port "+thumbnailServicePort);
+	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
+	
+	var endpoint = new PublicEndpoint();
 	
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
 	//http.createServer(respond).listen(thumbnailServicePort);
-	app.get("/", respond);
+	app.get("/", endpoint.respondToClient);
 	app.listen(thumbnailServicePort);
+}	
+
+	
+	
+	
 
 /**
 * A data structure that allows a trace of the negotiation to be returned
@@ -448,13 +464,12 @@ function getTimemap(response,uri,callback){
 	
 	console.log("Path: "+options.host+"/"+options.path);
 	var buffer = ""; // An out-of-scope string to save the Timemap string, TODO: better documentation
-	var sequence = Futures.sequence();
+	//var sequence = Futures.sequence();
 	var t, retStr = "";
 	var metadata = "";
 	
-	//var promise = new Promise(function(resolve, reject){
 	async.series([
-		function(callback){
+		function fetchTimemap(callback){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
 				
@@ -565,9 +580,8 @@ function getTimemap(response,uri,callback){
 		
 		console.log("Done getting simhashes from array");
 		var cacheFile = new SimhashCacheFile(t.originalURI);
-		console.log("done creating file");
 		cacheFile.replaceContentWith(strToWrite);
-		console.log("done writing file");
+
 	
 		callback("");
 	}
@@ -719,7 +733,7 @@ function getTimemap(response,uri,callback){
 	 			}
 	 			
 	 			//console.log(t.mementos[m].uri+" hammed!");
-	 		}else if(m == 0){continue; return;}
+	 		}else if(m == 0){continue;}
 	 	}
 	 	console.log((t.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
 	 	metadata = copyOfMementos.length+" of "+t.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
@@ -849,7 +863,7 @@ function getTimemap(response,uri,callback){
 	 
 }
 
-}
+
 
 function SimhashCacheFile(forUri){
 		//operation = "replace","append","read"
@@ -859,10 +873,11 @@ function SimhashCacheFile(forUri){
 		
 		this.replaceContentWith = function(str){
 			console.log("in replaceContentWith()");
+			console.log("> deleting old cache file");
 			this.deleteCacheFile();
-			console.log("done deleting()");
+			console.log("> done deleting cache file, writing new contents");
 			this.writeFileContents(str);
-			console.log("done writing!");
+			console.log("> done writing new contents to cache");
 		};
 		
 		this.writeFileContents = function(str){
