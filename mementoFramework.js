@@ -8,9 +8,6 @@ function Memento(uri,datetime,rel){
 	this.uri = uri;
 	this.datetime = datetime;
 	this.rel = rel;
-	this.simhash = null;
-	this.captureTimeDelta = -1;
-	this.hammingDistance = -1;
 };
 
 	
@@ -24,6 +21,7 @@ function TimeMap(str){
 	this.timemaps = [];
 	this.timegates = [];
 	this.createMementos = function createMementos(){
+		console.log("tmstr: "+this.str);
 		var mementoEntries = this.str.split(/\s*,\s</g);
 		for(mementoEntry in mementoEntries){
 			var str = mementoEntries[mementoEntry];
@@ -36,7 +34,8 @@ function TimeMap(str){
 			var dt, rel;
 			if(rels){rel = rels[0].substring(5,rels[0].length - 1);}
 			if(dts){dt = dts[0].substring(10,dts[0].length - 1);}
-		
+			
+			
 			var foundMementoObject = new Memento(uri,dt,rel); //could be a timegate or timemap as well
 		
 		
