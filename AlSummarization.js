@@ -41,6 +41,10 @@ var underscore = require('underscore');
 
 var webshot = require("webshot"); //phantomjs wrapper
 
+var mementoFramework = require('./mementoFramework.js');
+var Memento = mementoFramework.Memento;
+var TimeMap = mementoFramework.TimeMap;
+
 /* *********** END REQUIRES ******************* */
 var app = express();
 
@@ -64,6 +68,24 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
    TODO: reorder functions (main first) to be more maintainable 20141205
 ****************************** */
 
+/**
+* Initially called to invoke the server instance
+*/
+function main(){
+	memwatch.on('leak', function(info) { console.log("You're leaking!");console.error(info); });
+	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
+	
+	startImageServer();
+	console.log("Thumbnails service started on Port "+thumbnailServicePort);
+	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
+	
+	var endpoint = new PublicEndpoint();
+	
+	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
+	//http.createServer(respond).listen(thumbnailServicePort);
+	app.get("/", endpoint.respondToClient);
+	app.listen(thumbnailServicePort);
+}	
 
 
 /**
@@ -189,28 +211,6 @@ function PublicEndpoint(){
 	}
 
 }
-
-/**
-* Initially called to invoke the server instance
-*/
-function main(){
-	memwatch.on('leak', function(info) { console.log("You're leaking!");console.error(info); });
-	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
-	
-	startImageServer();
-	console.log("Thumbnails service started on Port "+thumbnailServicePort);
-	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
-	
-	var endpoint = new PublicEndpoint();
-	
-	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
-	//http.createServer(respond).listen(thumbnailServicePort);
-	app.get("/", endpoint.respondToClient);
-	app.listen(thumbnailServicePort);
-}	
-
-	
-	
 	
 
 /**
@@ -235,51 +235,7 @@ function HTTPRequest(method,uri,headers){
 	this.headers = headers;
 }
 
-/**
-* Used to objectify a returned TimeMap text
-* @param str The raw string of the fetched TimeMap
-*/
-function TimeMap(str){
-	this.str = str;
-	this.mementos = [];
-	this.timemaps = [];
-	this.timegates = [];
-	this.createMementos = function(){
-		var mementoEntries = this.str.split(/\s*,\s</g);
-		for(mementoEntry in mementoEntries){
-			var str = mementoEntries[mementoEntry];
-			var uri = str.substr(0,str.indexOf(">"));
-			uri = uri.replace("<",""); //remove first character of first line and any remaining
-			var relRegex = /rel=\".*?\"/gm;
-			var dtRegex = /datetime=\".*?\"/gm;
-			var rels = str.match(relRegex);
-			var dts = str.match(dtRegex);
-			var dt, rel;
-			if(rels){rel = rels[0].substring(5,rels[0].length - 1);}
-			if(dts){dt = dts[0].substring(10,dts[0].length - 1);}
-			
-			var foundMementoObject = new Memento(uri,dt,rel); //could be a timegate or timemap as well
-			
-			
-			if(!rel){
-				console.log("rel was undefined");
-				console.log(mementoEntry);
-				return;	
-			}
-			
-			
-			if(rel.indexOf("memento") > -1){//isA memento
-				this.mementos.push(foundMementoObject);
-			}else if(rel.indexOf("timegate") > -1){
-				this.timegates.push(foundMementoObject);
-			}else if(rel.indexOf("timemap") > -1){
-				this.timemaps.push(foundMementoObject);
-			}
-			
-			delete foundMemento;
-		}	
-	}
-}
+
 TimeMap.prototype.toString = function(){
 	return "{"+
 		"\"timemaps\":["+this.timemaps.join(",")+"],"+
@@ -288,27 +244,13 @@ TimeMap.prototype.toString = function(){
 	"}";
 }
 
-/**
-* An objective representation of an archived resource
-* @param uri The location of the resource
-* @param datetime The time at which the resource was archives
-* @param rel The representation of the resource in the parent timemap (this likely doesn't belong here)
-*/
-function Memento(uri,datetime,rel){
-	this.uri = uri;
-	this.datetime = datetime;
-	this.rel = rel;
-	this.simhash = null;
-	this.captureTimeDelta = -1;
-	this.hammingDistance = -1;
-}
+
 
 Memento.prototype.toString = function(){
 	return JSON.stringify(this);
 }
 
 
-var iii = 0;
 Memento.prototype.setSimhash = function(){
 	var thaturi = this.uri;
 	var thatmemento = this;
@@ -328,10 +270,7 @@ Memento.prototype.setSimhash = function(){
 				//throw "Error with "+thaturi+":\n\tThis has to be handled (esp 302s), else the simhash is 000";
 				resolve("3");
 			}
-			res.on('end',function(d){
-				//++iii;
-				//console.log((iii)+" mementos done");
-				
+			res.on('end',function(d){			
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
 					
