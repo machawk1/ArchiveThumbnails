@@ -21,7 +21,7 @@ function TimeMap(str){
 	this.timemaps = [];
 	this.timegates = [];
 	this.createMementos = function createMementos(){
-		console.log("tmstr: "+this.str);
+		//console.log("tmstr: "+this.str);
 		var mementoEntries = this.str.split(/\s*,\s</g);
 		for(mementoEntry in mementoEntries){
 			var str = mementoEntries[mementoEntry];

@@ -372,7 +372,13 @@ function getTimemap(uri,response){
 						t = new TimeMap(buffer);
 						t.originalURI = uri; //need this for a filename for caching
 						t.createMementos();
-				
+						
+						if(t.mementos.length == 0){
+							response.write("There were no mementos for "+uri+" :(");
+							response.end();
+							return;
+						}
+						
 						console.log("Fetching HTML for "+t.mementos.length+" mementos.");
 						
 						var m1 = url.parse(t.mementos[0].uri);
