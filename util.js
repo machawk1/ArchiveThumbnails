@@ -12,7 +12,7 @@ $(document).ready(function(){
 	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
 	cfstr += "<h2><a target=\"_blank\" href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
 	cfstr += "<h2>SimHash: "+returnedJSON[i].simhash+"</h2>";
-	cfstr += "<h2>Hamming Distance: "+(returnedJSON[i].hammingDistance?returnedJSON[i].hammingDistance:"N/A")+"</h2>";
+	cfstr += "<h2>Hamming Distance: "+(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")+"</h2>";
 	cfstr += "</div>"; /* End caption, ideally this should use figure and figcaption tags */
 	cfstr += "<div class=\"reflection\">";
   	cfstr += "<img width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='http://localhost:1338/screenshots/"+returnedJSON[i].screenshotURI+"' />\r\n";

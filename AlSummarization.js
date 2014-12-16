@@ -282,11 +282,12 @@ Memento.prototype.setSimhash = function(){
 			});
 			if(res.statusCode != 200){
 				//throw "Error with "+thaturi+":\n\tThis has to be handled (esp 302s), else the simhash is 000";
-				resolve("3");
+				//resolve("3");
+				thatmemento.simhash = "00000000";
 			}
 			res.on('end',function(d){			
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
-				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1){
+				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1 && thatmemento.simhash != "00000000"){
 					
 					var sh = simhash((buffer2).split("")).join("");
 					retStr = getHexString(sh);
@@ -610,7 +611,7 @@ function getTimemap(uri,response){
 	 			console.log("Calculating hamming distance");
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
 				console.log("Getting hamming basis");
-				t.mementos[m].hammingBasis = t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash;
+				t.mementos[m].hammingBasis = t.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
 				
 				
 	 			console.log("Comparing hamming distances (simhash,uri) = "+t.mementos[m].hammingDistance +"\n" + 
