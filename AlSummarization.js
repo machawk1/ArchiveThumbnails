@@ -205,14 +205,7 @@ function PublicEndpoint(){
 	  }
 	  
 	  
-	  //var callbacks = [getTimemapCallback];
-	  //var callbacks = [];
-	  
 	  getTimemap(query['URI-R'],response);
-	  										  //uri, date,                              host,         path,         appendURItoFetch,callbacks
-	  //var mementoDatetime = getMementoDateTime(uri_r,request.headers['accept-datetime'],timegate_host,timegate_path,true,callbacks);
-	  //console.log("mDatetime: "+mementoDatetime);
-	  //return;
 	}
 
 }
@@ -414,8 +407,23 @@ function getTimemap(uri,response){
 			req.end();
 		},
 	 //TODO: remove this function from callback hell
-	 function(callback){
-	 	console.time("memFetch");
+	 function(callback){calculateSimhashes(callback);},
+	 function(callback){saveSimhashesToCache(callback);},
+	 //function(callback){sortMementosByMementoDatetime(callback);}, //likely unnecessary assuming they're guaranteed sorted (is this true?)
+	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
+	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
+	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
+	 function(callback){assignmentRelevantMementosAScreenshotURI(callback);},
+	 function(callback){printMementoInformation(callback);},
+	 function(callback){createScreenshotsForAllMementos(callback);}],	 
+	 function(err, result){
+	 	console.log("ERROR!");
+	 	console.log(err);
+	 }); 
+	
+	
+	function calculateSimhashes(callback){
+		console.time("memFetch");
 	 	var arrayOfSetSimhashFunctions = [];
 	 	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
 	 		complete: '=',
@@ -450,20 +458,7 @@ function getTimemap(uri,response){
 			console.log(mementosRemoved+" mementos removed due to Wayback 'soft 3xxs'");
 	 		callback("");
 	 	});
-	 }, //the chain V
-	 function(callback){saveSimhashesToCache(callback);},
-	 //function(callback){sortMementosByMementoDatetime(callback);}, //likely unnecessary assuming they're guaranteed sorted (is this true?)
-	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
-	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
-	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
-	 function(callback){assignmentRelevantMementosAScreenshotURI(callback);},
-	 function(callback){printMementoInformation(callback);},
-	 function(callback){createScreenshotsForAllMementos(callback);}],	 
-	 function(err, result){
-	 	console.log("ERROR!");
-	 	console.log(err);
-	 }); 
-	
+	}
 	
 	function saveSimhashesToCache(callback){
 		//TODO: remove dependency on global timemap t
