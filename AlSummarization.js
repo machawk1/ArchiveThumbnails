@@ -303,6 +303,8 @@ Memento.prototype.setSimhash = function(){
 					buffer2 = null;
 					//delete buffer2;
 					console.log(retStr+" - "+ mOptions.host+ mOptions.path);
+					
+					thatmemento.simhash = retStr;
 							
 					resolve(retStr);
 				}else{
@@ -329,79 +331,9 @@ Memento.prototype.setSimhash = function(){
 	})*/; 
 }
 
-/**
-* Based on a URI and an accept-datetime, return the closest Memento-Datetime
-* @param uri  The URI-R to use as the basis of the request to the archive
-* @param date The Accept-Datetime HTTP header value sent to the server in the memento request
-* @param host The Memento Aggregator/proxy hostname
-* @param path The Memento Aggregator/proxy path preceding the URI being requested
-* @param appendURItoFetch A boolean value to allow the method to be called recursively in case of a forward to prevent multiply appending the URI-R on subsequent recursive calls
-* @param callbacks An ordered set of functions to be called to ensure synchronicity of response
-
-function getMementoDateTime(uri,date,host,path,appendURItoFetch,callbacks){
-	//TODO: the name of this function is a misnomer. We have no use for datetime. Refactoring needed!
-	var pathToFetch = path;
-	if(appendURItoFetch){
-		pathToFetch += uri;
-	}
-		
- 	var options_gmdt = {
-	  		host: host,
-	  		path: pathToFetch,
-	  		port: 80,
-	  		method: 'HEAD',
-	  	 	headers: {"Accept-Datetime": date}
-	  };
-	  
-	var locationHeader = "";  
-	
-	
-	console.log("Trying to fetch TimeMap from "+options_gmdt.host+options_gmdt.path);
-	console.time("tmfetch");
-	var req_gmdt = http.request(options_gmdt, function(res_gmdt) {	
-		console.timeEnd("tmfetch");
-		if(res_gmdt.headers['location'] && res_gmdt.statusCode != 200){
-			console.log("Received a "+res_gmdt.statusCode+" code, going to "+res_gmdt.headers['location']);
-			var locationUrl = url.parse(res_gmdt.headers['location']);
-			console.time("memFetch");
-			return getMementoDateTime(uri,date,locationUrl.host,locationUrl.pathname,false,callbacks);
-			
-		}else {
-			for(var cb=0; cb<callbacks.length; cb++){	//execute the callbacks in-order
-				var callback = callbacks[cb];
-				if(callback.name == "getTimemapCallback"){
-					var uri = options_gmdt.path.substr(options_gmdt.path.indexOf("http://"));
-					callback(uri,callbacks[2]); //to overcome a race condition, pass the closeConnection callback to the last operation that is to write back to the client					
-				}else {
-					console.log("Unknown callback: "+callback.name);
-				}
-			}
-			
-			return res_gmdt.headers['memento-datetime'];
-		}
-	});
-
-	req_gmdt.on('error', function(e) { // Houston, do we have an Internet connection?
-	  console.log('problem with request: ' + e.message); 
-	});
-	
-	req_gmdt.on('connect',function(req,socket,head){
-		console.log("XServer trying to connect to "+req.url);
-	});
-	req_gmdt.on('socket', function (socket) { // slow connection is slow
-		//socket.setTimeout(7000);  
-		//socket.on('timeout', function() {
-		//	console.log("The server took too long to respond and we're only getting older so we aborted.");
-		//	req_gmdt.abort();
-		//});
-	});
-
-	req_gmdt.end();
-}
-*/
 
 /**
-* Given a URI and a datetime, return a timemap
+* Given a URI, return a TimeMap from the Memento Aggregator
 * @param uri The URI-R in-question
 */
 //TODO: currently a god function that does WAY more than simply getting a timemap
@@ -424,6 +356,7 @@ function getTimemap(uri,response){
 	var metadata = "";
 	console.log("Starting many asynchronous operations...");
 	async.series([
+		//TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
 		function fetchTimemap(callback){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
@@ -438,11 +371,9 @@ function getTimemap(uri,response){
 						t = new TimeMap(buffer);
 						t.originalURI = uri; //need this for a filename for caching
 						t.createMementos();
-						//response.write("\"TimeMap\": "+t.toString("utf8", 0, t.mementos.length)+"}");
 				
 						console.log("Fetching HTML for "+t.mementos.length+" mementos.");
 						
-						//fetchHTML(t.mementos,0);
 						var m1 = url.parse(t.mementos[0].uri);
 						var m2 = url.parse(t.mementos[1].uri);
 						var endpoints = [
@@ -475,7 +406,7 @@ function getTimemap(uri,response){
 	
 			req.end();
 		},
-	 //}).then(function(){
+	 //TODO: remove this function from callback hell
 	 function(callback){
 	 	console.time("memFetch");
 	 	var arrayOfSetSimhashFunctions = [];
@@ -595,7 +526,6 @@ function getTimemap(uri,response){
 	 	});
 		
 		async.each(shuffleArray(t.mementos.filter(hasScreenshot)),createScreenshotForMemento,function(err){callback("");});
-		//return Promise.all(arrayOfCreateScreenshotFunctions,function(){console.log("Something failed.");});
 	 }
 	 
 	 function createScreenshotForMemento(memento,callback){
@@ -610,7 +540,7 @@ function getTimemap(uri,response){
 
 		
 		try{
-			fs.openSync(path.join(__dirname+"/"+memento.screenshotURI),'r',function(e,r){console.log(e);console.log(r);});
+			fs.openSync(path.join(__dirname+"/screenshots/"+memento.screenshotURI),'r',function(e,r){console.log(e);console.log(r);});
 			console.log(memento.screenshotURI+" already exists...continuing");
 			callback();
 			return;
@@ -625,13 +555,13 @@ function getTimemap(uri,response){
 			}
 		};
 		
-		webshot(uri, filename, options, function(err) {
+		webshot(uri, "screenshots/"+filename, options, function(err) {
 			if(err){
 				console.log("Error creating a screenshot for "+uri);
 				console.log(err);
 				callback("Screenshot failed!");
 			}else {
-				fs.chmodSync("./"+filename, '755');
+				fs.chmodSync("./screenshots/"+filename, '755');
 				console.log((new Date()).getTime()+" "+"Screenshot created for "+uri);
 				callback();
 			}
@@ -675,8 +605,8 @@ function getTimemap(uri,response){
 		console.log("Calculate hamming distance of "+t.mementos.length+" mementos");
 		for(var m=0; m<t.mementos.length; m++){
 			console.log("Analyzing memento "+m+": "+t.mementos[m].uri);
-	 		if(m > 0){	 			
-	 			if((t.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");return;}
+	 		if(m > 0){
+	 			if((t.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");continue;}
 	 			console.log("Calculating hamming distance");
 	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
 				console.log("Getting hamming basis");
@@ -728,6 +658,7 @@ function getTimemap(uri,response){
 		//     3b. Swap m and o and compute the total cost of the configuration
 		//4. Select the configuration with the lowest cost.
 		//5. Repeat steps 2 to 4 until there is no change in the medoid.
+		throw "applyKMedoids is not implemented";
 		console.log("Applying K Medoids");
 		callback("");
 	 }
