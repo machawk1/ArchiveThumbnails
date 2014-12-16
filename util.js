@@ -144,7 +144,7 @@ $(document).ready(function(){
 	}else  {
 		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
 		memento.className = "inSummarization";
-		memento.content = "<img src=\""+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
+		memento.content = "<img src=\"screenshots/"+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
 		inSummarization.push(memento);
 	}
 	data.push(memento);
