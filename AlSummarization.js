@@ -553,9 +553,15 @@ function getTimemap(uri,response){
 			'phantomConfig': {
 				'ignore-ssl-errors': true,
 				'local-to-remote-url-access': true
+			},
+			//remove the Wayback UI
+			onLoadFinished: function() {
+				document.getElementById('wm-ipp').style.display = "none";
 			}
+			
 		};
 		
+		console.log("About to start screenshot generation process for "+uri);
 		webshot(uri, "screenshots/"+filename, options, function(err) {
 			if(err){
 				console.log("Error creating a screenshot for "+uri);
