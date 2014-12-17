@@ -6,6 +6,6 @@ Archives"](http://www.cs.odu.edu/~mln/pubs/ecir-2014/ecir-2014.pdf) for the Web 
 
 ## Running
 
-To execute the code, run `node mViz.js`.
+To execute the code, run `node AlSummarization.js`.
 
 To query the server instance generated, use `curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://cnn.com` or some parametric variation.
