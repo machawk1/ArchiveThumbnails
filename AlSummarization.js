@@ -7,9 +7,9 @@
 ******************************* */
 /* Run this with:
 *  > node mViz.js
-*  Then send a request for a URI and Accept-Datetime, e.g.,
-*  > curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
-*  The expected return value is the resolved Accept-Datetime
+*  Then visit a URI in your browser or curl it, e.g.,
+*  > curl localhost:15421/?URI-R=http://matkelly.com
+*  A user interface will be returned. If curling, useful info about the summarization returned.
 */
 var http = require("http");
 var express = require("express");
@@ -46,6 +46,7 @@ var Memento = mementoFramework.Memento;
 var TimeMap = mementoFramework.TimeMap;
 var SimhashCacheFile = require('./SimhashCache.js').SimhashCacheFile; 
 
+var colors = require('colors');
 
 /* *********** END REQUIRES ******************* */
 var app = express();
@@ -78,7 +79,7 @@ function main(){
 	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
 	
 	startImageServer();
-	console.log("Thumbnails service started on Port "+thumbnailServicePort);
+	console.log(("Thumbnails service started on Port "+thumbnailServicePort).rainbow);
 	console.log("> Try localhost:15421/?URI-R=http://matkelly.com in your web browser for sample execution.");
 	
 	var endpoint = new PublicEndpoint();
@@ -204,12 +205,138 @@ function PublicEndpoint(){
 		 response.end();
 	  }
 	  
-	  
-	  getTimemap(query['URI-R'],response);
+	  console.log("Checking for cache...");
+	  var cacheFile = new SimhashCacheFile(uri_r);
+	  cacheFile.readFileContents(
+	  	function success(data){processWithFileContents(data,response)},
+	  	function failed(){getTimemap(query['URI-R'],response);}
+	  );
 	}
 
 }
+
+function processWithFileContents(fileContents,response){
+	//we have the string, so we just need to create a timemap with mementos then draw the interface
 	
+	var t = createMementosFromCacheFile(fileContents);
+	console.log("There were "+t.mementos.length+" mementos");
+	t.calculateHammingDistancesWithOnlineFiltering();
+	t.assignmentRelevantMementosAScreenshotURI();
+	t.printMementoInformation(response);
+
+}	
+
+// !!!! Duplicated this function for simplicity. The other is locked away and relies on an out-of-scope timemap
+
+TimeMap.prototype.assignmentRelevantMementosAScreenshotURI = function(callback){
+	console.log("There were "+this.mementos.length+" mementos");
+	//Assuming foreach is faster than for-i, this can be executed out-of-order
+	this.mementos.forEach(function(memento,m){
+		var uri = memento.uri;
+		console.log(uri);
+		if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
+			memento.screenshotURI = null;
+		}else {
+			var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
+			memento.screenshotURI = filename;
+		}
+	});
+	
+	console.log("done with assignmentRelevantMementosAScreenshotURI, calling back");
+
+}
+
+// !!!! Duplicated this function for simplicity. The other is locked away and relies on an out-of-scope timemap
+
+
+TimeMap.prototype.printMementoInformation = function(response){	
+	console.log("About to print memento information");
+	var CRLF = "\r\n"; var TAB = "\t"; 
+	
+	//This is a dumb, wrong implementation but will fit the bill until I can either 
+	//...extract the available faux HTTP header or pass the needed value through the callback chain
+	//var access = "interface";
+	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
+	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
+	var metadata = "";
+	
+	var respString = 
+		"<html><head>" + CRLF +
+		"<base href=\'"+imageServer+"\' />" + CRLF +
+		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
+		"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
+		"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
+		"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +
+		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
+		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
+		"<script>var returnedJSON =" + CRLF +
+			JSON.stringify(this.mementos) + ";" + CRLF +
+			"var metadata = '"+metadata+"';" + CRLF +
+		"</script>" + CRLF +
+		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
+	
+		"</head><body ><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
+		"</body></html>";
+	response.write(respString);
+	response.end();
+	console.log("HTML for interface sent to client");
+ }
+
+TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callback){
+	var lastSignificantMementoIndexBasedOnHamming = 0;
+	var copyOfMementos = [this.mementos[0]];
+	
+	console.log("Calculate hamming distance of "+this.mementos.length+" mementos");
+	for(var m=0; m<this.mementos.length; m++){
+		console.log("Analyzing memento "+m+": "+this.mementos[m].uri);
+		if(m > 0){
+			if((this.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");continue;}
+			console.log("Calculating hamming distance");
+			this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash,this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
+			console.log("Getting hamming basis");
+			this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
+			
+			
+			console.log("Comparing hamming distances (simhash,uri) = "+this.mementos[m].hammingDistance +"\n" + 
+				" > testing: "+this.mementos[m].simhash+" "+this.mementos[m].uri + "\n" + 
+				" > pivot:   "+this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
+
+			
+			if(this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD){ //filter the mementos if hamming distance is too small
+				lastSignificantMementoIndexBasedOnHamming = m;
+				//copyOfMementos.push(this.mementos[m]);	//only push mementos that pass threshold requirements
+			}
+			
+			//console.log(this.mementos[m].uri+" hammed!");
+		}else if(m == 0){console.log("m==0, continuing");}
+	}
+	console.log((this.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
+	metadata = copyOfMementos.length+" of "+this.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
+	//this.mementos = copyOfMementos.slice(0);
+	console.log(this.mementos.length+" mementos remain");
+	copyOfMementos = null;
+ }
+
+function createMementosFromCacheFile(fileContents){
+	//create mementos from cache file string
+	var t = new TimeMap();
+	var lines = fileContents.split("\r\n");
+	t.mementos = [];
+	for(var line = 0; line<lines.length; line++){
+		var lineData = lines[line].split(" ");
+		if(!lineData || lineData == ""){continue;} //don't add any extra lines from the end of the file
+		var m = new Memento(lineData[1]);
+		m.simhash = lineData[0];
+		m.datetime = lineData.slice(2).join(" ");
+		t.mementos.push(m);
+	}
+	return t;
+}
+
 
 /**
 * A data structure that allows a trace of the negotiation to be returned
@@ -352,6 +479,7 @@ function getTimemap(uri,response){
 	console.log("Starting many asynchronous operations...");
 	async.series([
 		//TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
+		//TODO: abstract this method to its callback form. Currently, this is reaching and populating the timemap out of scope and can't be simply isolated (I tried)
 		function fetchTimemap(callback){
 			var req = http.request(options, function(res) {
 				res.setEncoding('utf8');
@@ -471,7 +599,7 @@ function getTimemap(uri,response){
 		var strToWrite = "";
 		for(var m=0; m<t.mementos.length; m++){
 			if(t.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302){
-				strToWrite += t.mementos[m].simhash + " " + t.mementos[m].uri + "\r\n";
+				strToWrite += t.mementos[m].simhash + " " + t.mementos[m].uri + " " + t.mementos[m].datetime + "\r\n";
 			}
 		}
 		
@@ -744,24 +872,7 @@ function getTimemap(uri,response){
 	 	callback("");
 	 }
 	 
-	 function getHamming(str1,str2){
-	 	if(str1.length != str2.length){
-	 		console.log("Oh noes! Hamming went awry! The lengths are not equal!");
-	 		console.log(str1+" "+str2+" "+str1.length+" "+str2.length);
-	 		//throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
-	 		
-	 		//resilience instead of crashing
-	 		console.log("Unequal lengths when both strings must be equal to calculate hamming distance.");
-	 		return 0;
-	 	}else if(str1 === str2) {
-	 		return 0;
-	 	}
-	 	var d = 0;
-	 	for(var ii=0; ii<str1.length; ii++){
-	 		if(str1[ii] != str2[ii]){d++;}
-	 	};
-	 	return d;
-	 }
+	 
 	 
 	 function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI){
 	 	var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];	//newer
@@ -782,7 +893,24 @@ function getTimemap(uri,response){
 }
 
 
-
+function getHamming(str1,str2){
+	if(str1.length != str2.length){
+		console.log("Oh noes! Hamming went awry! The lengths are not equal!");
+		console.log(str1+" "+str2+" "+str1.length+" "+str2.length);
+		//throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
+		
+		//resilience instead of crashing
+		console.log("Unequal lengths when both strings must be equal to calculate hamming distance.");
+		return 0;
+	}else if(str1 === str2) {
+		return 0;
+	}
+	var d = 0;
+	for(var ii=0; ii<str1.length; ii++){
+		if(str1[ii] != str2[ii]){d++;}
+	};
+	return d;
+ }
 
 
 /* *********************************
@@ -791,7 +919,7 @@ function getTimemap(uri,response){
 TODO: break these out into a separate file
 */
 	 
-//Usefull Functions
+//Useful Functions
 function checkBin(n){return/^[01]{1,64}$/.test(n)}
 function checkDec(n){return/^[0-9]{1,64}$/.test(n)}
 function checkHex(n){return/^[0-9A-Fa-f]{1,64}$/.test(n)}
