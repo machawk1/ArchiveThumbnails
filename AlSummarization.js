@@ -253,6 +253,7 @@ Memento.prototype.toString = function(){
 Memento.prototype.simhash = null;
 Memento.prototype.captureTimeDelta = -1;
 Memento.prototype.hammingDistance = -1;
+Memento.prototype.simhashIndicatorForHTTP302 = "00000000";
 
 /**
 * Fetch URI-M HTML contents and generate a Simhash
@@ -276,7 +277,7 @@ Memento.prototype.setSimhash = function(){
 			if(res.statusCode != 200){
 				//throw "Error with "+thaturi+":\n\tThis has to be handled (esp 302s), else the simhash is 000";
 				//resolve("3");
-				thatmemento.simhash = "00000000";
+				thatmemento.simhash = Memento.prototype.simhashIndicatorForHTTP302;
 			}
 			res.on('end',function(d){			
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
@@ -287,9 +288,9 @@ Memento.prototype.setSimhash = function(){
 
 					//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
 					//console.log("retstr is "+retStr);
-					if(!retStr || retStr == "00000000"){
+					if(!retStr || retStr == Memento.prototype.simhashIndicatorForHTTP302){
 						//normalize so not undefined
-						retStr = "00000000";
+						retStr = Memento.prototype.simhashIndicatorForHTTP302;
 						
 						resolve("isA302DeleteMe"); //Gateway timeout from the archives, remove from consideration
 					}
@@ -469,7 +470,9 @@ function getTimemap(uri,response){
 		
 		var strToWrite = "";
 		for(var m=0; m<t.mementos.length; m++){
-			strToWrite += t.mementos[m].simhash + " " + t.mementos[m].uri + "\r\n";
+			if(t.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302){
+				strToWrite += t.mementos[m].simhash + " " + t.mementos[m].uri + "\r\n";
+			}
 		}
 		
 		console.log("Done getting simhashes from array");
