@@ -64,7 +64,7 @@ $(document).ready(function(){
   //$("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
   $("body").append("<p id=\"count\">"+metadata+"</p>");
   
-  $("body").append("<ul id=\"viewSwitcher\"><li class=\"active\"><a id=\"switcher_coverFlow\">CoverFlow</a></li><li><a id=\"switcher_gridView\">Grid View</a></li><li><a id=\"switcher_timeline\">Timeline</a></li><li><a id=\"switcher_anotherView\">Another View</a></li></ul>");
+  $("body").append("<ul id=\"viewSwitcher\"><li class=\"active\"><a id=\"switcher_coverFlow\">CoverFlow</a></li><li><a id=\"switcher_gridView\">Grid View</a></li><li><a id=\"switcher_timeline\">Timeline</a></li><!--<li><a id=\"switcher_anotherView\">Another View</a></li>--></ul>");
   $("#viewSwitcher li a").click(function(){ //activate view
   	if($(this).parent().hasClass("active")){return;} //do nothing if the current view button is clicked
   	

@@ -417,8 +417,12 @@ function getTimemap(uri,response){
 	 function(callback){printMementoInformation(callback);},
 	 function(callback){createScreenshotsForAllMementos(callback);}],	 
 	 function(err, result){
-	 	console.log("ERROR!");
-	 	console.log(err);
+	 	if(err){
+	 		console.log("ERROR!");
+	 		console.log(err);
+	 	}else {
+	 		console.log("There were no errors executing the callback chain");
+	 	}
 	 }); 
 	
 	
@@ -477,7 +481,7 @@ function getTimemap(uri,response){
 	}
 	
 	function assignmentRelevantMementosAScreenshotURI(callback){
-		//Assuming foreach is faster than for-i, this can be executed asynchronously
+		//Assuming foreach is faster than for-i, this can be executed out-of-order
 		t.mementos.forEach(function(memento,m){
 			var uri = memento.uri;
 			if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
@@ -527,7 +531,17 @@ function getTimemap(uri,response){
 	 		arrayOfCreateScreenshotFunctions.push(function(callback){createScreenshotForMemento(memento.uri,callback);});
 	 	});
 		
-		async.each(shuffleArray(t.mementos.filter(hasScreenshot)),createScreenshotForMemento,function(err){callback("");});
+		async.each(
+			shuffleArray(t.mementos.filter(hasScreenshot)), //array of mementos to randomly
+			createScreenshotForMemento,						//create a screenshot
+			function doneCreatingScreenshots(err){			//when finished, check for errors
+				if(err){
+					console.log("Error creating screenshot");
+					console.log(err); 
+				}
+				callback("");
+			}
+		);
 	 }
 	 
 	 function createScreenshotForMemento(memento,callback){
@@ -721,11 +735,9 @@ function getTimemap(uri,response){
 	 	
 	 		"</head><body ><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
 	 		"</body></html>";
-	 	console.log("done string building");
 	 	response.write(respString);
-	 	console.log("done writing");
 		response.end();
-	 	console.log("Done echoing HTML to client");
+	 	console.log("HTML for interface sent to client");
 	 	callback("");
 	 }
 	 
