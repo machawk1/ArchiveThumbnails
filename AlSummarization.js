@@ -411,7 +411,7 @@ Memento.prototype.setSimhash = function(){
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1 && thatmemento.simhash != "00000000"){
 					
 					var sh = simhash((buffer2).split("")).join("");
-					retStr = getHexString(sh);
+					var retStr = getHexString(sh);
 
 					//+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
 					//console.log("retstr is "+retStr);
@@ -536,15 +536,15 @@ function getTimemap(uri,response){
 			req.end();
 		},
 	 //TODO: remove this function from callback hell
-	 function(callback){calculateSimhashes(callback);},
-	 function(callback){saveSimhashesToCache(callback);},
+	 function(callback){t.calculateSimhashesX(callback);},
+	 function(callback){t.saveSimhashesToCacheX(callback);},
 	 //function(callback){sortMementosByMementoDatetime(callback);}, //likely unnecessary assuming they're guaranteed sorted (is this true?)
-	 function(callback){calculateHammingDistancesWithOnlineFiltering(callback);},
+	 function(callback){t.calculateHammingDistancesWithOnlineFilteringX(callback);},
 	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
 	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
-	 function(callback){assignmentRelevantMementosAScreenshotURI(callback);},
-	 function(callback){printMementoInformation(callback);},
-	 function(callback){createScreenshotsForAllMementos(callback);}],	 
+	 function(callback){t.assignmentRelevantMementosAScreenshotURIX(callback);},
+	 function(callback){t.printMementoInformationX(response,callback);},
+	 function(callback){t.createScreenshotsForAllMementosX(callback);}],	 
 	 function(err, result){
 	 	if(err){
 	 		console.log("ERROR!");
@@ -555,76 +555,7 @@ function getTimemap(uri,response){
 	 }); 
 	
 	
-	function calculateSimhashes(callback){
-		console.time("memFetch");
-	 	var arrayOfSetSimhashFunctions = [];
-	 	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
-	 		complete: '=',
-			incomplete: ' ',
-			width: 20,
-			total: t.mementos.length
-		})
-		
-		for(var m=0; m<t.mementos.length; m++){
-			arrayOfSetSimhashFunctions.push(t.mementos[m].setSimhash());
-	 		bar.tick(1);
-		}
-		
-		console.time('simhashing');
-	 	return Promise.all(
-	 		arrayOfSetSimhashFunctions
-	 	).catch(function(err){
-	 		console.log("OMFG, an error!");
-	 		console.log(err);
-	 	}).then(function(){
-	 		console.log("Checking if there are mementos to remove");
-	 		var mementosRemoved = 0;
-	 		//remove all mementos whose payload body was a Wayback soft 302
-	 		for (var i = t.mementos.length-1; i >= 0; i--) {
-				if (t.mementos[i].simhash === "isA302DeleteMe") {
-					t.mementos.splice(i, 1);
-					mementosRemoved++;
-				}
-			}
-			
-			console.timeEnd('simhashing');
-			console.log(mementosRemoved+" mementos removed due to Wayback 'soft 3xxs'");
-	 		callback("");
-	 	});
-	}
 	
-	function saveSimhashesToCache(callback){
-		//TODO: remove dependency on global timemap t
-		
-		var strToWrite = "";
-		for(var m=0; m<t.mementos.length; m++){
-			if(t.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302){
-				strToWrite += t.mementos[m].simhash + " " + t.mementos[m].uri + " " + t.mementos[m].datetime + "\r\n";
-			}
-		}
-		
-		console.log("Done getting simhashes from array");
-		var cacheFile = new SimhashCacheFile(t.originalURI);
-		cacheFile.replaceContentWith(strToWrite);
-
-	
-		callback("");
-	}
-	
-	function assignmentRelevantMementosAScreenshotURI(callback){
-		//Assuming foreach is faster than for-i, this can be executed out-of-order
-		t.mementos.forEach(function(memento,m){
-			var uri = memento.uri;
-			if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
-				memento.screenshotURI = null;
-			}else {
-				var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
-				memento.screenshotURI = filename;
-			}
-		});
-		console.log("done with assignmentRelevantMementosAScreenshotURI, calling back");
-		callback("");
-	}
 	
 
 	 function sortMementosByMementoDatetime(callback){
@@ -637,158 +568,12 @@ function getTimemap(uri,response){
 	 	callback("");
 	 }
 	 
-	 //Fischer-Yates shuffle so we don't fetch the memento in-order but preserve 
-	 // them as objects and associated attributes
-	 function shuffleArray(array) { 
-		for (var i = array.length - 1; i > 0; i--) {
-			var j = Math.floor(Math.random() * (i + 1));
-			var temp = array[i];
-			array[i] = array[j];
-			array[j] = temp;
-		}
-		return array;
-	}
 	 
-	 function createScreenshotsForAllMementos(callback){
-	 	var arrayOfCreateScreenshotFunctions = [];
-	 	
-	 	
-	 	function hasScreenshot(e){
-	 		return e.screenshotURI != null;
-	 	}
-
-		//filter the screenshots to favor those only with a screenshot URI
-	 	t.mementos.filter(hasScreenshot).forEach(function(memento,m){
-	 		arrayOfCreateScreenshotFunctions.push(function(callback){createScreenshotForMemento(memento.uri,callback);});
-	 	});
-		
-		async.each(
-			shuffleArray(t.mementos.filter(hasScreenshot)), //array of mementos to randomly
-			createScreenshotForMemento,						//create a screenshot
-			function doneCreatingScreenshots(err){			//when finished, check for errors
-				if(err){
-					console.log("Error creating screenshot");
-					console.log(err); 
-				}
-				callback("");
-			}
-		);
-	 }
 	 
-	 function createScreenshotForMemento(memento,callback){
-	 	var uri = memento.uri;
-	 	
-		if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
-			memento.screenshotURI = null;
-			callback();
-			return;
-		}
-		var filename = memento.screenshotURI
-
-		
-		try{
-			fs.openSync(path.join(__dirname+"/screenshots/"+memento.screenshotURI),'r',function(e,r){console.log(e);console.log(r);});
-			console.log(memento.screenshotURI+" already exists...continuing");
-			callback();
-			return;
-		}catch(e){
-			console.log((new Date()).getTime()+" "+memento.screenshotURI+" does not exist...generating");
-		}
-		
-		var options = {
-			'phantomConfig': {
-				'ignore-ssl-errors': true,
-				'local-to-remote-url-access': true
-			},
-			//remove the Wayback UI
-			onLoadFinished: function() {
-				document.getElementById('wm-ipp').style.display = "none";
-			}
-			
-		};
-		
-		console.log("About to start screenshot generation process for "+uri);
-		webshot(uri, "screenshots/"+filename, options, function(err) {
-			if(err){
-				console.log("Error creating a screenshot for "+uri);
-				console.log(err);
-				callback("Screenshot failed!");
-			}else {
-				fs.chmodSync("./screenshots/"+filename, '755');
-				console.log((new Date()).getTime()+" "+"Screenshot created for "+uri);
-				callback();
-			}
-		});
-
-	 }
 	 
-	 function calculateHammingDistances(callback){
-	 		
-	 	var hammingbar = new ProgressBar("  Hamming [:bar] :percent :etas", {
-	 		complete: '=',
-			incomplete: ' ',
-			width: 20,
-			total: t.mementos.length-1
-		});
-	 	
-	 	//console.log("Calculating hamming distances");
-	 	console.time('hamming');
-	 	t.mementos.forEach(function(memento,m,ary){
-	 		//console.log(m);
-	 		if(m > 0){
-	 			//console.log("Comparing "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
-	 			//console.log("Hamming "+t.mementos[m].uri+" "+t.mementos[m-1].uri+" "+t.mementos[m].simhash+" and "+t.mementos[m-1].simhash);
-	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[m-1].simhash);
-	 			hammingbar.tick(1);
-	 			
-	 			//console.log(t.mementos[m].uri+" hammed!");
-	 		}else if(m == 0){return;}
-	 	});
-	 	
-	 	console.timeEnd('hamming');
-	 	callback("");
-	 }
-
-	 function calculateHammingDistancesWithOnlineFiltering(callback){
-	 	console.time('Hamming And Filtering, a synchronous operation');
-		
-		var lastSignificantMementoIndexBasedOnHamming = 0;
-		var copyOfMementos = [t.mementos[0]];
-		
-		console.log("Calculate hamming distance of "+t.mementos.length+" mementos");
-		for(var m=0; m<t.mementos.length; m++){
-			console.log("Analyzing memento "+m+": "+t.mementos[m].uri);
-	 		if(m > 0){
-	 			if((t.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");continue;}
-	 			console.log("Calculating hamming distance");
-	 			t.mementos[m].hammingDistance = getHamming(t.mementos[m].simhash,t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
-				console.log("Getting hamming basis");
-				t.mementos[m].hammingBasis = t.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
-				
-				
-	 			console.log("Comparing hamming distances (simhash,uri) = "+t.mementos[m].hammingDistance +"\n" + 
-	 				" > testing: "+t.mementos[m].simhash+" "+t.mementos[m].uri + "\n" + 
-	 			    " > pivot:   "+t.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + t.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
-
-	 			
-	 			if(t.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD){ //filter the mementos if hamming distance is too small
-	 				lastSignificantMementoIndexBasedOnHamming = m;
-	 				//copyOfMementos.push(t.mementos[m]);	//only push mementos that pass threshold requirements
-	 			}
-	 			
-	 			//console.log(t.mementos[m].uri+" hammed!");
-	 		}else if(m == 0){console.log("m==0, continuing");}
-	 	}
-	 	console.log((t.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
-	 	metadata = copyOfMementos.length+" of "+t.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
-	 	//t.mementos = copyOfMementos.slice(0);
-	 	console.log(t.mementos.length+" mementos remain");
-	 	copyOfMementos = null;
-	 	
-
-	 	callback("");
-	 }
 	 
+	 /*
+	 //TODO: implement this for the callback chain
 	 function calculateCaptureTimeDeltas(callback){
 	 	//console.log("Calculating capture time deltas");
 	 	t.mementos.forEach(function(memento,m,ary){	 		
@@ -798,8 +583,10 @@ function getTimemap(uri,response){
 	 		}else if(m == 0){return;}
 	 	});	 
 	 	callback("");
-	 }
+	 }*/
 	 
+	 /*
+	 //TODO: implement this for the callback chain
 	 function applyKMedoids(callback){
 	 	//1. Initialize: randomly select k of the n data points as the medoids
 	 	//var arr = t.mementos.clone();
@@ -815,6 +602,7 @@ function getTimemap(uri,response){
 		console.log("Applying K Medoids");
 		callback("");
 	 }
+	 */
 	 
 	 // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
 	 function getRandomSubsetOfMementosArray(arr,siz){
@@ -830,47 +618,7 @@ function getTimemap(uri,response){
 	 }
 	 
 	 
-	 /**
-	 * HTML to return back as user interface to client
-	 * @param callback The function to call once this function has completed executed, invoked by caller
-	 */
-	 function printMementoInformation(callback){	
-	 	console.log("About to print memento information");
-	 	var CRLF = "\r\n"; var TAB = "\t"; 
-	 	
-	 	//This is a dumb, wrong implementation but will fit the bill until I can either 
-	 	//...extract the available faux HTTP header or pass the needed value through the callback chain
-	 	//var access = "interface";
-	 	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
-	 	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
-	 	
-	 	
-	 	var respString = 
-	 		"<html><head>" + CRLF +
-	 		"<base href=\'"+imageServer+"\' />" + CRLF +
-	 		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
-			"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
-			"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
-			"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
-	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
-	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
-	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
-	 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +
-	 		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
-	 		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
-	 		"<script>var returnedJSON =" + CRLF +
-	 			JSON.stringify(t.mementos) + ";" + CRLF +
-	 			"var metadata = '"+metadata+"';" + CRLF +
-	 		"</script>" + CRLF +
-	 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
-	 	
-	 		"</head><body ><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
-	 		"</body></html>";
-	 	response.write(respString);
-		response.end();
-	 	console.log("HTML for interface sent to client");
-	 	callback("");
-	 }
+	 
 	 
 	 
 	 
@@ -893,6 +641,260 @@ function getTimemap(uri,response){
 }
 
 
+
+
+
+
+
+
+
+/* ****************************************
+   // SUPPLEMENTAL TIMEMAP FUNCTIONALITY
+***************************************** */
+
+/**
+ * HTML to return back as user interface to client
+ * @param callback The function to call once this function has completed executed, invoked by caller
+ */
+ TimeMap.prototype.printMementoInformationX = function(response,callback){	
+	console.log("About to print memento information");
+	var CRLF = "\r\n"; var TAB = "\t"; 
+	
+	//This is a dumb, wrong implementation but will fit the bill until I can either 
+	//...extract the available faux HTTP header or pass the needed value through the callback chain
+	//var access = "interface";
+	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
+	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
+	
+	console.log("Mems len: "+this.mementos.length);
+	var respString = 
+		"<html><head>" + CRLF +
+		"<base href=\'"+imageServer+"\' />" + CRLF +
+		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
+		"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
+		"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
+		"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +
+		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
+		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
+		"<script>var returnedJSON =" + CRLF +
+			JSON.stringify(this.mementos) + ";" + CRLF +
+			"var metadata = '"+metadata+"';" + CRLF +
+		"</script>" + CRLF +
+		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
+	
+		"</head><body ><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
+		"</body></html>";
+	console.log("Done string building (prob doesn't have ref to response)");
+	response.write(respString);
+	console.log("After TRYING to write a response");
+	response.end();
+	console.log("HTML for interface sent to client");
+	callback("");
+ }
+
+TimeMap.prototype.calculateSimhashesX = function(callback){
+	//console.time("memFetch");
+	var arrayOfSetSimhashFunctions = [];
+	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
+		complete: '=',
+		incomplete: ' ',
+		width: 20,
+		total: this.mementos.length
+	})
+	
+	for(var m=0; m<this.mementos.length; m++){
+		arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash());
+		bar.tick(1);
+	}
+	
+	console.time('simhashing');
+	var theTimemap = this;
+	return Promise.all(
+		arrayOfSetSimhashFunctions
+	).catch(function(err){
+		console.log("OMFG, an error!");
+		console.log(err);
+	}).then(function(){
+		console.log("Checking if there are mementos to remove");
+		var mementosRemoved = 0;
+		console.log("About to go into loop of ## mementos: "+(theTimemap.mementos.length - 1));
+		//remove all mementos whose payload body was a Wayback soft 302
+		for (var i = theTimemap.mementos.length-1; i >= 0; i--) {
+			console.log("Checking "+i+" of "+theTimemap.mementos.length);
+			if (theTimemap.mementos[i].simhash === "isA302DeleteMe") {
+				theTimemap.mementos.splice(i, 1);
+				mementosRemoved++;
+			}
+		}
+		
+		//console.timeEnd('simhashing');
+		console.log(mementosRemoved+" mementos removed due to Wayback 'soft 3xxs'");
+		callback("");
+	});
+}
+
+TimeMap.prototype.saveSimhashesToCacheX = function(callback){
+	//TODO: remove dependency on global timemap t
+	
+	var strToWrite = "";
+	for(var m=0; m<this.mementos.length; m++){
+		if(this.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302){
+			strToWrite += this.mementos[m].simhash + " " + this.mementos[m].uri + " " + this.mementos[m].datetime + "\r\n";
+		}
+	}
+	
+	console.log("Done getting simhashes from array");
+	var cacheFile = new SimhashCacheFile(this.originalURI);
+	cacheFile.replaceContentWith(strToWrite);
+
+
+	callback("");
+}
+
+TimeMap.prototype.assignmentRelevantMementosAScreenshotURIX = function(callback){
+	//Assuming foreach is faster than for-i, this can be executed out-of-order
+	this.mementos.forEach(function(memento,m){
+		var uri = memento.uri;
+		console.log("Hamming distance = "+memento.hammingDistance);
+		if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD  && memento.hammingDistance >= 0){
+			console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
+			memento.screenshotURI = null;
+		}else {
+			var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
+			memento.screenshotURI = filename;
+		}
+	});
+	console.log("done with assignmentRelevantMementosAScreenshotURI, calling back");
+	callback("");
+}
+
+
+TimeMap.prototype.createScreenshotsForAllMementosX = function(callback){
+	var arrayOfCreateScreenshotFunctions = [];
+	console.log("Creating screenshots...");
+	
+	function hasScreenshot(e){
+		return e.screenshotURI != null;
+	}
+	
+	var self = this;
+	//filter the screenshots to favor those only with a screenshot URI
+	//this.mementos.filter(hasScreenshot).forEach(function(memento,m){
+	//	arrayOfCreateScreenshotFunctions.push(function(callback){that.createScreenshotForMementoX(memento.uri,callback);});
+	//});
+	
+	console.log("Done filtering for screenshots");
+	console.log(self);
+	
+	
+	async.each(
+		shuffleArray(self.mementos.filter(hasScreenshot)), //array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
+		self.createScreenshotForMementoX,						//create a screenshot
+		function doneCreatingScreenshots(err){			//when finished, check for errors
+			if(err){
+				console.log("Error creating screenshot");
+				console.log(err); 
+			}
+			callback("");
+		}
+	);
+ };
+ 
+ TimeMap.prototype.createScreenshotForMementoX = function(memento,callback){
+ 	console.log("in screenshot for mementox");
+	var uri = memento.uri;
+	console.log("In the screenshot creation procedure");
+	if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
+		memento.screenshotURI = null;
+		callback();
+		return;
+	}
+	var filename = memento.screenshotURI
+
+	
+	try{
+		fs.openSync(path.join(__dirname+"/screenshots/"+memento.screenshotURI),'r',function(e,r){console.log(e);console.log(r);});
+		console.log(memento.screenshotURI+" already exists...continuing");
+		callback();
+		return;
+	}catch(e){
+		console.log((new Date()).getTime()+" "+memento.screenshotURI+" does not exist...generating");
+	}
+	
+	var options = {
+		'phantomConfig': {
+			'ignore-ssl-errors': true,
+			'local-to-remote-url-access': true
+		},
+		//remove the Wayback UI
+		onLoadFinished: function() {
+			document.getElementById('wm-ipp').style.display = "none";
+		}
+		
+	};
+	
+	console.log("About to start screenshot generation process for "+uri);
+	webshot(uri, "screenshots/"+filename, options, function(err) {
+		if(err){
+			console.log("Error creating a screenshot for "+uri);
+			console.log(err);
+			callback("Screenshot failed!");
+		}else {
+			fs.chmodSync("./screenshots/"+filename, '755');
+			console.log((new Date()).getTime()+" "+"Screenshot created for "+uri);
+			callback();
+		}
+	});
+
+ }
+ 
+ TimeMap.prototype.calculateHammingDistancesWithOnlineFilteringX = function(callback){
+	console.time('Hamming And Filtering, a synchronous operation');
+	
+	var lastSignificantMementoIndexBasedOnHamming = 0;
+	var copyOfMementos = [this.mementos[0]];
+	
+	console.log("Calculate hamming distance of "+this.mementos.length+" mementos");
+	for(var m=0; m<this.mementos.length; m++){
+		console.log("Analyzing memento "+m+": "+this.mementos[m].uri);
+		console.log("...with SimHash: "+this.mementos[m].simhash);
+		if(m > 0){
+			if((this.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");continue;}
+			console.log("Calculating hamming distance");
+			this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash,this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
+			console.log("Getting hamming basis");
+			this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
+			
+			console.log("Comparing hamming distances (simhash,uri) = "+this.mementos[m].hammingDistance +"\n" + 
+				" > testing: "+this.mementos[m].simhash+" "+this.mementos[m].uri + "\n" + 
+				" > pivot:   "+this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + " " + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
+
+			
+			if(this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD){ //filter the mementos if hamming distance is too small
+				lastSignificantMementoIndexBasedOnHamming = m;
+				//copyOfMementos.push(t.mementos[m]);	//only push mementos that pass threshold requirements
+			}
+			
+			//console.log(t.mementos[m].uri+" hammed!");
+		}else if(m == 0){console.log("m==0, continuing");}
+	}
+	console.log((this.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
+	metadata = "";
+	//metadata = copyOfMementos.length+" of "+this.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
+	//t.mementos = copyOfMementos.slice(0);
+	console.log(this.mementos.length+" mementos remain");
+	copyOfMementos = null;
+	
+
+	callback("");
+ }
+
+
+
 function getHamming(str1,str2){
 	if(str1.length != str2.length){
 		console.log("Oh noes! Hamming went awry! The lengths are not equal!");
@@ -912,6 +914,18 @@ function getHamming(str1,str2){
 	return d;
  }
 
+
+//Fischer-Yates shuffle so we don't fetch the memento in-order but preserve 
+ // them as objects and associated attributes
+ function shuffleArray(array) { 
+	for (var i = array.length - 1; i > 0; i--) {
+		var j = Math.floor(Math.random() * (i + 1));
+		var temp = array[i];
+		array[i] = array[j];
+		array[j] = temp;
+	}
+	return array;
+}
 
 /* *********************************
         UTILITY FUNCTIONS
