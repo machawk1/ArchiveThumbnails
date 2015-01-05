@@ -221,9 +221,9 @@ function processWithFileContents(fileContents,response){
 	var t = createMementosFromCacheFile(fileContents);
 	console.log("There were "+t.mementos.length+" mementos");
 	t.calculateHammingDistancesWithOnlineFiltering();
-	t.supplyChosenMementosAScreenshotURI();
+	t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI();
 	t.printMementoInformation(response);
-	t.createScreenshotsForAllMementos(function(){console.log("Done creating screenshots");});
+	t.createScreenshotsForMementos(function(){console.log("Done creating screenshots");});
 
 }	
 
@@ -448,9 +448,9 @@ function getTimemap(uri,response){
 	 function(callback){t.calculateHammingDistancesWithOnlineFiltering(callback);},
 	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
 	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
-	 function(callback){t.supplyChosenMementosAScreenshotURI(callback);},
+	 function(callback){t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
 	 function(callback){t.printMementoInformation(response,callback);},
-	 function(callback){t.createScreenshotsForAllMementos(callback);}],	 
+	 function(callback){t.createScreenshotsForMementos(callback);}],	 
 	 function(err, result){
 	 	if(err){
 	 		console.log("ERROR!");
@@ -661,7 +661,12 @@ TimeMap.prototype.saveSimhashesToCache = function(callback){
 	if(callback){callback("");}
 }
 
-TimeMap.prototype.supplyChosenMementosAScreenshotURI = function(callback){
+/**
+* Converts the target URI to a safe semantic filename and attaches to relevant memento.
+* Selection based on passing a hamming distance threshold
+* @param callback The next procedure to execution when this process concludes
+*/
+TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = function(callback){
 	//Assuming foreach is faster than for-i, this can be executed out-of-order
 	this.mementos.forEach(function(memento,m){
 		var uri = memento.uri;
@@ -674,12 +679,38 @@ TimeMap.prototype.supplyChosenMementosAScreenshotURI = function(callback){
 			memento.screenshotURI = filename;
 		}
 	});
-	console.log("done with supplyChosenMementosAScreenshotURI, calling back");
+	console.log("done with supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back");
 	if(callback){callback("");}
 }
 
 
-TimeMap.prototype.createScreenshotsForAllMementos = function(callback){
+/**
+* Converts the target URI to a safe semantic filename and attaches to relevant memento
+* Selection based on randomization
+* @param callback The next procedure to execution when this process concludes
+* @param n Number of mementos to select
+*/
+TimeMap.prototype.supplyChosenMementosBasedOnRandomizationAScreenshotURI = function(callback,n){
+	var numberOfMementoSelectionsRemaining = n;
+	while(numberOfMementoSelectionsRemaining > 0){
+		var i = Math.random() * (this.mementos.length - 1);
+		if(this.mementos[i].screenshotURI){ //screenshot has already been assigned
+			//TODO: make this the else case but first consider null's ambiguous conditionality
+		}else { //generate a URI for the memento and associate
+			var filename = this.mementos[i].uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
+			memento.screenshotURI = filename;
+			numberOfMementoSelectionsRemaining--;
+		}
+	}
+
+	console.log("supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back");
+	if(callback){callback("");}
+}
+
+
+
+
+TimeMap.prototype.createScreenshotsForMementos = function(callback,withCriteria){
 	var arrayOfCreateScreenshotFunctions = [];
 	console.log("Creating screenshots...");
 	
@@ -694,8 +725,11 @@ TimeMap.prototype.createScreenshotsForAllMementos = function(callback){
 	//});
 		
 	
+	var criteria = hasScreenshot;
+	if(withCriteria){criteria = withCriteria;}
+	
 	async.each(
-		shuffleArray(self.mementos.filter(hasScreenshot)), //array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
+		shuffleArray(self.mementos.filter(criteria)), //array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
 		self.createScreenshotForMemento,						//create a screenshot
 		function doneCreatingScreenshots(err){			//when finished, check for errors
 			if(err){
@@ -709,6 +743,7 @@ TimeMap.prototype.createScreenshotsForAllMementos = function(callback){
  
  TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 	var uri = memento.uri;
+	
 	if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
 		memento.screenshotURI = null;
 		callback();
