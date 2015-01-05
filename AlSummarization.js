@@ -223,6 +223,7 @@ function processWithFileContents(fileContents,response){
 	t.calculateHammingDistancesWithOnlineFiltering();
 	t.supplyChosenMementosAScreenshotURI();
 	t.printMementoInformation(response);
+	t.createScreenshotsForAllMementos(function(){console.log("Done creating screenshots");});
 
 }	
 
