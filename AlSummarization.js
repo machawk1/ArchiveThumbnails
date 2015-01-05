@@ -167,10 +167,21 @@ function PublicEndpoint(){
 	  
 	  uri_r = query['URI-R'];
 	  
-	  var access = "interface";
+	  var validAccessParameters = ["interface","wayback","embed"];
+	  
+	  var access = validAccessParameters[0]; //not specified? access=interface
 	  if(query['access']){ //access={wayback,embed}
 	  	access = query['access']; //probably the most inelegant way to do this assignment
 	  }
+	  
+	  if(validAccessParameters.indexOf(access) == -1){ // A bad access parameter was passed in
+	  	  console.log("Bad access query parameter: "+access);
+	 	  response.writeHead(501, headers);
+	 	  response.write("The access parameter was incorrect. Try one of "+validAccessParameters.join(",")+" or omit it entirely from the query string\r\n");
+		  response.end();
+		  return;  
+	  }
+	  
 	  headers["X-Means-Of-Access"] = access;
 	  
 	  
@@ -709,7 +720,12 @@ TimeMap.prototype.supplyChosenMementosBasedOnRandomizationAScreenshotURI = funct
 
 
 
-
+/**
+* Generate a screenshot with all mementos that pass the passed-in criteria test
+* @param callback The next procedure to execution when this process concludes
+* @param withCriteria Function to inclusively filter mementos, i.e. returned from criteria
+*                     function means a screenshot should be generated for it.
+*/
 TimeMap.prototype.createScreenshotsForMementos = function(callback,withCriteria){
 	var arrayOfCreateScreenshotFunctions = [];
 	console.log("Creating screenshots...");
@@ -718,18 +734,14 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback,withCriteria)
 		return e.screenshotURI != null;
 	}
 	
-	var self = this;
-	//filter the screenshots to favor those only with a screenshot URI
-	//this.mementos.filter(hasScreenshot).forEach(function(memento,m){
-	//	arrayOfCreateScreenshotFunctions.push(function(callback){that.createScreenshotForMementoX(memento.uri,callback);});
-	//});
-		
+	var self = this;	
 	
 	var criteria = hasScreenshot;
 	if(withCriteria){criteria = withCriteria;}
 	
-	async.each(
+	async.eachLimit(
 		shuffleArray(self.mementos.filter(criteria)), //array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
+		10,
 		self.createScreenshotForMemento,						//create a screenshot
 		function doneCreatingScreenshots(err){			//when finished, check for errors
 			if(err){
@@ -741,14 +753,17 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback,withCriteria)
 	);
  };
  
- TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
+TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 	var uri = memento.uri;
+
 	
-	if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
+	/*if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD && memento.hammingDistance >= 0){
+		console.log("before:");
+		console.log(memento.screenshotURI);
 		memento.screenshotURI = null;
 		callback();
 		return;
-	}
+	}*/
 	var filename = memento.screenshotURI
 
 	
@@ -786,7 +801,7 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback,withCriteria)
 		}
 	});
 
- }
+}
  
  TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callback){
 	console.time('Hamming And Filtering, a synchronous operation');
