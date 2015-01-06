@@ -145,6 +145,11 @@ function PublicEndpoint(){
 	  var pathname = url.parse(request.url).pathname;
 
 	  var query = url.parse(request.url, true).query;
+
+
+	  /* ****************************
+	     IMAGE PARAMETER - allows binary image data to be returned from service
+	  **************************** */
 	  if(query['img']){
 	 	//return image data here
 	 	var fileExtension = query['img'].substr("-3");
@@ -156,6 +161,10 @@ function PublicEndpoint(){
 	 	
 	 	return;
 	 }	 
+
+	  /* ****************************
+	     URI-R PARAMETER - required if not img, supplies basis for archive query
+	  **************************** */
 	  
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
 	    console.log("No URI-R sent with request. "+request.url+" was sent. Try http://localhost:15421/?URI-R=http://matkelly.com");
@@ -167,10 +176,14 @@ function PublicEndpoint(){
 	  
 	  uri_r = query['URI-R'];
 	  
+	  
+	  /* ****************************
+	     ACCESS PARAMETER - optional - specify origin of access to service
+	  **************************** */
 	  var validAccessParameters = ["interface","wayback","embed"];
 	  
 	  var access = validAccessParameters[0]; //not specified? access=interface
-	  if(query['access']){ //access={wayback,embed}
+	  if(query['access']){ 
 	  	access = query['access']; //probably the most inelegant way to do this assignment
 	  }
 	  
@@ -180,10 +193,27 @@ function PublicEndpoint(){
 	 	  response.write("The access parameter was incorrect. Try one of "+validAccessParameters.join(",")+" or omit it entirely from the query string\r\n");
 		  response.end();
 		  return;  
-	  }
-	  
+	  }	  
 	  headers["X-Means-Of-Access"] = access;
+
+	  /* ****************************
+	     STRATEGY PARAMETER - optional - specify method to use for summarization
+	  **************************** */
+	  var validStrategyParameters = ["alSummarization","random","monthly","yearly"];
+	  	  
+	  var strategy = validStrategyParameters[0]; //not specified? access=interface
+	  if(query['strategy']){ 
+	  	strategy = query['strategy']; 
+	  }	  
 	  
+	  if(validStrategyParameters.indexOf(access) == -1){ // A bad streategy parameter was passed in
+	  	  console.log("Bad strategy query parameter: "+streategy);
+	 	  response.writeHead(501, headers);
+	 	  response.write("The strategy parameter was incorrect. Try one of "+validStrategyParameters.join(",")+" or omit it entirely from the query string\r\n");
+		  response.end();
+		  return;  
+	  }	  
+	  headers["X-Summarization-Strategy"] = strategy;	  
 	  
 	  if(!uri_r.match(/^[a-zA-Z]+:\/\//)){uri_r = 'http://' + uri_r;}//prepend scheme if necessary
 	  
