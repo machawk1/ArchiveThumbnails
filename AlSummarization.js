@@ -206,8 +206,8 @@ function PublicEndpoint(){
 	  	strategy = query['strategy']; 
 	  }	  
 	  
-	  if(validStrategyParameters.indexOf(access) == -1){ // A bad streategy parameter was passed in
-	  	  console.log("Bad strategy query parameter: "+streategy);
+	  if(validStrategyParameters.indexOf(strategy) == -1){ // A bad strategy parameter was passed in
+	  	  console.log("Bad strategy query parameter: "+strategy);
 	 	  response.writeHead(501, headers);
 	 	  response.write("The strategy parameter was incorrect. Try one of "+validStrategyParameters.join(",")+" or omit it entirely from the query string\r\n");
 		  response.end();
@@ -237,19 +237,28 @@ function PublicEndpoint(){
 		response.end();
 	  }
 	  
+	  /*
+	  //unused?
 	  function getTimemapCallback(uri,callback){
 	  	getTimemap(response,uri,callback);
-	  }
+	  }*/
 	  
 	  function returnJSONError(str){
 		 response.write("{\"Error\": \""+str+"\"}");
 		 response.end();
 	  }
 	  
+	  response.thumbnails = []; //carry the original query parameters over to the eventual response
+	  response.thumbnails['access'] = access;
+	  response.thumbnails['strategy'] = strategy;
+	  
+	  //TODO: include consideration for strategy parameter supplied here
 	  console.log("Checking for cache...");
 	  var cacheFile = new SimhashCacheFile(uri_r);
 	  cacheFile.readFileContents(
-	  	function success(data){processWithFileContents(data,response)},
+	  	function success(data){ // A cache file has been previously generated using the alSummarization strategy
+	  		processWithFileContents(data,response)
+	  	},
 	  	function failed(){getTimemap(query['URI-R'],response);}
 	  );
 	}
@@ -633,7 +642,7 @@ function getTimemap(uri,response){
 		"</script>" + CRLF +
 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	
-		"</head><body ><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
+		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
 		"</body></html>";
 	console.log("Done string building (prob doesn't have ref to response)");
 	response.write(respString);
