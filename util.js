@@ -87,12 +87,13 @@ $(document).ready(function(){
   		$("#gv div").addClass("f1_container");
   		
   		$("#gv > div").each(function(){
-  			$(this).append("<figure class=\"shadow f1_card\"><div class=\"font face\">"+$(this).html()+"</div><figcaption class=\"back face center\">"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
+  			$(this).append("<figure class=\"shadow f1_card\" style=\"width: 25px;\"><div class=\"font face\">"+$(this).html()+"</div><figcaption class=\"back face center\">"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
   			//$(this).append("<figure>"+$(this).html()+"</figure>");
   			
   			$(this).find(".caption").remove();
   			$(this).children("img").remove();
   		});
+  		$("#gv").append("<br style=\"clear: both;\" />");
   		
   		$('.f1_container').click(function() {
 			$(this).toggleClass('active');
