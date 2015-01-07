@@ -631,6 +631,7 @@ function getTimemap(uri,response){
 		"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
 		"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"alSummarization.css\" />" + CRLF +
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +

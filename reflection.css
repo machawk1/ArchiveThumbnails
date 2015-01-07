@@ -1,32 +1,3 @@
-body {background-color: black;}
-h1 {color: white; text-align: center; font-family: 'Arial',sans-serif; text-shadow: 0px 2px 5px blue;}
-h2 {color: white;  font-size: 14px; font-family: 'Arial',sans-serif; font-weight: normal;  }
-h2 a {color: white;}
-.caption {background: linear-gradient(#333 33%, #000); ;width: 500px; text-align: center; margin-left: -150px; margin-top: -2px; z-index: 1;border: 3px solid white; display: none; border-top: 0; padding-top: 10px;border-radius: 25px; border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: 0px 10px 20px 0px #000;}
-p#count {color: white; bottom: 10px; left: 10px; position: absolute; z-index: 50;}
-ul#viewSwitcher {display: block; background-color: black;  text-align: center; position: absolute; bottom: 0; margin: 0; padding: 0; z-index: 99; width: 100%;}
-ul#viewSwitcher li {background-color: white; color: black; float: left; border-radius: 10px; margin-right: 5px; margin-bottom: 0px; border: 3px solid white;}
-ul#viewSwitcher li a {width: 300px; display: block; text-decoration: none; color: black; font-weight: bold;}
-ul#viewSwitcher li:hover {background-color: #ccc; cursor: pointer;}
-ul#viewSwitcher li.active {border: 3px solid green; background-color: green; color: white;}
-ul#viewSwitcher li.active:hover {cursor: default;}
-
-#gv .hoverText {position: relative; top: 0; left: 0; font-size: 10px; color: blue;}
-#gv .hoverText h2 {margin: 0;}
-figure {padding: 0; margin: 0;}
-.insufficientHamming {display: none;}
-
-#timeline {background-color: white; display:none;}
-.vis.timeline .item.dot.inSummarization {border-color: green;}
-.vis.timeline .item.dot.notInSummarization {border-color: red;}
-
-#showJSON {display:block; position: absolute; top: 0px; left: 0px; }
-#showJSON:hover {cursor: pointer; }
-#json {width: 25%; height: 25%; position: absolute; top: 15px; left: 5px; z-index: 999;}
-
-
-/* Above does not have to do with reflection, extract it out to a separate file in production */
-
 .image-block { width:78px; margin:0px 10px; float:left; }
 .image-block > img {border: 1px solid black; box-shadow: 0px 0px 25px 5px #000; background-color: white;} /* White background for those mementos whose SS bg is invisible */
 .reflection { position:relative; }
