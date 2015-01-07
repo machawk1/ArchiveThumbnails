@@ -1,16 +1,17 @@
-body {background-color: black;}
+body {background-color: black; padding-bottom: 30px;}
 h1 {color: white; text-align: center; font-family: 'Arial',sans-serif; text-shadow: 0px 2px 5px blue;}
 h2 {color: white;  font-size: 14px; font-family: 'Arial',sans-serif; font-weight: normal;  }
 h2 a {color: white;}
 .caption {background: linear-gradient(#333 33%, #000); ;width: 500px; text-align: center; margin-left: -150px; margin-top: -2px; z-index: 1;border: 3px solid white; display: none; border-top: 0; padding-top: 10px;border-radius: 25px; border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: 0px 10px 20px 0px #000;}
 p#count {color: white; bottom: 10px; left: 10px; position: absolute; z-index: 50;}
-ul#viewSwitcher {display: block; background-color: black;  text-align: center; position: absolute; bottom: 0; margin: 0; padding: 0; z-index: 99; width: 100%;}
+ul#viewSwitcher {display: block; background-color: black;  text-align: center; bottom: 0; margin: 0; padding: 5px 0 5px 0; z-index: 99; width: 100%; z-index: 999; position: fixed;}
 ul#viewSwitcher li {background-color: white; color: black; float: left; border-radius: 10px; margin-right: 5px; margin-bottom: 0px; border: 3px solid white;}
 ul#viewSwitcher li a {width: 300px; display: block; text-decoration: none; color: black; font-weight: bold;}
 ul#viewSwitcher li:hover {background-color: #ccc; cursor: pointer;}
 ul#viewSwitcher li.active {border: 3px solid green; background-color: green; color: white;}
 ul#viewSwitcher li.active:hover {cursor: default;}
 
+#gv {height: 100%; overflow: auto;}
 #gv .hoverText {position: relative; top: 0; left: 0; font-size: 10px; color: blue;}
 #gv .hoverText h2 {margin: 0;}
 figure {padding: 0; margin: 0;}
@@ -24,6 +25,10 @@ figure {padding: 0; margin: 0;}
 #showJSON:hover {cursor: pointer; }
 #json {width: 25%; height: 25%; position: absolute; top: 15px; left: 5px; z-index: 999;}
 
+#gv div {border: 1px solid black;}
+#gv div img {background-color: white;}
+  		
+
 body[data-access='interface'] {}
 body[data-access='wayback'] {background-color: white; padding-top: 2.0em;}
 body[data-access='embed'] {}
@@ -36,8 +41,8 @@ body[data-access='wayback'] .reflection {display: none;}
 body[data-access='wayback'] .image-block > img, body[data-access='wayback'] .ui-state-active > img {box-shadow: 0;}
 body[data-access='wayback'] #viewSwitcher {background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
 body[data-access='wayback'] #viewSwitcher li {border: 1px solid #3EAAB8; display: inline;}
-body[data-access='wayback'] #viewSwitcher li.active {background-color: 1px solid #3EAAB8;}
-body[data-access='wayback'] #viewSwitcher li.active a {color: white; background-color: 1px solid #3EAAB8;}
+body[data-access='wayback'] #viewSwitcher li.active {background-color: #3EAAB8;}
+body[data-access='wayback'] #viewSwitcher li.active a {color: white;}
 
 body[data-strategy='alSummarization'] {}
 body[data-strategy='random'] {}
