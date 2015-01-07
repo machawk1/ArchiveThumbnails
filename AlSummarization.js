@@ -643,7 +643,7 @@ function getTimemap(uri,response){
 		"</script>" + CRLF +
 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 	
-		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1>Thumbnails for "+uri_r+" <button id=\"showJSON\">Show JSON</button></h1>" + CRLF +
+		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1 class=\"interface\">Thumbnails for "+uri_r+" <button id=\"showJSON\" class=\"interface\">Show JSON</button></h1>" + CRLF +
 		"</body></html>";
 	console.log("Done string building (prob doesn't have ref to response)");
 	response.write(respString);
