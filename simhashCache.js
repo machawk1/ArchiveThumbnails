@@ -4,7 +4,7 @@ function SimhashCacheFile(forUri){
 		//operation = "replace","append","read"
 		
 		//TODO, check if it already exists
-		this.path = "./simhashes_"+forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
+		this.path = "./cache/simhashes_"+forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
 		
 		this.replaceContentWith = function(str){
 			console.log("in replaceContentWith()");
