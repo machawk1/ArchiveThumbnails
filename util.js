@@ -9,7 +9,7 @@ $(document).ready(function(){
   	
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
-    cfstr += "<img onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='http://localhost:1338/_images/spinner2.gif';\" width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"' title='http://localhost:1338/screenshots/"+returnedJSON[i].screenshotURI+"' />\r\n";
+    cfstr += "<img onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='http://localhost:1338/_images/spinner2.gif';\" width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_200"+"' title='http://localhost:1338/screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"' />\r\n";
 	cfstr += "<div class=\"caption\">";
 	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
 	cfstr += "<h2><a target=\"_blank\" href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
@@ -17,7 +17,7 @@ $(document).ready(function(){
 	cfstr += "<h2>Hamming Distance: "+(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")+"</h2>";
 	cfstr += "</div>"; /* End caption, ideally this should use figure and figcaption tags */
 	cfstr += "<div class=\"reflection\">";
-  	cfstr += "<img width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='http://localhost:1338/screenshots/"+returnedJSON[i].screenshotURI+"' />\r\n";
+  	cfstr += "<img width=200 height=200 src='http://localhost:1338/_images/spinner.gif' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='http://localhost:1338/screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"' />\r\n";
     cfstr += "<div class=\"overlay\"></div>";
     cfstr += "</div>";
     cfstr += "</div>";
@@ -147,13 +147,13 @@ $(document).ready(function(){
 	}else  {
 		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
 		memento.className = "inSummarization";
-		memento.content = "<img src=\"screenshots/"+returnedJSON[i].screenshotURI+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
+		memento.content = "<img src=\"screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
 		inSummarization.push(memento);
 	}
 	data.push(memento);
 	memento = null;
   }
-  
+
   var options = {height: '300px'};//{stack: false,};
   $("body").append("<div id=\"timeline\"></div>");
   var container = document.getElementById('timeline');
