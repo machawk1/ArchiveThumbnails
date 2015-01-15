@@ -1,0 +1,25 @@
+{
+  "name": "ArchiveThumbnails",
+  "version": "0.1.0",
+  "description": "An implementation for Ahmed AlSum's \"Thumbnail Summarization Techniques for Web Archives\"",
+  "repository": "https://github.com/machawk1/ArchiveThumbnails",
+  "start": "node AlSummarization.js",
+  "dependencies": {
+    "express": "*",
+    "connect": "*",
+    "serve-static": "*",
+    "step": "*",
+    "futures": "*",
+    "es6-promise": "*",
+    "simhash": "*",
+    "moment": "*",
+    "progress": "*",
+    "memwatch": "*",
+    "node-phantom": "*",
+    "validator": "*",
+    "underscore": "*",
+    "webshot": "*",
+    "colors": "*",
+    "imagemagick": "*"
+  }
+}
