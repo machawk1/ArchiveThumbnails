@@ -254,8 +254,7 @@ function PublicEndpoint(){
 		//   so the function still can return HTML to the client
 
 
-
-		//return;
+		var t = new TimeMap();
 
 		//TODO: optimize this out of the conditional so the functions needed for each strategy are self-contained (and possibly OOP-ified)
 		if(strategy == "alSummarization"){
@@ -269,27 +268,31 @@ function PublicEndpoint(){
 		  );
 		}
 		else if(strategy == "random"){
-			var t = new TimeMap();
-			t.setupWithURIR(query['URI-R'], function selectRandomMemento(){
+			t.setupWithURIR(query['URI-R'], function selectRandomMementosFromTheTimeMap(){
 				var numberOfMementosToSelect = Math.floor(t.mementos.length/2); //FIX: currently even steven for testing
-				t.supplyChosenMementosBasedOnUniformRandomness(function(){console.log("Done");},numberOfMementosToSelect);
+				t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos,numberOfMementosToSelect);
 			});
 
 		}
 		else if(strategy == "monthly" || strategy == "yearly"){ //TODO: MLN says, 'we only want one temporal strategy'
-			var t = new TimeMap();
-			t.setupWithURIR(query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-					t.supplyChosenMementosBasedOnOneMonthly(function dummyCallback(){console.log("Done");},-1);
+				t.setupWithURIR(query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+					t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,-1);
 			});
 		}
 		else if(strategy == "skipListed"){
-			var t = new TimeMap();
-
 			t.setupWithURIR(query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-					t.supplyChosenMementosBasedOnSkipLists(function dummyCallback(){console.log("Done");},-1);
+					t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos,-1);
 			});
 		}
-}
+
+		function generateThumbnailsWithSelectedMementos(){
+			//suboptimal route but reference to t must be preserved
+			//TODO: move this to TimeMap prototype
+			t.supplySelectedMementosAScreenshotURI(function(){t.createScreenshotsForMementos(function(){console.log("Done creating screenshots");});});
+		}
+
+
+ }
 }
 
 
@@ -765,26 +768,22 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 }
 
 
+
 /**
-* Converts the target URI to a safe semantic filename and attaches to relevant memento
-* Selection based on randomization
+* Converts the filename of each previously selected memento a a valid image filename and associate
 * @param callback The next procedure to execution when this process concludes
-* @param n Number of mementos to select
 */
-TimeMap.prototype.supplyChosenMementosBasedOnRandomizationAScreenshotURI = function(callback,n){
-	var numberOfMementoSelectionsRemaining = n;
-	while(numberOfMementoSelectionsRemaining > 0){
-		var i = Math.random() * (this.mementos.length - 1);
-		if(this.mementos[i].screenshotURI){ //screenshot has already been assigned
-			//TODO: make this the else case but first consider null's ambiguous conditionality
-		}else { //generate a URI for the memento and associate
-			var filename = this.mementos[i].uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
-			memento.screenshotURI = filename;
-			numberOfMementoSelectionsRemaining--;
+TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(callback){
+	for(var m in this.mementos){
+		var ii=0;
+		if(this.mementos[m].selected){
+			var filename = this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"
+			this.mementos[m].screenshotURI = filename;
+			ii++;
 		}
 	}
+	console.log("Done creating filenames for "+ii+" mementos");
 
-	console.log("supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back");
 	if(callback){callback("");}
 }
 
@@ -852,8 +851,10 @@ TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback,skipF
 
 	for(var i=initialIndex; i<this.mementos.length; i=i+skipFactor+1){
 			this.mementos[i].selected = true;
+			console.log("i = "+i);
 	}
-	callback();
+	console.log("done with skip list logic!");
+	callback("");
 }
 
 
@@ -1019,7 +1020,7 @@ TimeMap.prototype.setupWithURIR = function(uri_r,callback){
 		});
 		res.on('end',function(d){
 			if(buffer.length > 100){
-				console.log("Timemap acquired for "+uri_r+" from "+timemapHost+timemapPath);
+				console.log("X Timemap acquired for "+uri_r+" from "+timemapHost+timemapPath);
 				tmInstance.str = buffer;
 				tmInstance.originalURI = uri_r; //need this for a filename for caching
 				tmInstance.createMementos();
@@ -1030,7 +1031,7 @@ TimeMap.prototype.setupWithURIR = function(uri_r,callback){
 					return;
 				}
 
-				callback(tmInstance);
+				callback();
 			}
 		});
 	});
