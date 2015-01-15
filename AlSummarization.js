@@ -120,7 +120,7 @@ function PublicEndpoint(){
 		form +=    " <label for=\"uri_r\" style=\"float: left;\">URI-R:</label><input type=\"text\" name=\"URI-R\" />";
 		form +=	   " <input type=\"submit\" />";
 		return form;
-	}
+	};
 
 	/**
 	* Handle an HTTP request and respond appropriately
@@ -128,46 +128,41 @@ function PublicEndpoint(){
 	* @param response Currently active HTTP response to the client used to return information to the client based on the request
 	*/
 	this.respondToClient = function(request, response){
-	 response.clientId = Math.random()*101|0; // associate a simple random integer to the user for logging (this is not scalable with the implemented method)
+		response.clientId = Math.random()*101|0; // associate a simple random integer to the user for logging (this is not scalable with the implemented method)
 
-	 var headers = {};
-	 // IE8 does not allow domains to be specified, just the *
-	 // headers["Access-Control-Allow-Origin"] = req.headers.origin;
-	 headers["Access-Control-Allow-Origin"] = "*";
-	 headers["Access-Control-Allow-Methods"] = "GET";
-	 headers["Access-Control-Allow-Credentials"] = false;
-	 headers["Access-Control-Max-Age"] = '86400'; // 24 hours
-	 headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime";
+	 	var headers = {};
+	 	// IE8 does not allow domains to be specified, just the *
+	 	// headers["Access-Control-Allow-Origin"] = req.headers.origin;
+	 	headers["Access-Control-Allow-Origin"] = "*";
+	 	headers["Access-Control-Allow-Methods"] = "GET";
+	 	headers["Access-Control-Allow-Credentials"] = false;
+	 	headers["Access-Control-Max-Age"] = '86400'; // 24 hours
+	 	headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime";
 
 
-	 if (request.method != 'GET') {
+	 	if (request.method != 'GET') {
 	 	  console.log("Bad method "+request.method+" sent from client. Try HTTP GET");
 	 	  response.writeHead(405, headers);
 		  response.end();
 		  return;
-	 }
-
-
+	 	}
 
 	  var pathname = url.parse(request.url).pathname;
-
 	  var query = url.parse(request.url, true).query;
-
-
 	  /* ****************************
 	     IMAGE PARAMETER - allows binary image data to be returned from service
 	  **************************** */
 	  if(query['img']){
-	 	//return image data here
-	 	var fileExtension = query['img'].substr("-3");
-	 	console.log("fetching "+query['img']+" content");
+		 	//return image data here
+		 	var fileExtension = query['img'].substr("-3");
+		 	console.log("fetching "+query['img']+" content");
 
-	 	var img = fs.readFileSync(__dirname+"/"+query['img']);
-	 	response.writeHead(200, {'Content-Type': 'image/'+fileExtension });
-	 	response.end(img, 'binary');
+		 	var img = fs.readFileSync(__dirname+"/"+query['img']);
+		 	response.writeHead(200, {'Content-Type': 'image/'+fileExtension });
+		 	response.end(img, 'binary');
 
-	 	return;
-	 }
+		 	return;
+	  }
 
 	  /* ****************************
 	     URI-R PARAMETER - required if not img, supplies basis for archive query
@@ -177,8 +172,8 @@ function PublicEndpoint(){
 	    console.log("No URI-R sent with request. "+request.url+" was sent. Try http://localhost:15421/?URI-R=http://matkelly.com");
 	  	response.writeHead(400, headers);
 	  	response.write(this.getHTMLSubmissionForm());
-		response.end();
-		return;
+			response.end();
+			return;
 	  }
 
 	  uri_r = query['URI-R'];
@@ -214,7 +209,7 @@ function PublicEndpoint(){
 	  }
 
 	  if(theEndPoint.validStrategyParameters.indexOf(strategy) == -1){ // A bad strategy parameter was passed in
-	  	  console.log("Bad strategy query parameter: "+strategy);
+	  	console.log("Bad strategy query parameter: "+strategy);
 	 	  response.writeHead(501, headers);
 	 	  response.write("The strategy parameter was incorrect. Try one of "+theEndPoint.validStrategyParameters.join(",")+" or omit it entirely from the query string\r\n");
 		  response.end();
@@ -238,10 +233,10 @@ function PublicEndpoint(){
 	  }
 
 	  function echoMementoDatetimeToResponse(mementoDatetime){
-		response.write("{\"Memento-Datetime\": \""+mementoDatetime.toString("utf8", 0, mementoDatetime.length)+"\",");
+			response.write("{\"Memento-Datetime\": \""+mementoDatetime.toString("utf8", 0, mementoDatetime.length)+"\",");
 	  }
 	  function closeConnection(){
-		response.end();
+			response.end();
 	  }
 
 	  function returnJSONError(str){
@@ -275,27 +270,26 @@ function PublicEndpoint(){
 		}
 		else if(strategy == "random"){
 			var t = new TimeMap();
-			t.setupWithURIR(query['URI-R'],selectRandomMemento);
-
-
-			function selectRandomMemento(){
+			t.setupWithURIR(query['URI-R'], function selectRandomMemento(){
 				var numberOfMementosToSelect = Math.floor(t.mementos.length/2); //FIX: currently even steven for testing
 				t.supplyChosenMementosBasedOnUniformRandomness(function(){console.log("Done");},numberOfMementosToSelect);
-
-			}
+			});
 
 		}
 		else if(strategy == "monthly" || strategy == "yearly"){ //TODO: MLN says, 'we only want one temporal strategy'
 			var t = new TimeMap();
-			t.setupWithURIR(query['URI-R'],selectOneMementoForEachMonthPresent);
-
-			function selectOneMementoForEachMonthPresent(){ //TODO: remove this unnecessary encapsulation
-				t.supplyChosenMementosBasedOnOneMonthly(function(){console.log("Done");},-1);
-			}
+			t.setupWithURIR(query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+					t.supplyChosenMementosBasedOnOneMonthly(function dummyCallback(){console.log("Done");},-1);
+			});
 		}
-		else if(strategy == "skipListed"){}
-	}
+		else if(strategy == "skipListed"){
+			var t = new TimeMap();
 
+			t.setupWithURIR(query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+					t.supplyChosenMementosBasedOnSkipLists(function dummyCallback(){console.log("Done");},-1);
+			});
+		}
+}
 }
 
 
@@ -834,6 +828,30 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback,numb
 			}else {
 				console.log(this.mementos[i].datetime+" rejected");
 			}
+	}
+	callback();
+}
+
+/**
+* // Select mementos based on skip lists
+* @param callback The next procedure to execution when this process concludes
+* @param skipFactor Number of Mementos to skip, n=1 ==> 1,3,5,7
+* @param initialIndex The basis for the count. 0 if not supplied
+* @param numberOfMementosToChoose Artificial restriction on the count
+*/
+TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback,skipFactor,initialIndex,numberOfMementosToChoose){
+	if(numberOfMementosToChoose > this.mementos.length){console.log("Number to choose is greater than number existing.");return;}
+
+	var numberOfMementosLeftToChoose = numberOfMementosToChoose;
+	var lastMonthRecorded = -1;
+
+
+	//TODO: add further checks for parameter integrity (e.g. in case strings are passed)
+	if(!initialIndex){initialIndex = 0;}
+	if(skipFactor < 0){skipFactor = 0;}
+
+	for(var i=initialIndex; i<this.mementos.length; i=i+skipFactor+1){
+			this.mementos[i].selected = true;
 	}
 	callback();
 }
