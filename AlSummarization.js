@@ -45,7 +45,7 @@ var webshot = require("webshot"); //phantomjs wrapper
 var mementoFramework = require('./mementoFramework.js');
 var Memento = mementoFramework.Memento;
 var TimeMap = mementoFramework.TimeMap;
-var SimhashCacheFile = require('./SimhashCache.js').SimhashCacheFile;
+var SimhashCacheFile = require('./simhashCache.js').SimhashCacheFile;
 
 var colors = require('colors');
 var im = require('imagemagick');
