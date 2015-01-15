@@ -26,6 +26,7 @@ var Futures = require("futures");
 var Promise = require('es6-promise').Promise;
 var Async = require("async");
 var simhash = require('simhash')('md5');
+var moment = require("moment");
 
 var ProgressBar = require("progress");
 var memwatch = require('memwatch');
@@ -284,7 +285,14 @@ function PublicEndpoint(){
 			}
 
 		}
-		else if(strategy == "monthly" || strategy == "yearly"){} //TODO: MLN says, 'we only want one temporal strategy'
+		else if(strategy == "monthly" || strategy == "yearly"){ //TODO: MLN says, 'we only want one temporal strategy'
+			var t = new TimeMap();
+			t.setupWithURIR(query['URI-R'],selectOneMementoForEachMonthPresent);
+
+			function selectOneMementoForEachMonthPresent(){ //TODO: remove this unnecessary encapsulation
+				t.supplyChosenMementosBasedOnOneMonthly(function(){console.log("Done");},-1);
+			}
+		}
 		else if(strategy == "skipListed"){}
 	}
 
@@ -815,13 +823,17 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback,numb
 	if(numberOfMementosToChoose > this.mementos.length){console.log("Number to choose is greater than number existing.");return;}
 
 	var numberOfMementosLeftToChoose = numberOfMementosToChoose;
-	while(numberOfMementosLeftToChoose > 0){
-		var randomI = Math.floor(Math.random() * this.mementos.length);
-		if(!this.mementos[randomI].selected){
-			this.mementos[randomI].selected = true;
-			numberOfMementosLeftToChoose--;
-		}//duplicately selected would take an else, so it's unnecessary
+	var lastMonthRecorded = -1;
 
+	for(var i=0; i<this.mementos.length; i++){
+			var thisYYYYMM = (moment(this.mementos[i].datetime).format("YYYYMM"));
+			if(thisYYYYMM != lastMonthRecorded){
+				this.mementos[i].selected = true;
+				lastMonthRecorded = thisYYYYMM;
+				console.log(this.mementos[i].datetime+" accepted");
+			}else {
+				console.log(this.mementos[i].datetime+" rejected");
+			}
 	}
 	callback();
 }
