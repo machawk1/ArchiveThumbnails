@@ -288,7 +288,16 @@ function PublicEndpoint(){
 		function generateThumbnailsWithSelectedMementos(){
 			//suboptimal route but reference to t must be preserved
 			//TODO: move this to TimeMap prototype
-			t.supplySelectedMementosAScreenshotURI(function(){t.createScreenshotsForMementos(function(){console.log("Done creating screenshots");});});
+			t.supplySelectedMementosAScreenshotURI(
+				function(callback){t.printMementoInformation(response,
+					function(){
+						t.createScreenshotsForMementos(
+							function(){console.log("Done creating screenshots");}
+						);
+					}
+				)
+			});
+
 		}
 
 
@@ -655,7 +664,6 @@ function getTimemapGodFunction(uri,response){
 	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
 	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
 
-	console.log("Mems len: "+this.mementos.length);
 	var respString =
 		"<html><head>" + CRLF +
 		"<base href=\'"+imageServer+"\' />" + CRLF +
@@ -672,15 +680,12 @@ function getTimemapGodFunction(uri,response){
 		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
 		"<script>var returnedJSON =" + CRLF +
 			JSON.stringify(this.mementos) + ";" + CRLF +
-			"var metadata = '"+metadata+"';" + CRLF +
+			//"var metadata = '"+metadata+"';" + CRLF +
 		"</script>" + CRLF +
 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
-
 		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1 class=\"interface\">Thumbnails for "+uri_r+" <button id=\"showJSON\" class=\"interface\">Show JSON</button></h1>" + CRLF +
 		"</body></html>";
-	console.log("Done string building (prob doesn't have ref to response)");
 	response.write(respString);
-	console.log("After TRYING to write a response");
 	response.end();
 	console.log("HTML for interface sent to client");
 	if(callback){callback("");}
@@ -851,7 +856,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback,skipF
 
 	for(var i=initialIndex; i<this.mementos.length; i=i+skipFactor+1){
 			this.mementos[i].selected = true;
-			console.log("i = "+i);
 	}
 	console.log("done with skip list logic!");
 	callback("");
