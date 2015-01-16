@@ -269,26 +269,26 @@ function PublicEndpoint(){
 		}
 		else if(strategy == "random"){
 			t.setupWithURIR(query['URI-R'], function selectRandomMementosFromTheTimeMap(){
-				var numberOfMementosToSelect = Math.floor(t.mementos.length/2); //FIX: currently even steven for testing
+				var numberOfMementosToSelect = 16; //FIX: currently even steven for testing
 				t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos,numberOfMementosToSelect);
 			});
 
 		}
 		else if(strategy == "monthly" || strategy == "yearly"){ //TODO: MLN says, 'we only want one temporal strategy'
 				t.setupWithURIR(query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-					t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,-1);
+					t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,16);
 			});
 		}
 		else if(strategy == "skipListed"){
 			t.setupWithURIR(query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-					t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos,-1);
+					t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos,Math.floor(t.mementos.length/16));
 			});
 		}
 
 		function generateThumbnailsWithSelectedMementos(){
 			//suboptimal route but reference to t must be preserved
 			//TODO: move this to TimeMap prototype
-			t.supplySelectedMementosAScreenshotURI(
+			t.supplySelectedMementosAScreenshotURI(strategy,
 				function(callback){t.printMementoInformation(response,
 					function(){
 						t.createScreenshotsForMementos(
@@ -764,7 +764,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 			console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
 			memento.screenshotURI = null;
 		}else {
-			var filename = uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
+			var filename = "alSum_"+uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
 			memento.screenshotURI = filename;
 		}
 	});
@@ -778,11 +778,11 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 * Converts the filename of each previously selected memento a a valid image filename and associate
 * @param callback The next procedure to execution when this process concludes
 */
-TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(callback){
+TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callback){
 	for(var m in this.mementos){
 		var ii=0;
 		if(this.mementos[m].selected){
-			var filename = this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"
+			var filename = strategy+"_"+this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"
 			this.mementos[m].screenshotURI = filename;
 			ii++;
 		}
@@ -823,16 +823,38 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback,numb
 	var numberOfMementosLeftToChoose = numberOfMementosToChoose;
 	var lastMonthRecorded = -1;
 
+	var selectedIndexes = []; //for pruning
 	for(var i=0; i<this.mementos.length; i++){
 			var thisYYYYMM = (moment(this.mementos[i].datetime).format("YYYYMM"));
 			if(thisYYYYMM != lastMonthRecorded){
 				this.mementos[i].selected = true;
 				lastMonthRecorded = thisYYYYMM;
 				console.log(this.mementos[i].datetime+" accepted");
+				selectedIndexes.push(i);
 			}else {
 				console.log(this.mementos[i].datetime+" rejected");
 			}
 	}
+	var beforeOK = this.mementos.filter(function (el) {
+		return el.selected != null
+	});
+	console.log("We're going to choose "+numberOfMementosToChoose+" --- "+selectedIndexes);
+	//prune based on numberOfMementosToChoose
+	while(selectedIndexes.length > numberOfMementosToChoose){
+			var mementoIToRemove = Math.floor(Math.random() * selectedIndexes.length);
+			console.log(selectedIndexes.length+" is too many mementos, removing index "+mementoIToRemove);
+			console.log(this.mementos[mementoIToRemove].datetime+" was "+this.mementos[mementoIToRemove].selected);
+			delete this.mementos[selectedIndexes[mementoIToRemove]].selected;
+			console.log("Now it's "+this.mementos[mementoIToRemove].selected);
+			selectedIndexes.splice(mementoIToRemove,1);
+	}
+
+	var monthlyOK = this.mementos.filter(function (el) {
+			return el.selected;
+		});
+		console.log(beforeOK.length+" --> "+monthlyOK.length+" passed the monthly test");
+
+
 	callback();
 }
 
