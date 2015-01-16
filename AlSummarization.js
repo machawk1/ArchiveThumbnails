@@ -268,19 +268,19 @@ function PublicEndpoint(){
 		  );
 		}
 		else if(strategy == "random"){
-			t.setupWithURIR(query['URI-R'], function selectRandomMementosFromTheTimeMap(){
+			t.setupWithURIR(response,query['URI-R'], function selectRandomMementosFromTheTimeMap(){
 				var numberOfMementosToSelect = 16; //FIX: currently even steven for testing
 				t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos,numberOfMementosToSelect);
 			});
 
 		}
 		else if(strategy == "monthly" || strategy == "yearly"){ //TODO: MLN says, 'we only want one temporal strategy'
-				t.setupWithURIR(query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+				t.setupWithURIR(response,query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
 					t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,16);
 			});
 		}
 		else if(strategy == "skipListed"){
-			t.setupWithURIR(query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+			t.setupWithURIR(response,query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
 					t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos,Math.floor(t.mementos.length/16));
 			});
 		}
@@ -1021,7 +1021,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 * Goes to URI-T(?), grabs contents, parses, and associates mementos
 * @param callback The next procedure to execution when this process concludes
 */
-TimeMap.prototype.setupWithURIR = function(uri_r,callback){
+TimeMap.prototype.setupWithURIR = function(response,uri_r,callback){
 	var timemapHost = "web.archive.org";
 	var timemapPath = '/web/timemap/link/' + uri_r;
 	var options = {
@@ -1052,7 +1052,7 @@ TimeMap.prototype.setupWithURIR = function(uri_r,callback){
 				tmInstance.createMementos();
 
 				if(tmInstance.mementos.length == 0){
-					response.write("There were no mementos for "+uri);
+					response.write("There were no mementos for "+uri_r);
 					response.end();
 					return;
 				}
