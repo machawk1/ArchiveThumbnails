@@ -20,6 +20,7 @@
     "underscore": "*",
     "webshot": "*",
     "colors": "*",
-    "imagemagick": "*"
+    "imagemagick": "*",
+    "async": "*"
   }
 }
