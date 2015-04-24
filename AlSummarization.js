@@ -36,6 +36,7 @@ var memwatch = require('memwatch');
 var phantom = require('node-phantom'); //https://github.com/alexscheelmeyer/node-phantom
 
 var fs = require("fs");
+var readline = require('readline');
 var path = require('path');
 var validator = require('validator');
 var underscore = require('underscore');
@@ -61,6 +62,8 @@ var thumbnailServicePort = 15421;
 var imageServerPort = 1338;
 var imageServer = "http://localhost:"+imageServerPort+"/";
 
+var LineByLineReader = require('line-by-line');
+
 //var timemap;
 
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
@@ -78,7 +81,7 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
 */
 function main(){
 	memwatch.on('leak', function(info) { console.log("You're leaking!");console.error(info); });
-	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
+	memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
 
 	console.log(("*******************************\r\nTHUMBNAIL SUMMARIZATION SERVICE\r\n*******************************").blue);
 
@@ -383,17 +386,19 @@ Memento.prototype.simhashIndicatorForHTTP302 = "00000000";
 /**
 * Fetch URI-M HTML contents and generate a Simhash
 */
-Memento.prototype.setSimhash = function(){
+Memento.prototype.setSimhash = function(callback){
 	//retain the URI-R for reference in the promise (this context lost with async)
 	var thaturi = this.uri;
 	var thatmemento = this;
+	var cb = callback;
 	return (new Promise(function(resolve,reject){
 		var buffer2 = "";
 		var memento = this;
 		var mOptions = url.parse(thaturi);
-		console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
 
+		console.log(mOptions.host+" "+mOptions.path);
 		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
+			//console.log(res.statusCode);
 			//var hd = new memwatch.HeapDiff();
 			res.setEncoding('utf8');
 			res.on('data', function (data) {
@@ -407,7 +412,6 @@ Memento.prototype.setSimhash = function(){
 			res.on('end',function(d){
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1 && thatmemento.simhash != "00000000"){
-
 					var sh = simhash((buffer2).split("")).join("");
 					var retStr = getHexString(sh);
 
@@ -422,8 +426,8 @@ Memento.prototype.setSimhash = function(){
 					buffer2 = "";
 					buffer2 = null;
 					//delete buffer2;
-					console.log(retStr+" - "+ mOptions.host+ mOptions.path);
-
+					//console.log(retStr+" - "+ mOptions.host+ mOptions.path);
+					cb();
 					thatmemento.simhash = retStr;
 
 					resolve(retStr);
@@ -499,7 +503,7 @@ function getTimemapGodFunction(uri,response){
 							return;
 						}
 
-						console.log("Fetching HTML for "+t.mementos.length+" mementos.");
+						console.log("Fetching HTML for "+t.mementos.length+" mementos "+timemapHost+timemapPath);
 
 						var m1 = url.parse(t.mementos[0].uri);
 						var m2 = url.parse(t.mementos[1].uri);
@@ -643,6 +647,122 @@ function getTimemapGodFunction(uri,response){
 
 
 
+function getTimemap_cmdLine(uri,callback){
+	var timemapHost = "web.archive.org";
+	var timemapPath = '/web/timemap/link/' + uri;
+  	var options = {
+	  		host: timemapHost,
+	  		path: timemapPath,
+	  		port: 80,
+	  		method: 'GET'
+	};
+
+	console.log("Path: "+options.host+"/"+options.path);
+	var buffer = ""; 
+	var t, retStr = "";
+	var metadata = "";
+	console.log("Starting callback chain of asynchronous operations...");
+	async.series([
+		function fetchTimemap(callback){
+			var req = http.request(options, function(res) {
+				res.setEncoding('utf8');
+
+				res.on('data', function (data) {
+					buffer += data.toString();
+				});
+				res.on('end',function(d){
+
+					if(buffer.length > 100){  //magic number = arbitrary
+						console.log("Timemap acquired for "+uri+" from "+timemapHost+timemapPath);
+						t = new TimeMap(buffer);
+						t.originalURI = uri; //need this for a filename for caching
+						t.createMementos();
+
+						if(t.mementos.length == 0){
+							console.log("There were no mementos for "+uri+" :(");
+							return;
+						}
+
+						console.log("Fetching HTML for "+t.mementos.length+" mementos.");
+
+						var m1 = url.parse(t.mementos[0].uri);
+						var m2 = url.parse(t.mementos[1].uri);
+						var endpoints = [
+							{host: m1.host, path: m1.path},
+							{host: m2.host, path: m2.path}
+						];
+
+						//next(res, d, 0);
+						callback("");
+					}
+				});
+			  });
+
+			req.on('error', function(e) { // Houston...
+			  console.log('problem with request: ' + e.message);
+			  console.log(e);
+			  if(e.message == "connect ETIMEDOUT"){ //error experienced when IA went down on 20141211
+			 	 console.log("Hmm, the connection timed out. Internet Archive might be down.");			  }
+
+			});
+			req.on('socket', function (socket) { // slow connection is slow
+
+			});
+
+			req.end();
+		},
+	 function(callback){t.calculateSimhashes(callback);},
+	 function(callback){t.saveSimhashesToCache(callback);},
+	 function(callback){t.calculateHammingDistancesWithOnlineFiltering(callback);},
+	 function(callback){t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+	 function(callback){t.printMementoInformation(response,callback);},
+	 function(callback){t.createScreenshotsForMementos(callback);}],
+	 function(err, result){
+	 	if(err){
+	 		console.log("ERROR!");
+	 		console.log(err);
+	 	}else {
+	 		console.log("There were no errors executing the callback chain");
+	 	}
+	 });
+
+
+	 function getRandomSubsetOfMementosArray(arr,siz){
+			var shuffled = arr.slice(0), i = arr.length, temp, index;
+			while (i--) {
+				index = Math.floor((i + 1) * Math.random());
+				temp = shuffled[index];
+				shuffled[index] = shuffled[i];
+				shuffled[i] = temp;
+			}
+			return shuffled.slice(0, size);
+	 }
+
+
+	 function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI){
+	 	var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];	//newer
+	 	var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];	//older
+
+	 	if(newerDate && olderDate){
+	 		try{
+	 			var diff = (parseInt(newerDate) - parseInt(olderDate));
+	 			return diff;
+	 		}catch(e){
+	 			console.log(e.message);
+	 		}
+	 	}else {
+	 		throw new Exception("Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t"+newerMemento.uri+"\r\n\t"+olderMemento.uri);
+	 	}
+	 }
+
+}
+
+
+
+
+
+
+
 
 
 
@@ -694,18 +814,19 @@ function getTimemapGodFunction(uri,response){
 TimeMap.prototype.calculateSimhashes = function(callback){
 	//console.time("memFetch");
 	var arrayOfSetSimhashFunctions = [];
-	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
+	var bar = new ProgressBar("  Simhashing [:bar] :percent :elapseds :current/:total | Remaining :etas", {
 		complete: '=',
 		incomplete: ' ',
-		width: 20,
+		width: 50,
 		total: this.mementos.length
 	})
 
 	for(var m=0; m<this.mementos.length; m++){
-		arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash());
-		bar.tick(1);
+		var incrementTick = function(){bar.tick(1);}
+		arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash(incrementTick));
+		//bar.tick(1);
 	}
-
+	console.log("About to start the promises array...");
 	console.time('simhashing');
 	var theTimemap = this;
 	return Promise.all(
@@ -1159,4 +1280,34 @@ function getHexString(onesAndZeros){
 
 exports.main = main;
 var uri_r = "";
-main();
+//main();
+
+
+console.log("Here we will read in a list of URIs to process rather than setting up connections.");
+
+
+var i = 1;
+var filename = "hanys60.txt";
+
+var fs = require('fs');
+var array = fs.readFileSync(filename).toString().split("\n");
+for(i in array) {
+    console.log(array[i]);
+}
+
+lr = new LineByLineReader(filename);
+lr.on('error', function (err) {
+    console.log("Error reading file");
+});
+
+lr.on('end', function () {
+    console.log("All done");
+});
+
+lr.on('line', function (line) {
+	lr.pause();
+	console.log("Processing "+line);
+    getTimemap_cmdLine(line,null);
+});
+
+
