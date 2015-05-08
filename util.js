@@ -5,7 +5,7 @@ $(document).ready(function(){
   for(var i=0; i<returnedJSON.length; i++){
   	if(returnedJSON[i].screenshotURI == null){continue;} //don't show the low hamming distance images in coverflow, previously also considered i==0
 
-  	console.log(i);
+  	//console.log(i);
 
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
@@ -22,6 +22,8 @@ $(document).ready(function(){
     cfstr += "</div>";
     cfstr += "</div>";
   }
+
+  console.log("Done building DOM for coverflow");
 
   //str += "</table>";
   cfstr += "</div>";
@@ -140,18 +142,21 @@ $(document).ready(function(){
   	var inSummarization = []; var notInSummarization = [];
   	if(returnedJSON[i].hammingDistance < 4 && i!=0){
   		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
+
   		memento.className = "notInSummarization";
   		memento.content = "";//returnedJSON[i].datetime;
   		//memento.content = returnedJSON[i].datetime;
   		notInSummarization.push(memento);
-	}else  {
-		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
-		memento.className = "inSummarization";
-		memento.content = "<img src=\"screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
-		inSummarization.push(memento);
-	}
-	data.push(memento);
-	memento = null;
+  	}else  {
+  		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
+      var imgUri = returnedJSON[i].screenshotURI.replace(".png","_200.png");
+
+  		memento.className = "inSummarization";
+  		memento.content = "<img src=\"screenshots/"+imgUri+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
+      inSummarization.push(memento);
+    }
+    data.push(memento);
+    memento = null;
   }
 
   var options = {height: '300px'};//{stack: false,};

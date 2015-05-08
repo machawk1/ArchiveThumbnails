@@ -983,7 +983,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 
 	console.log("Calculate hamming distance of "+this.mementos.length+" mementos");
 	for(var m=0; m<this.mementos.length; m++){
-		console.log("Analyzing memento "+m+": "+this.mementos[m].uri);
+		console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
 		console.log("...with SimHash: "+this.mementos[m].simhash);
 		if(m > 0){
 			if((this.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");continue;}
