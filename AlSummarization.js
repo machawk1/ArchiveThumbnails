@@ -66,8 +66,6 @@ var imageServer = "http://localhost:"+imageServerPort+"/";
 
 var nukeSystemData = argv.clean ? argv.clean : false; //fresh system for testing (NOT IMPLEMENTED)
 
-console.log(nukeSystemData);
-
 //var timemap;
 
 //curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://matkelly.com
