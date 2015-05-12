@@ -21,6 +21,8 @@
     "webshot": "*",
     "colors": "*",
     "imagemagick": "*",
-    "async": "*"
+    "async": "*",
+    "minimist": "*",
+    "sync-prompt": "*"
   }
 }

@@ -42,6 +42,9 @@ var underscore = require('underscore');
 
 var webshot = require("webshot"); //phantomjs wrapper
 
+var argv = require('minimist')(process.argv.slice(2));
+var prompt = require('sync-prompt').prompt;
+
 var mementoFramework = require('./mementoFramework.js');
 var Memento = mementoFramework.Memento;
 var TimeMap = mementoFramework.TimeMap;
@@ -56,10 +59,14 @@ var app = express();
 var timegate_host = "mementoproxy.lanl.gov";
 var timegate_path = "/aggr/timegate/";
 
-
-var thumbnailServicePort = 15421;
-var imageServerPort = 1338;
+/* Custom ports if specified on command-line */
+var thumbnailServicePort = argv.p ? argv.p : 15421;
+var imageServerPort = argv.ap ? arvg.a : 1338;
 var imageServer = "http://localhost:"+imageServerPort+"/";
+
+var nukeSystemData = argv.clean ? argv.clean : false; //fresh system for testing (NOT IMPLEMENTED)
+
+console.log(nukeSystemData);
 
 //var timemap;
 
@@ -81,17 +88,28 @@ function main(){
 	//memwatch.on('stats', function(stats) { console.log("Garbage collection!"); console.log(stats); });
 
 	console.log(("*******************************\r\nTHUMBNAIL SUMMARIZATION SERVICE\r\n*******************************").blue);
+	if(nukeSystemData){
+		var resp = prompt('Delete all derived data (y/N)? ');
+		if(resp === "y"){
+			console.log("Deleting all dervived data.");
+			cleanSystemData();
+		}else {
+				console.log("No derived data modified.");
+		}
+	}
+
 
 	startImageServer();
-	console.log("* "+("Thumbnails service started on Port "+thumbnailServicePort).red);
-	console.log("> Try localhost:"+thumbnailServicePort+"/?URI-R=http://matkelly.com in your web browser for sample execution.");
 
 	var endpoint = new PublicEndpoint();
-
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
 	//http.createServer(respond).listen(thumbnailServicePort);
 	app.get("/", endpoint.respondToClient);
 	app.listen(thumbnailServicePort);
+
+	//TODO: react accordingly if port listening failed, don't simply assume the service was started.
+	console.log("* "+("Thumbnails service started on Port "+thumbnailServicePort).red);
+	console.log("> Try localhost:"+thumbnailServicePort+"/?URI-R=http://matkelly.com in your web browser for sample execution.");
 }
 
 
@@ -302,6 +320,10 @@ function PublicEndpoint(){
 
 
  }
+}
+
+function cleanSystemData(cb){
+	console.log("//TODO: delete all derived data (unimplemented).");
 }
 
 
@@ -1125,6 +1147,12 @@ function getHamming(str1,str2){
    *********************************
 TODO: break these out into a separate file
 */
+
+//graceful exit
+process.on( 'SIGINT', function() {
+  console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
+  process.exit( );
+})
 
 //Useful Functions
 function checkBin(n){return/^[01]{1,64}$/.test(n)}
