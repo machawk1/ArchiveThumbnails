@@ -12,4 +12,9 @@
 
 # Produced images start with this
 http*
-screenshots/*
+screenshots
+cache
+
+# node remnants
+node_modules
+build
