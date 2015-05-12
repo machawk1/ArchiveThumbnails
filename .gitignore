@@ -13,7 +13,7 @@
 # Produced images start with this
 http*
 screenshots
-cache
+cache/simhash_*
 
 # node remnants
 node_modules
