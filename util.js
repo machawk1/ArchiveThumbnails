@@ -152,7 +152,7 @@ $(document).ready(function(){
       var imgUri = returnedJSON[i].screenshotURI.replace(".png","_200.png");
 
   		memento.className = "inSummarization";
-  		memento.content = "<img src=\"screenshots/"+imgUri+"\" width=\"25\" height=\"25\" />&nbsp;"+returnedJSON[i].datetime;
+  		memento.content = "<img src='http://localhost:1338/_images/spinnerStatic.png' title='http://localhost:1338/screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"' id=\""+returnedJSON[i].screenshotURI.slice(0,-4)+"_timeline\" width=\"25\" height=\"25\" onLoad=\"checkAgainIfImageExists(this);\" onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='http://localhost:1338/_images/spinnerStatic.png';\" />&nbsp;"+returnedJSON[i].datetime;
       inSummarization.push(memento);
     }
     data.push(memento);
@@ -182,7 +182,8 @@ function replaceImageIfAvailable(img){
 		url: src
 	}).success(function(){
 		$("#"+$(img).attr("id")).attr("src",src);
-		$("#"+$(img).attr("id")+"_reflection").attr("src",src); //This does not appear to be performing correctly per Issue #28
+		$("#"+$(img).attr("id")+"_reflection").attr("src",src);
+    $("#"+$(img).attr("id")+"_timeline").attr("src",src);
 	}).fail(function(){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
 		console.log("Failed. The image might not be generated yet. Trying again in 3.");
 		setTimeout(replaceImageIfAvailable,3000,$(img));
