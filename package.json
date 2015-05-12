@@ -23,6 +23,7 @@
     "imagemagick": "*",
     "async": "*",
     "minimist": "*",
-    "sync-prompt": "*"
+    "sync-prompt": "*",
+    "rimraf": "*"
   }
 }

@@ -11,36 +11,36 @@
 *  > curl localhost:15421/?URI-R=http://matkelly.com
 *  A user interface will be returned. If curling, useful info about the summarization returned.
 */
-var http = require("http");
-var express = require("express");
+var http = require('http');
+var express = require('express');
 //var http = require('http').http;
-var url = require("url");
-var querystring = require("querystring"); // possibly unnecessary, as we no longer need to parse but just read as an object
-var util = require("util");
+var url = require('url');
+//var querystring = require('querystring'); // possibly unnecessary, as we no longer need to parse but just read as an object
+//var util = require('util');
 var connect = require('connect');
-var serveStatic = require("serve-static");
+var serveStatic = require('serve-static');
 //var request = require("request");
-var Step = require("step");
-var async = require("async");
-var Futures = require("futures");
+var Step = require('step');
+var async = require('async');
+var Futures = require('futures');
 var Promise = require('es6-promise').Promise;
-var Async = require("async");
+var Async = require('async');
 var simhash = require('simhash')('md5');
-var moment = require("moment");
+var moment = require('moment');
 
-var ProgressBar = require("progress");
+var ProgressBar = require('progress');
 var memwatch = require('memwatch');
 //var util = require("util"); //for util.inspect for debugging
 
 // And now for something completely different: phantomjs dependencies!
 var phantom = require('node-phantom'); //https://github.com/alexscheelmeyer/node-phantom
 
-var fs = require("fs");
+var fs = require('fs');
 var path = require('path');
 var validator = require('validator');
 var underscore = require('underscore');
 
-var webshot = require("webshot"); //phantomjs wrapper
+var webshot = require('webshot'); //phantomjs wrapper
 
 var argv = require('minimist')(process.argv.slice(2));
 var prompt = require('sync-prompt').prompt;
@@ -52,17 +52,18 @@ var SimhashCacheFile = require('./simhashCache.js').SimhashCacheFile;
 
 var colors = require('colors');
 var im = require('imagemagick');
+var rimraf = require('rimraf');
 
 /* *********** END REQUIRES ******************* */
 var app = express();
 
-var timegate_host = "mementoproxy.lanl.gov";
-var timegate_path = "/aggr/timegate/";
+var timegate_host = 'mementoproxy.lanl.gov';
+var timegate_path = '/aggr/timegate/';
 
 /* Custom ports if specified on command-line */
 var thumbnailServicePort = argv.p ? argv.p : 15421;
 var imageServerPort = argv.ap ? arvg.a : 1338;
-var imageServer = "http://localhost:"+imageServerPort+"/";
+var imageServer = 'http://localhost:'+imageServerPort+'/';
 
 var nukeSystemData = argv.clean ? argv.clean : false; //fresh system for testing (NOT IMPLEMENTED)
 
@@ -88,13 +89,16 @@ function main(){
 	console.log(("*******************************\r\nTHUMBNAIL SUMMARIZATION SERVICE\r\n*******************************").blue);
 	if(nukeSystemData){
 		var resp = prompt('Delete all derived data (y/N)? ');
-		if(resp === "y"){
-			console.log("Deleting all dervived data.");
-			cleanSystemData();
+		if(resp === 'y'){
+			console.log('Deleting all dervived data.');
+			nukeSystemData = false;
+			cleanSystemData(main); //TODO: figure out why the flow does not continue after the nukeSystemData conditional
 		}else {
-				console.log("No derived data modified.");
+				console.log('No derived data modified.');
 		}
 	}
+	console.log("done with nuking");
+
 
 
 	startImageServer();
@@ -102,12 +106,12 @@ function main(){
 	var endpoint = new PublicEndpoint();
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
 	//http.createServer(respond).listen(thumbnailServicePort);
-	app.get("/", endpoint.respondToClient);
+	app.get('/', endpoint.respondToClient);
 	app.listen(thumbnailServicePort);
 
 	//TODO: react accordingly if port listening failed, don't simply assume the service was started.
-	console.log("* "+("Thumbnails service started on Port "+thumbnailServicePort).red);
-	console.log("> Try localhost:"+thumbnailServicePort+"/?URI-R=http://matkelly.com in your web browser for sample execution.");
+	console.log('* '+('Thumbnails service started on Port '+thumbnailServicePort).red);
+	console.log('> Try localhost:'+thumbnailServicePort+'/?URI-R=http://matkelly.com in your web browser for sample execution.');
 }
 
 
@@ -149,15 +153,15 @@ function PublicEndpoint(){
 	 	var headers = {};
 	 	// IE8 does not allow domains to be specified, just the *
 	 	// headers["Access-Control-Allow-Origin"] = req.headers.origin;
-	 	headers["Access-Control-Allow-Origin"] = "*";
-	 	headers["Access-Control-Allow-Methods"] = "GET";
-	 	headers["Access-Control-Allow-Credentials"] = false;
-	 	headers["Access-Control-Max-Age"] = '86400'; // 24 hours
-	 	headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime";
+	 	headers['Access-Control-Allow-Origin'] = '*';
+	 	headers['Access-Control-Allow-Methods'] = 'GET';
+	 	headers['Access-Control-Allow-Credentials'] = false;
+	 	headers['Access-Control-Max-Age'] = '86400'; // 24 hours
+	 	headers['Access-Control-Allow-Headers'] = 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime';
 
 
 	 	if (request.method != 'GET') {
-	 	  console.log("Bad method "+request.method+" sent from client. Try HTTP GET");
+	 	  console.log('Bad method '+request.method+' sent from client. Try HTTP GET');
 	 	  response.writeHead(405, headers);
 		  response.end();
 		  return;
@@ -170,10 +174,10 @@ function PublicEndpoint(){
 	  **************************** */
 	  if(query['img']){
 		 	//return image data here
-		 	var fileExtension = query['img'].substr("-3");
-		 	console.log("fetching "+query['img']+" content");
+		 	var fileExtension = query['img'].substr('-3'); //is this correct to use a string and not an int!?
+		 	console.log('fetching '+query['img']+' content');
 
-		 	var img = fs.readFileSync(__dirname+"/"+query['img']);
+		 	var img = fs.readFileSync(__dirname+'/'+query['img']);
 		 	response.writeHead(200, {'Content-Type': 'image/'+fileExtension });
 		 	response.end(img, 'binary');
 
@@ -185,7 +189,7 @@ function PublicEndpoint(){
 	  **************************** */
 
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
-	    console.log("No URI-R sent with request. "+request.url+" was sent. Try http://localhost:15421/?URI-R=http://matkelly.com");
+	    console.log('No URI-R sent with request. '+request.url+' was sent. Try http://localhost:15421/?URI-R=http://matkelly.com');
 	  	response.writeHead(400, headers);
 	  	response.write(this.getHTMLSubmissionForm());
 			response.end();
@@ -198,7 +202,7 @@ function PublicEndpoint(){
 	  /* ****************************
 	     ACCESS PARAMETER - optional - specify origin of access to service
 	  **************************** */
-	  var validAccessParameters = ["interface","wayback","embed"];
+	  var validAccessParameters = ['interface','wayback','embed'];
 
 	  var access = validAccessParameters[0]; //not specified? access=interface
 	  if(query['access']){
@@ -206,18 +210,18 @@ function PublicEndpoint(){
 	  }
 
 	  if(validAccessParameters.indexOf(access) == -1){ // A bad access parameter was passed in
-	  	  console.log("Bad access query parameter: "+access);
+	  	  console.log('Bad access query parameter: '+access);
 	 	  response.writeHead(501, headers);
-	 	  response.write("The access parameter was incorrect. Try one of "+validAccessParameters.join(",")+" or omit it entirely from the query string\r\n");
+	 	  response.write('The access parameter was incorrect. Try one of '+validAccessParameters.join(',')+' or omit it entirely from the query string\r\n');
 		  response.end();
 		  return;
 	  }
-	  headers["X-Means-Of-Access"] = access;
+	  headers['X-Means-Of-Access'] = access;
 
 	  /* ****************************
 	     STRATEGY PARAMETER - optional - specify method to use for summarization
 	  **************************** */
-	  theEndPoint.validStrategyParameters = ["alSummarization","random","monthly","yearly","skipListed"];
+	  theEndPoint.validStrategyParameters = ['alSummarization','random','monthly','yearly','skipListed'];
 
 	  var strategy = theEndPoint.validStrategyParameters[0]; //not specified? access=interface
 	  if(query['strategy']){
@@ -225,26 +229,26 @@ function PublicEndpoint(){
 	  }
 
 	  if(theEndPoint.validStrategyParameters.indexOf(strategy) == -1){ // A bad strategy parameter was passed in
-	  	console.log("Bad strategy query parameter: "+strategy);
+	  	console.log('Bad strategy query parameter: '+strategy);
 	 	  response.writeHead(501, headers);
-	 	  response.write("The strategy parameter was incorrect. Try one of "+theEndPoint.validStrategyParameters.join(",")+" or omit it entirely from the query string\r\n");
+	 	  response.write('The strategy parameter was incorrect. Try one of '+theEndPoint.validStrategyParameters.join(',')+' or omit it entirely from the query string\r\n');
 		  response.end();
 		  return;
 	  }
-	  headers["X-Summarization-Strategy"] = strategy;
+	  headers['X-Summarization-Strategy'] = strategy;
 
 	  if(!uri_r.match(/^[a-zA-Z]+:\/\//)){uri_r = 'http://' + uri_r;}//prepend scheme if necessary
 
 
-	  headers["Content-Type"] = "text/html"; //application/json
+	  headers['Content-Type'] = 'text/html'; //application/json
 
 	  response.writeHead(200, headers);
 
-	  console.log("New client request ("+response.clientId+")\r\n> URI-R: "+query['URI-R']+"\r\n> Access: "+access+"\r\n> Strategy: "+strategy);
+	  console.log('New client request ('+response.clientId+')\r\n> URI-R: '+query['URI-R']+'\r\n> Access: '+access+'\r\n> Strategy: '+strategy);
 
 
 	  if(!validator.isURL(uri_r)){ //return "invalid URL"
-	  	returnJSONError("Invalid URI");
+	  	returnJSONError('Invalid URI');
 	  	return;
 	  }
 
@@ -321,7 +325,17 @@ function PublicEndpoint(){
 }
 
 function cleanSystemData(cb){
-	console.log("//TODO: delete all derived data (unimplemented).");
+	//delete all files in ./screenshots/ and ./cache/
+	var dirs = ["screenshots","cache"];
+	dirs.forEach(function(e,i,a){
+		rimraf(__dirname+'/'+e+'/*', function (err) {
+			if (err) throw err;
+			console.log('Deleted contents of ./'+e+'/');
+		});
+		console.log(e);
+	});
+	console.log("Alright, executing the callback");
+	//cb();
 }
 
 
