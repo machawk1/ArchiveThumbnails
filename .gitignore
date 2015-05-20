@@ -14,6 +14,7 @@
 http*
 screenshots
 cache/simhash_*
+cache
 
 # node remnants
 node_modules
