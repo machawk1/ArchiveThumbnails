@@ -89,7 +89,7 @@ $(document).ready(function(){
   		$("#gv div").addClass("f1_container");
 
   		$("#gv > div").each(function(){
-  			$(this).append("<figure class=\"shadow f1_card\" style=\"width: 25px;\"><div class=\"font face\">"+$(this).html()+"</div><figcaption class=\"back face center\">"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
+  			$(this).append("<figure class=\"shadow f1_card\" style=\"width: 200px;\"><div class=\"font face\">"+$(this).html()+"</div><figcaption class=\"back face center\">"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
   			//$(this).append("<figure>"+$(this).html()+"</figure>");
 
   			$(this).find(".caption").remove();
