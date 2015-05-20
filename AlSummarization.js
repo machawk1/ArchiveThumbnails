@@ -714,10 +714,6 @@ function getTimemapGodFunction(uri,response){
 	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
 	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
 
-	console.log("PPP");
-	console.log(response);
-	console.log("AA"+response.url);
-	console.log("BB"+response.req.url.substr(1));
 	var metadata = {
 		"url": response.req.url.substr(1),
 		"simhashCacheURI": imageServer+(new SimhashCacheFile(response.req.url.substr(1))).path.substr(2)
