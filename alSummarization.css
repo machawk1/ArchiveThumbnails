@@ -27,7 +27,9 @@ figure {padding: 0; margin: 0;}
 
 #gv div {border: 1px solid black;}
 #gv div img {background-color: white;}
-  		
+
+#dataState {color: white;}
+
 
 body[data-access='interface'] {}
 body[data-access='wayback'] {background-color: white; padding-top: 2.0em;}

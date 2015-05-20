@@ -576,7 +576,8 @@ function getTimemapGodFunction(uri,response){
 			req.end();
 		},
 	 //TODO: remove this function from callback hell
-	 function(callback){t.calculateSimhashes(callback);},
+	function(callback){t.printMementoInformation(response,callback,false);}, //test to return UI back quick, even if calculations aren't complete
+	function(callback){t.calculateSimhashes(callback);},
 	 function(callback){t.saveSimhashesToCache(callback);},
 	 //function(callback){sortMementosByMementoDatetime(callback);}, //likely unnecessary assuming they're guaranteed sorted (is this true?)
 	 function(callback){t.calculateHammingDistancesWithOnlineFiltering(callback);},
@@ -696,9 +697,15 @@ function getTimemapGodFunction(uri,response){
  * HTML to return back as user interface to client
  * @param callback The function to call once this function has completed executed, invoked by caller
  */
- TimeMap.prototype.printMementoInformation = function(response,callback){
+ TimeMap.prototype.printMementoInformation = function(response,callback,dataReady){
 	console.log("About to print memento information");
 	var CRLF = "\r\n"; var TAB = "\t";
+	var stateInformationString = "";
+
+
+	if(dataReady === false){ //indicative of the data still loading. Yes, I know it's an abuse of CBs
+		stateInformationString = "Processing data. This could take a while.";
+	}
 
 	//This is a dumb, wrong implementation but will fit the bill until I can either
 	//...extract the available faux HTTP header or pass the needed value through the callback chain
@@ -726,7 +733,8 @@ function getTimemapGodFunction(uri,response){
 			//"var metadata = '"+metadata+"';" + CRLF +
 		"</script>" + CRLF +
 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
-		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1 class=\"interface\">Thumbnails for "+uri_r+" <button id=\"showJSON\" class=\"interface\">Show JSON</button></h1>" + CRLF +
+		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1 class=\"interface\">Thumbnails for "+uri_r+" <!--<button id=\"showJSON\" class=\"interface\">Show JSON</button>--></h1>" + CRLF +
+		"<p id=\'dataState\'>"+stateInformationString +"</p>" + 
 		"</body></html>";
 	response.write(respString);
 	response.end();
