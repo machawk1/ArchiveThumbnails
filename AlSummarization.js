@@ -106,7 +106,7 @@ function main(){
 	var endpoint = new PublicEndpoint();
 	// Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
 	//http.createServer(respond).listen(thumbnailServicePort);
-	app.get('/', endpoint.respondToClient);
+	app.get('/*', endpoint.respondToClient);
 	app.listen(thumbnailServicePort);
 
 	//TODO: react accordingly if port listening failed, don't simply assume the service was started.
@@ -188,13 +188,21 @@ function PublicEndpoint(){
 	     URI-R PARAMETER - required if not img, supplies basis for archive query
 	  **************************** */
 
-	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
+		function isARESTStyleURI(uri){
+			return (uri.substr(0,5) == "/http");
+		}
+
+	  if(!query['URI-R'] && !isARESTStyleURI(request._parsedUrl.pathname.substr(0,5))) {//e.g., favicon fetched post initial fetch
 	    console.log('No URI-R sent with request. '+request.url+' was sent. Try http://localhost:15421/?URI-R=http://matkelly.com');
 	  	response.writeHead(400, headers);
 	  	response.write(theEndPoint.getHTMLSubmissionForm());
 			response.end();
 			return;
-	  }
+	  }else {
+				//populate query['URI-R'] with REST-style URI and proceed like nothing happened
+				query['URI-R'] = request._parsedUrl.pathname.substr(1);
+
+		}
 
 	  uri_r = query['URI-R'];
 
