@@ -191,7 +191,7 @@ function PublicEndpoint(){
 	  if(!query['URI-R']) {//e.g., favicon fetched post initial fetch
 	    console.log('No URI-R sent with request. '+request.url+' was sent. Try http://localhost:15421/?URI-R=http://matkelly.com');
 	  	response.writeHead(400, headers);
-	  	response.write(this.getHTMLSubmissionForm());
+	  	response.write(theEndPoint.getHTMLSubmissionForm());
 			response.end();
 			return;
 	  }
@@ -704,6 +704,7 @@ function getTimemapGodFunction(uri,response){
 		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
 		"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
 		"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
+		//"<script src=\"gridder/js/jquery.gridder.min.js\"></script>" + CRLF +
 		"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"alSummarization.css\" />" + CRLF +
