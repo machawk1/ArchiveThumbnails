@@ -1,4 +1,25 @@
 $(document).ready(function(){
+  //TODO: check if simhash cache exists, if not, continue to display message from AlSummarization and wait. If so, proceed
+  conditionallyLoadInterface();
+});
+
+function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
+  $.ajax({
+    url: metadata.simhashCacheURI+".json",
+  }).done(function(data,textStatus,xhr){
+    console.log("A Simhash cache file exists! Loading the interface");
+    $("#dataState").html("");
+    returnedJSON = data; //replace original JSON without URIs with post-simhash
+    displayVisualization();
+  }).fail(function(data,textStatus,xhr){
+    console.log("No Simhash cache file exists! Waiting for generation to finish");
+    $("#dataState").html($("#dataState").html()+".");
+    window.setTimeout(conditionallyLoadInterface,1000);
+  });
+}
+
+
+function displayVisualization(){
   console.log(returnedJSON);
   //var str = "<table>";
   var cfstr = "<div id=\"coverflow\">";
@@ -140,7 +161,7 @@ $(document).ready(function(){
   	};
 
   	var inSummarization = []; var notInSummarization = [];
-  	if(returnedJSON[i].hammingDistance < 4 && i!=0){
+  	if(!returnedJSON[i].hammingDistance || (returnedJSON[i].hammingDistance < 4 && i!=0)){
   		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
 
   		memento.className = "notInSummarization";
@@ -165,7 +186,7 @@ $(document).ready(function(){
   var timeline = new vis.Timeline(container, new vis.DataSet(data), options);
 
 
-});
+}
 
 
 function checkAgainIfImageExists(imgIn){

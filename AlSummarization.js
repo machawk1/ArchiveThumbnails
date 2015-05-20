@@ -584,6 +584,7 @@ function getTimemapGodFunction(uri,response){
 	 //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
 	 //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
 	 function(callback){t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+	 function(callback){t.writeJSONToCache(callback);},
 	 function(callback){t.printMementoInformation(response,callback);},
 	 function(callback){t.createScreenshotsForMementos(callback);}],
 	 function(err, result){
@@ -713,6 +714,17 @@ function getTimemapGodFunction(uri,response){
 	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
 	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
 
+	console.log("PPP");
+	console.log(response);
+	console.log("AA"+response.url);
+	console.log("BB"+response.req.url.substr(1));
+	var metadata = {
+		"url": response.req.url.substr(1),
+		"simhashCacheURI": imageServer+(new SimhashCacheFile(response.req.url.substr(1))).path.substr(2)
+	};
+
+	//new SimhashCacheFile(uri_r)
+
 	var respString =
 		"<html><head>" + CRLF +
 		"<base href=\'"+imageServer+"\' />" + CRLF +
@@ -728,13 +740,18 @@ function getTimemapGodFunction(uri,response){
 		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +
 		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
 		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
-		"<script>var returnedJSON =" + CRLF +
+		"<script>" + CRLF +
+			//echo the ports and other endpoint facets for use in util.js
+			"var thumbnailServicePort = '" + thumbnailServicePort + "';" + CRLF +
+			"var imageServerPort = '" + imageServerPort + "';" + CRLF +
+			"var imageServer = '"+ imageServer + "';" + CRLF +
+		"var returnedJSON =" + CRLF +
 			JSON.stringify(this.mementos) + ";" + CRLF +
-			//"var metadata = '"+metadata+"';" + CRLF +
+			"var metadata = "+JSON.stringify(metadata)+";" + CRLF +
 		"</script>" + CRLF +
 		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
 		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1 class=\"interface\">Thumbnails for "+uri_r+" <!--<button id=\"showJSON\" class=\"interface\">Show JSON</button>--></h1>" + CRLF +
-		"<p id=\'dataState\'>"+stateInformationString +"</p>" + 
+		"<p id=\'dataState\'>"+stateInformationString +"</p>" +
 		"</body></html>";
 	response.write(respString);
 	response.end();
@@ -783,7 +800,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 	});
 }
 
-TimeMap.prototype.saveSimhashesToCache = function(callback){
+TimeMap.prototype.saveSimhashesToCache = function(callback,format){
 	//TODO: remove dependency on global timemap t
 
 	var strToWrite = "";
@@ -797,6 +814,13 @@ TimeMap.prototype.saveSimhashesToCache = function(callback){
 	var cacheFile = new SimhashCacheFile(this.originalURI);
 	cacheFile.replaceContentWith(strToWrite);
 
+
+	if(callback){callback("");}
+}
+
+TimeMap.prototype.writeJSONToCache = function(callback){
+	var cacheFile = new SimhashCacheFile(this.originalURI);
+	cacheFile.writeFileContentsAsJSON(JSON.stringify(this.mementos));
 
 	if(callback){callback("");}
 }

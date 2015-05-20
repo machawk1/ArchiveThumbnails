@@ -2,10 +2,10 @@ var fs = require("fs");
 
 function SimhashCacheFile(forUri){
 		//operation = "replace","append","read"
-		
+
 		//TODO, check if it already exists
 		this.path = "./cache/simhashes_"+forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
-		
+
 		this.replaceContentWith = function(str){
 			console.log("in replaceContentWith()");
 			console.log("> deleting old cache file");
@@ -14,17 +14,17 @@ function SimhashCacheFile(forUri){
 			this.writeFileContents(str);
 			console.log("> done writing new contents to cache");
 		};
-		
+
 		this.writeFileContents = function(str){
 			fs.appendFileSync(this.path,str);
 			console.log("Wrote simhash to "+this.path);
 		};
-		
+
 		this.deleteCacheFile = function(){
 			//fs.unlinkSync(this.path)
 			fs.unlink(this.path,function(){})
 		};
-		
+
 		this.readFileContents = function(callbackSuccess,callbackFail){
 			fs.readFile(this.path,"utf-8",function(err,data){
 				if(err){
@@ -33,14 +33,20 @@ function SimhashCacheFile(forUri){
 					return;
 				}
 
-				callbackSuccess(data);				
+				callbackSuccess(data);
 			});
 		};
-		
+
+		this.writeFileContentsAsJSON = function(str){
+			fs.appendFileSync(this.path+".json",str);
+			console.log("Wrote json simhash to "+this.path+".json");
+		};
+
 		this.exists = function(){
 			console.log("This is not the right thing to do. exists() is async and requires a callback. Change flow of caller");
 			//fs.exists(this.path,function(){console.log("The cache file at });
 		}
+
 }
 
 module.exports = {
