@@ -60,10 +60,15 @@ var app = express();
 var timegate_host = 'mementoproxy.lanl.gov';
 var timegate_path = '/aggr/timegate/';
 
+var host = "http://localhost"; // scheme://hostname
+
 /* Custom ports if specified on command-line */
 var thumbnailServicePort = argv.p ? argv.p : 15421;
 var imageServerPort = argv.ap ? arvg.a : 1338;
-var imageServer = 'http://localhost:'+imageServerPort+'/';
+
+/* Derived host access points */
+var imageServer = host+':'+imageServerPort+'/';
+var thumbnailServer = host+':'+thumbnailServicePort+'/';
 
 var nukeSystemData = argv.clean ? argv.clean : false; //fresh system for testing (NOT IMPLEMENTED)
 
@@ -93,11 +98,12 @@ function main(){
 			console.log('Deleting all dervived data.');
 			nukeSystemData = false;
 			cleanSystemData(main); //TODO: figure out why the flow does not continue after the nukeSystemData conditional
+			console.log("Derived data deleted.");
 		}else {
 				console.log('No derived data modified.');
 		}
 	}
-	console.log("done with nuking");
+
 
 
 
@@ -111,7 +117,7 @@ function main(){
 
 	//TODO: react accordingly if port listening failed, don't simply assume the service was started.
 	console.log('* '+('Thumbnails service started on Port '+thumbnailServicePort).red);
-	console.log('> Try localhost:'+thumbnailServicePort+'/?URI-R=http://matkelly.com in your web browser for sample execution.');
+	console.log('> Try '+thumbnailServer+'?URI-R=http://matkelly.com in your web browser for sample execution.');
 }
 
 
@@ -192,16 +198,20 @@ function PublicEndpoint(){
 			return (uri.substr(0,5) == "/http");
 		}
 
-	  if(!query['URI-R'] && !isARESTStyleURI(request._parsedUrl.pathname.substr(0,5))) {//e.g., favicon fetched post initial fetch
-	    console.log('No URI-R sent with request. '+request.url+' was sent. Try http://localhost:15421/?URI-R=http://matkelly.com');
+	  if(	!query['URI-R'] && // a URI-R was not passed via the query string...
+				request._parsedUrl && !isARESTStyleURI(request._parsedUrl.pathname.substr(0,5))) { //...or the REST-style specification
+	    console.log('No URI-R sent with request. '+request.url+' was sent. Try '+thumbnailServer+'/?URI-R=http://matkelly.com');
 	  	response.writeHead(400, headers);
 	  	response.write(theEndPoint.getHTMLSubmissionForm());
 			response.end();
 			return;
-	  }else {
+		}else if(request._parsedUrl && !query['URI-R']) {
 				//populate query['URI-R'] with REST-style URI and proceed like nothing happened
 				query['URI-R'] = request._parsedUrl.pathname.substr(1);
+				console.log("BBB");
 
+		}else if(query['URI-R']){ //URI-R is specied as a query parameter
+				console.log("CCC");
 		}
 
 	  uri_r = query['URI-R'];
@@ -251,7 +261,7 @@ function PublicEndpoint(){
 	  headers['Content-Type'] = 'text/html'; //application/json
 
 	  response.writeHead(200, headers);
-
+		console.log(query);
 	  console.log('New client request ('+response.clientId+')\r\n> URI-R: '+query['URI-R']+'\r\n> Access: '+access+'\r\n> Strategy: '+strategy);
 
 
@@ -342,7 +352,7 @@ function cleanSystemData(cb){
 		});
 		console.log(e);
 	});
-	console.log("Alright, executing the callback");
+	//console.log("Alright, executing the callback");
 	//cb();
 }
 
@@ -714,9 +724,11 @@ function getTimemapGodFunction(uri,response){
 	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
 	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
 
+	var cacheFilePathWithoutDotSlash = (new SimhashCacheFile(uri_r)).path.substr(2);
+
 	var metadata = {
-		"url": response.req.url.substr(1),
-		"simhashCacheURI": imageServer+(new SimhashCacheFile(response.req.url.substr(1))).path.substr(2)
+		"url": uri_r,
+		"simhashCacheURI": imageServer + cacheFilePathWithoutDotSlash
 	};
 
 	//new SimhashCacheFile(uri_r)
