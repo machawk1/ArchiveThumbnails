@@ -1,9 +1,12 @@
 $(document).ready(function(){
-  //TODO: check if simhash cache exists, if not, continue to display message from AlSummarization and wait. If so, proceed
+  //On ready, check if simhash cache exists for the URI:
+  // if not, continue to display message from AlSummarization and wait.
+  // if so, proceed
   conditionallyLoadInterface();
 });
 
 function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
+  console.log("Looking for "+metadata.simhashCacheURI+".json");
   $.ajax({
     url: metadata.simhashCacheURI+".json",
   }).done(function(data,textStatus,xhr){
@@ -12,7 +15,8 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
     returnedJSON = data; //replace original JSON without URIs with post-simhash
     displayVisualization();
   }).fail(function(data,textStatus,xhr){
-    console.log("No Simhash cache file exists! Waiting for generation to finish");
+      console.log(textStatus);
+    console.log("No Simhash cache file exists! Waiting for generation to finish.");
     $("#dataState").html($("#dataState").html()+".");
     window.setTimeout(conditionallyLoadInterface,500);
   });
@@ -26,9 +30,6 @@ function displayVisualization(){
   for(var i=0; i<returnedJSON.length; i++){
   	if(returnedJSON[i].screenshotURI == null){continue;} //don't show the low hamming distance images in coverflow, previously also considered i==0
 
-  	//console.log(i);
-
-  	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
     cfstr +=
       `<div class="image-block" data-hammingDistance="${returnedJSON[i].hammingDistance}">
         <img onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" width=200 height=200 src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}"_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
@@ -47,9 +48,7 @@ function displayVisualization(){
 
   console.log("Done building DOM for coverflow");
 
-  //str += "</table>";
   cfstr += "</div>";
-  //$('body').append(str);
   $('body').append(cfstr);
   $('#showJSON').click(function(){
   	if($('#json').length){$("#json").remove(); $(this).html("Show JSON"); return;}
@@ -57,15 +56,10 @@ function displayVisualization(){
 	$(this).html("Hide JSON");
   });
 
-  var beforeCount = $("div.image-block").length;
 
-  //dim those with low hamming distance, UPDATE: this is now done server-side
-  //$("div.image-block").filter(function() {
-  //	return $(this).attr("data-hammingDistance") < "4";
-  //}).remove();
 
-  var afterCount = $("div.image-block").length;
-
+  var beforeCount = $("div.image-block").length;//UNUSED?
+  var afterCount = $("div.image-block").length;//UNUSED?
 
   $('#coverflow').coverflow({'active':Math.floor($("#coverflow").children().length/2),//{'overlap': 0.7, 'duration': 300}
   	'beforeSelect':function(e,i){
@@ -92,9 +86,9 @@ function displayVisualization(){
 
   var viewSwitcherHTML =
     `<ul id="viewSwitcher">
-      <li class="active"><a id="switcher_coverFlow">CoverFlow</a></li>
-      <li><a id="switcher_gridView">Grid View</a></li>
-      <li><a id="switcher_timeline">Timeline</a></li>
+      <li class="active" id="switcher_coverFlow_li"><a id="switcher_coverFlow">CoverFlow</a></li>
+      <li id="switcher_gridView_li"><a id="switcher_gridView">Grid View</a></li>
+      <li id="switcher_timeline_li"><a id="switcher_timeline">Timeline</a></li>
       <!--<li><a id="switcher_anotherView">Another View</a></li>-->
     </ul>`;
 

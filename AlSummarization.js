@@ -223,7 +223,7 @@ function PublicEndpoint(){
 				console.log("BBB");
 
 		}else if(query['URI-R']){ //URI-R is specied as a query parameter
-				console.log("CCC");
+				console.log("URI-R valid, using query parameter.");
 		}
 
 	  uri_r = query['URI-R'];

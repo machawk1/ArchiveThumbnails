@@ -6,7 +6,7 @@ h2 a {color: white;}
 p#count {color: white; bottom: 10px; left: 10px; position: absolute; z-index: 50;}
 ul#viewSwitcher {display: block; background-color: black;  text-align: center; bottom: 0; margin: 0; padding: 5px 0 5px 0; z-index: 99; width: 100%; z-index: 999; position: fixed;}
 ul#viewSwitcher li {background-color: white; color: black; float: left; border-radius: 10px; margin-right: 5px; margin-bottom: 0px; border: 3px solid white;}
-ul#viewSwitcher li a {width: 300px; display: block; text-decoration: none; color: black; font-weight: bold;}
+ul#viewSwitcher li a {width: 300px; display: block; text-decoration: none; font-weight: bold;}
 ul#viewSwitcher li:hover {background-color: #ccc; cursor: pointer;}
 ul#viewSwitcher li.active {border: 3px solid green; background-color: green; color: white;}
 ul#viewSwitcher li.active:hover {cursor: default;}
@@ -31,9 +31,16 @@ figure {padding: 0; margin: 0;}
 #dataState {color: white;}
 
 
+body #viewSwitcher li {color: white; background-repeat: no-repeat; background-position: center center; list-style-type: none;}
+body #viewSwitcher li a {height: 50px; width: 100px; margin-top: -20px;}
+body #viewSwitcher li#switcher_coverFlow_li {background-image: url('./_images/coverflow.png'); }
+body #viewSwitcher li#switcher_gridView_li {background-image: url('./_images/grid.png'); }
+body #viewSwitcher li#switcher_timeline_li {background-image: url('./_images/timeline.png'); }
+
+
 body[data-access='interface'] {}
 body[data-access='wayback'] {background-color: white; padding-top: 2.0em;}
-body[data-access='embed'] {}
+body[data-access='embed'] {background-color: white; padding-top: 2.0em;}
 
 body[data-access='interface'] .wayback,   body[data-access='interface'] .embed   {display: none;}
 body[data-access='wayback']   .interface, body[data-access='interface'] .embed   {display: none;}
@@ -41,10 +48,20 @@ body[data-access='embed']     .interface, body[data-access='interface'] .wayback
 
 body[data-access='wayback'] .reflection {display: none;}
 body[data-access='wayback'] .image-block > img, body[data-access='wayback'] .ui-state-active > img {box-shadow: 0;}
-body[data-access='wayback'] #viewSwitcher {background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
+body[data-access='wayback'] #dataState {color: black;}
+body[data-access='wayback'] #viewSwitcher {color: black;; background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
 body[data-access='wayback'] #viewSwitcher li {border: 1px solid #3EAAB8; display: inline;}
 body[data-access='wayback'] #viewSwitcher li.active {background-color: #3EAAB8;}
 body[data-access='wayback'] #viewSwitcher li.active a {color: white;}
+
+
+body[data-access='embed'] .reflection {display: none;}
+body[data-access='embed'] .image-block > img, body[data-access='embed'] .ui-state-active > img {box-shadow: 0;}
+body[data-access='embed'] #dataState {color: black;}
+body[data-access='embed'] #viewSwitcher {color: black; background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
+body[data-access='embed'] #viewSwitcher li {border: 1px solid #3EAAB8; display: inline;  }
+body[data-access='embed'] #viewSwitcher li.active {background-color: #3EAAB8;}
+body[data-access='embed'] #viewSwitcher li.active a {color: #3EAAB8;}
 
 body[data-strategy='alSummarization'] {}
 body[data-strategy='random'] {}

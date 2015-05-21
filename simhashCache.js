@@ -38,7 +38,7 @@ function SimhashCacheFile(forUri){
 		};
 
 		this.writeFileContentsAsJSON = function(str){
-			fs.appendFileSync(this.path+".json",str);
+			fs.writeFile(this.path+".json",str,function(err){if(err){throw error;}});
 			console.log("Wrote json simhash to "+this.path+".json");
 		};
 
