@@ -49,17 +49,17 @@ body[data-access='embed']     .interface, body[data-access='interface'] .wayback
 body[data-access='wayback'] .reflection {display: none;}
 body[data-access='wayback'] .image-block > img, body[data-access='wayback'] .ui-state-active > img {box-shadow: 0;}
 body[data-access='wayback'] #dataState {color: black;}
-body[data-access='wayback'] #viewSwitcher {color: black;; background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
-body[data-access='wayback'] #viewSwitcher li {border: 1px solid #3EAAB8; display: inline;}
+body[data-access='wayback'] #viewSwitcher {color: #3EAAB8; background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
+body[data-access='wayback'] #viewSwitcher li {color: black; border: 1px solid #3EAAB8; display: inline;}
 body[data-access='wayback'] #viewSwitcher li.active {background-color: #3EAAB8;}
-body[data-access='wayback'] #viewSwitcher li.active a {color: white;}
+body[data-access='wayback'] #viewSwitcher li.active a {color: #3EAAB8;}
 
 
 body[data-access='embed'] .reflection {display: none;}
 body[data-access='embed'] .image-block > img, body[data-access='embed'] .ui-state-active > img {box-shadow: 0;}
 body[data-access='embed'] #dataState {color: black;}
 body[data-access='embed'] #viewSwitcher {color: black; background-color: transparent; font-family: 'Lucida Grande',Arial,sans-serif; display: inline; text-align: center; margin: 0; padding: 0;left: auto; width: auto;}
-body[data-access='embed'] #viewSwitcher li {border: 1px solid #3EAAB8; display: inline;  }
+body[data-access='embed'] #viewSwitcher li {color: black; border: 1px solid #3EAAB8; display: inline;  }
 body[data-access='embed'] #viewSwitcher li.active {background-color: #3EAAB8;}
 body[data-access='embed'] #viewSwitcher li.active a {color: #3EAAB8;}
 
