@@ -89,7 +89,16 @@ function displayVisualization(){
   //$("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
   //$("body").append("<p id=\"count\">"+metadata+"</p>");
 
-  $("body").append("<ul id=\"viewSwitcher\"><li class=\"active\"><a id=\"switcher_coverFlow\">CoverFlow</a></li><li><a id=\"switcher_gridView\">Grid View</a></li><li><a id=\"switcher_timeline\">Timeline</a></li><!--<li><a id=\"switcher_anotherView\">Another View</a></li>--></ul>");
+  var viewSwitcherHTML =
+    `<ul id="viewSwitcher">
+      <li class="active"><a id="switcher_coverFlow">CoverFlow</a></li>
+      <li><a id="switcher_gridView">Grid View</a></li>
+      <li><a id="switcher_timeline">Timeline</a></li>
+      <!--<li><a id="switcher_anotherView">Another View</a></li>-->
+    </ul>`;
+
+
+  $("body").append(viewSwitcherHTML);
   $("#viewSwitcher li a").click(function(){ //activate view
   	if($(this).parent().hasClass("active")){return;} //do nothing if the current view button is clicked
 
@@ -110,8 +119,14 @@ function displayVisualization(){
   		$("#gv div").addClass("f1_container");
 
   		$("#gv > div").each(function(){
-  			$(this).append("<figure class=\"shadow f1_card\" style=\"width: 200px;\"><div class=\"font face\">"+$(this).html()+"</div><figcaption class=\"back face center\">"+$($(this).find(".caption")[0]).html()+"</figcaption></figure>");
-  			//$(this).append("<figure>"+$(this).html()+"</figure>");
+        var figureHTML =
+          `<figure class="shadow f1_card" style="width: 200px;">
+            <div class="font face">${$(this).html()}</div>
+            <figcaption class="back face center">${$($(this).find(".caption")[0]).html()}</figcaption>
+          </figure>`;
+
+
+  			$(this).append(figureHTML);
 
   			$(this).find(".caption").remove();
   			$(this).children("img").remove();
@@ -123,12 +138,6 @@ function displayVisualization(){
 		});
 
 
-  		/*$("#gv div img").mouseover(function(){
-  			var txt = "<div class=\"hoverText\">"+$(this).next().html()+"</div>";
-  			$(txt).insertBefore($(this));
-  		}).mouseout(function(){
-  			$(".hoverText").remove();
-  		});*/
   		$("#coverflow").fadeOut();
   		$("#timeline").fadeOut();
   		$("#gv").fadeIn();

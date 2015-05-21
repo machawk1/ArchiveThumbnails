@@ -148,6 +148,18 @@ function PublicEndpoint(){
 		return form;
 	};
 
+	this.validAccessParameters = ['interface','wayback','embed']; // parameters supplied for means of access
+	this.validStrategyParameters = ['alSummarization','random','monthly','yearly','skipListed']; //parameter supplied for summarization strategy
+
+	this.isAValidAccessParameter = function(accessParameter){
+		return theEndPoint.validAccessParameters.indexOf(accessParameter) > -1;
+	};
+
+	this.isAValidStrategyParameter = function(strategyParameter){
+		return theEndPoint.validStrategyParameters.indexOf(strategyParameter) > -1;
+	};
+
+
 	/**
 	* Handle an HTTP request and respond appropriately
 	* @param request  The request object from the client representing query information
@@ -217,36 +229,29 @@ function PublicEndpoint(){
 	  uri_r = query['URI-R'];
 
 
-	  /* ****************************
-	     ACCESS PARAMETER - optional - specify origin of access to service
-	  **************************** */
-	  var validAccessParameters = ['interface','wayback','embed'];
 
-	  var access = validAccessParameters[0]; //not specified? access=interface
+
+	  var access = theEndPoint.validAccessParameters[0]; //not specified? access=interface
 	  if(query['access']){
 	  	access = query['access']; //probably the most inelegant way to do this assignment
 	  }
 
-	  if(validAccessParameters.indexOf(access) == -1){ // A bad access parameter was passed in
+	  if(!theEndPoint.isAValidAccessParameter(access)){ // A bad access parameter was passed in
 	  	  console.log('Bad access query parameter: '+access);
 	 	  response.writeHead(501, headers);
-	 	  response.write('The access parameter was incorrect. Try one of '+validAccessParameters.join(',')+' or omit it entirely from the query string\r\n');
+	 	  response.write('The access parameter was incorrect. Try one of '+theEndPoint.validAccessParameters.join(',')+' or omit it entirely from the query string\r\n');
 		  response.end();
 		  return;
 	  }
 	  headers['X-Means-Of-Access'] = access;
 
-	  /* ****************************
-	     STRATEGY PARAMETER - optional - specify method to use for summarization
-	  **************************** */
-	  theEndPoint.validStrategyParameters = ['alSummarization','random','monthly','yearly','skipListed'];
 
 	  var strategy = theEndPoint.validStrategyParameters[0]; //not specified? access=interface
 	  if(query['strategy']){
 	  	strategy = query['strategy'];
 	  }
 
-	  if(theEndPoint.validStrategyParameters.indexOf(strategy) == -1){ // A bad strategy parameter was passed in
+	  if(!theEndPoint.isAValidStrategyParameter(strategy)){ // A bad strategy parameter was passed in
 	  	console.log('Bad strategy query parameter: '+strategy);
 	 	  response.writeHead(501, headers);
 	 	  response.write('The strategy parameter was incorrect. Try one of '+theEndPoint.validStrategyParameters.join(',')+' or omit it entirely from the query string\r\n');
@@ -718,11 +723,6 @@ function getTimemapGodFunction(uri,response){
 		stateInformationString = "Processing data. This could take a while.";
 	}
 
-	//This is a dumb, wrong implementation but will fit the bill until I can either
-	//...extract the available faux HTTP header or pass the needed value through the callback chain
-	//var access = "interface";
-	//if(document.URL.indexOf("access=wayback") > -1){access = "wayback";}
-	//else if(document.URL.indexOf("access=embed") > -1){access = "embed";}
 
 	var cacheFilePathWithoutDotSlash = (new SimhashCacheFile(uri_r)).path.substr(2);
 
