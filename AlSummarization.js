@@ -733,34 +733,39 @@ function getTimemapGodFunction(uri,response){
 
 	//new SimhashCacheFile(uri_r)
 
-	var respString =
-		"<html><head>" + CRLF +
-		"<base href=\'"+imageServer+"\' />" + CRLF +
-		"<script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>" + CRLF +
-		"<script src=\"//code.jquery.com/jquery-migrate-1.2.1.min.js\"></script>" + CRLF +
-		"<script src=\"//code.jquery.com/ui/1.10.4/jquery-ui.min.js\"></script>" + CRLF +
-		//"<script src=\"gridder/js/jquery.gridder.min.js\"></script>" + CRLF +
-		"<script src=\"moment-with-langs.min.js\"></script>" + CRLF +
-		"<link rel=\"stylesheet\" type=\"text/css\" href=\"coverflow/dist/coverflow.css\" />" + CRLF +
-		"<link rel=\"stylesheet\" type=\"text/css\" href=\"alSummarization.css\" />" + CRLF +
-		"<link rel=\"stylesheet\" type=\"text/css\" href=\"reflection.css\" />" + CRLF +
-		"<link rel=\"stylesheet\" type=\"text/css\" href=\"vis/vis.min.css\" />" + CRLF +
-		"<link rel=\"stylesheet\" type=\"text/css\" href=\"flip.css\" />" + CRLF +
-		"<script src=\"coverflow/dist/coverflow.min.js\"></script>" + CRLF +
-		"<script src=\"vis/vis.min.js\"></script>" + CRLF +
-		"<script>" + CRLF +
-			//echo the ports and other endpoint facets for use in util.js
-			"var thumbnailServicePort = '" + thumbnailServicePort + "';" + CRLF +
-			"var imageServerPort = '" + imageServerPort + "';" + CRLF +
-			"var imageServer = '"+ imageServer + "';" + CRLF +
-		"var returnedJSON =" + CRLF +
-			JSON.stringify(this.mementos) + ";" + CRLF +
-			"var metadata = "+JSON.stringify(metadata)+";" + CRLF +
-		"</script>" + CRLF +
-		"<script src=\'"+imageServer+"util.js\'></script>" + CRLF +
-		"</head><body data-access=\""+response.thumbnails.access+"\" data-strategy=\""+response.thumbnails.strategy+"\"><h1 class=\"interface\">Thumbnails for "+uri_r+" <!--<button id=\"showJSON\" class=\"interface\">Show JSON</button>--></h1>" + CRLF +
-		"<p id=\'dataState\'>"+stateInformationString +"</p>" +
-		"</body></html>";
+	//Boo! Node doesn't support ES6 template strings. Have to build the old fashion way
+	var respString = '<!DOCTYPE html>' +
+		'<html>' + CRLF +
+		'<head>' + CRLF +
+		TAB+'<base href="'+imageServer+'" />' + CRLF +
+		TAB+'<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>' + CRLF +
+		TAB+'<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>' + CRLF +
+		TAB+'<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>' + CRLF +
+		TAB+'<!--<script src="gridder/js/jquery.gridder.min.js"></script>-->' + CRLF +
+		TAB+'<script src="moment-with-langs.min.js"></script>' + CRLF +
+		TAB+'<link rel="stylesheet" type="text/css" href="coverflow/dist/coverflow.css" />' + CRLF +
+		TAB+'<link rel="stylesheet" type="text/css" href="alSummarization.css" />' + CRLF +
+		TAB+'<link rel="stylesheet" type="text/css" href="reflection.css" />' + CRLF +
+		TAB+'<link rel="stylesheet" type="text/css" href="vis/vis.min.css" />' + CRLF +
+		TAB+'<link rel="stylesheet" type="text/css" href="flip.css" />' + CRLF +
+		TAB+'<script src="coverflow/dist/coverflow.min.js"></script>' + CRLF +
+		TAB+'<script src="vis/vis.min.js"></script>"' + CRLF +
+		TAB+'<script>' + CRLF +
+		TAB+'//echo the ports and other endpoint facets for use in util.js' + CRLF +
+		TAB+'var thumbnailServicePort = '+thumbnailServicePort+';' + CRLF +
+		TAB+'var imageServerPort = '+imageServerPort+';' + CRLF +
+		TAB+'var imageServer = "'+imageServer+'";' + CRLF +
+		TAB+'var returnedJSON =' + CRLF +
+		TAB+TAB+JSON.stringify(this.mementos)+';' + CRLF +
+		TAB+'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
+		TAB+'</script>' + CRLF +
+		TAB+'<script src="'+imageServer+'util.js"></script>' + CRLF +
+		'</head>'+ CRLF +
+		'<body data-access="' + response.thumbnails.access+ '" data-strategy="' + response.thumbnails.strategy + '">' + CRLF +
+		TAB+'<h1 class="interface">Thumbnails for '+uri_r+'<!--<button id="showJSON" class="interface">Show JSON</button>--></h1>' + CRLF +
+		TAB+'<p id="dataState">'+stateInformationString+'</p>' + CRLF +
+		'</body>' + CRLF +
+	'</html>';
 	response.write(respString);
 	response.end();
 	console.log("HTML for interface sent to client");
