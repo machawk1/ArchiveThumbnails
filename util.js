@@ -29,19 +29,20 @@ function displayVisualization(){
   	//console.log(i);
 
   	//str += "<tr><td><img width=50 height=50 src='http://localhost:1338/spinner.gif' title='http://localhost:1338/"+returnedJSON[i].screenshotURI+"' /></td><td>"+returnedJSON[i].datetime+"</td><td>"+returnedJSON[i].uri+"</td></tr>";
-    cfstr += "<div class=\"image-block\" data-hammingDistance=\""+returnedJSON[i].hammingDistance+"\">";
-    cfstr += "<img onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='"+imageServer+"_images/spinnerStatic.png';\" width=200 height=200 src='"+imageServer+"_images/spinnerStatic.png' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_200"+"' title='"+imageServer+"screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"' />\r\n";
-	cfstr += "<div class=\"caption\">";
-	cfstr += "<h2>"+returnedJSON[i].datetime+"</h2>";
-	cfstr += "<h2><a target=\"_blank\" href=\""+returnedJSON[i].uri+"\">"+returnedJSON[i].uri+"</a></h2>";
-	cfstr += "<h2>SimHash: "+returnedJSON[i].simhash+"</h2>";
-	cfstr += "<h2>Hamming Distance: "+(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")+"</h2>";
-	cfstr += "</div>"; /* End caption, ideally this should use figure and figcaption tags */
-	cfstr += "<div class=\"reflection\">";
-  	cfstr += "<img width=200 height=200 onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='"+imageServer+"_images/spinnerStatic.png';\" src='"+imageServer+"_images/spinnerStatic.png' id='"+returnedJSON[i].screenshotURI.slice(0,-4)+"_reflection' title='"+imageServer+"screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"' />\r\n";
-    cfstr += "<div class=\"overlay\"></div>";
-    cfstr += "</div>";
-    cfstr += "</div>";
+    cfstr +=
+      `<div class="image-block" data-hammingDistance="${returnedJSON[i].hammingDistance}">
+        <img onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" width=200 height=200 src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}"_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
+        <div class="caption">
+	       <h2>${returnedJSON[i].datetime}</h2>
+	       <h2><a target="_blank" href="${returnedJSON[i].uri}">${returnedJSON[i].uri}</a></h2>
+	       <h2>SimHash: ${returnedJSON[i].simhash}</h2>
+	       <h2>Hamming Distance: ${(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")}</h2>
+	      </div><!-- End caption, ideally this should use figure and figcaption tags -->
+	      <div class="reflection">
+  	     <img width="200" height="200" onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_reflection' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
+         <div class="overlay"></div>
+        </div><!-- End reflection -->
+      </div>`;
   }
 
   console.log("Done building DOM for coverflow");
@@ -182,7 +183,13 @@ function displayVisualization(){
       var imgUri = returnedJSON[i].screenshotURI.replace(".png","_200.png");
 
   		memento.className = "inSummarization";
-  		memento.content = "<img src='"+imageServer+"+_images/spinnerStatic.png' title='"+imageServer+"screenshots/"+returnedJSON[i].screenshotURI.replace(".png","_200.png")+"' id=\""+returnedJSON[i].screenshotURI.slice(0,-4)+"_timeline\" width=\"25\" height=\"25\" onLoad=\"checkAgainIfImageExists(this);\" onError=\"this.onerror=null;checkAgainIfImageExists(this);this.src='"+imageServer+"_images/spinnerStatic.png';\" />&nbsp;"+returnedJSON[i].datetime;
+  		memento.content =
+        `<img src='${imageServer}_images/spinnerStatic.png'
+              title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}'
+              id="${returnedJSON[i].screenshotURI.slice(0,-4)}_timeline"
+              width="25" height="25"
+              onLoad="checkAgainIfImageExists(this);"
+              onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" />&nbsp;${returnedJSON[i].datetime}`;
       inSummarization.push(memento);
     }
     data.push(memento);
