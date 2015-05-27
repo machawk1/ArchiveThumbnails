@@ -11,6 +11,8 @@
 *  > curl localhost:15421/?URI-R=http://matkelly.com
 *  A user interface will be returned. If curling, useful info about the summarization returned.
 */
+"use strict";
+
 var http = require('http');
 var express = require('express');
 //var http = require('http').http;
@@ -54,6 +56,9 @@ var colors = require('colors');
 var im = require('imagemagick');
 var rimraf = require('rimraf');
 
+var faye = require('faye'); // for status-based notifications to client
+var md5 = require("blueimp-md5").md5; //to deal with faye's inability to read a URI-R as the channel
+
 /* *********** END REQUIRES ******************* */
 var app = express();
 
@@ -65,6 +70,7 @@ var host = "http://localhost"; // scheme://hostname
 /* Custom ports if specified on command-line */
 var thumbnailServicePort = argv.p ? argv.p : 15421;
 var imageServerPort = argv.ap ? arvg.a : 1338;
+var notificationServerPort = argv.ap ? argv.n : 15422;
 
 /* Derived host access points */
 var imageServer = host+':'+imageServerPort+'/';
@@ -115,8 +121,29 @@ function main(){
 	app.get('/*', endpoint.respondToClient);
 	app.listen(thumbnailServicePort);
 
+	/* Notification server for status updates of long-running processes */
+	var notificationServer = 	http.createServer();
+	var	bayeux = new faye.NodeAdapter({mount: '/', timeout: 45});
+
+	//TODO: send an initial notification by the server to faye to state that processing has not started
+
+	bayeux.on('handshake', function(clientId) {
+	  console.log("FAYE - handshake initiated "+clientId);
+	})
+
+	bayeux.on('subscribe',function(clientId,channelId){
+			console.log("FAYE - client subscribed - "+clientId+" "+channelId);
+	});
+	bayeux.on('publish',function(clientId,channelId,data){
+			console.log("FAYE - client published - "+clientId+" "+channelId+" "+data);
+	});
+	bayeux.attach(notificationServer);
+	notificationServer.listen(notificationServerPort);
+	console.log("FAYE - server started");
+
 	//TODO: react accordingly if port listening failed, don't simply assume the service was started.
 	console.log('* '+('Thumbnails service started on Port '+thumbnailServicePort).red);
+	console.log('* '+('Notification service started on Port '+notificationServerPort).red);
 	console.log('> Try '+thumbnailServer+'?URI-R=http://matkelly.com in your web browser for sample execution.');
 }
 
@@ -462,6 +489,17 @@ Memento.prototype.setSimhash = function(){
 				thatmemento.simhash = Memento.prototype.simhashIndicatorForHTTP302;
 			}
 			res.on('end',function(d){
+				var md5hash = md5(thatmemento.originalURI);
+				console.log("SERVICE: Publishing a message to the Faye server "+'/'+md5hash);
+				//console.log("SERVICE: Publishing a message to the Faye server "+'/hello');
+
+				//thatmemento.fayeClient.publish(thatmemento.originalURI, {
+				//thatmemento.fayeClient.publish("/hello", {
+				thatmemento.fayeClient.publish("/"+md5hash, {
+					text: thatmemento.uri
+				});
+
+
 				//console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
 				if(buffer2.indexOf("Got an HTTP 302 response at crawl time") == -1 && thatmemento.simhash != "00000000"){
 
@@ -741,6 +779,7 @@ function getTimemapGodFunction(uri,response){
 		TAB+'<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>' + CRLF +
 		TAB+'<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>' + CRLF +
 		TAB+'<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>' + CRLF +
+		TAB+'<script src="md5.min.js"></script>' + CRLF +
 		TAB+'<!--<script src="gridder/js/jquery.gridder.min.js"></script>-->' + CRLF +
 		TAB+'<script src="moment-with-langs.min.js"></script>' + CRLF +
 		TAB+'<link rel="stylesheet" type="text/css" href="coverflow/dist/coverflow.css" />' + CRLF +
@@ -750,6 +789,7 @@ function getTimemapGodFunction(uri,response){
 		TAB+'<link rel="stylesheet" type="text/css" href="flip.css" />' + CRLF +
 		TAB+'<script src="coverflow/dist/coverflow.min.js"></script>' + CRLF +
 		TAB+'<script src="vis/vis.min.js"></script>"' + CRLF +
+		TAB+'<script src="support/faye/faye-browser-min.js"></script>' + CRLF +
 		TAB+'<script>' + CRLF +
 		TAB+'//echo the ports and other endpoint facets for use in util.js' + CRLF +
 		TAB+'var thumbnailServicePort = '+thumbnailServicePort+';' + CRLF +
@@ -758,6 +798,10 @@ function getTimemapGodFunction(uri,response){
 		TAB+'var returnedJSON =' + CRLF +
 		TAB+TAB+JSON.stringify(this.mementos)+';' + CRLF +
 		TAB+'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
+		TAB+'var client = new Faye.Client("http://localhost:'+notificationServerPort+'/");' + CRLF +
+		TAB+'client.subscribe("/'+md5(uri_r)+'", function(message) {'+ CRLF +
+		TAB+' console.log(message);' + CRLF +
+		TAB+'});' + CRLF +
 		TAB+'</script>' + CRLF +
 		TAB+'<script src="'+imageServer+'util.js"></script>' + CRLF +
 		'</head>'+ CRLF +
@@ -780,9 +824,15 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 		incomplete: ' ',
 		width: 20,
 		total: this.mementos.length
-	})
+	});
+
+	var client = new faye.Client('http://localhost:'+notificationServerPort+'/');
 
 	for(var m=0; m<this.mementos.length; m++){
+		//allow the Promise async access to browser-based client communication
+		this.mementos[m].fayeClient = client;
+		this.mementos[m].originalURI = this.originalURI; //the Promise needs the original URI for Faye publication. Scope creep!
+
 		arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash());
 		bar.tick(1);
 	}

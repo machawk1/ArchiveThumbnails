@@ -6,7 +6,7 @@ $(document).ready(function(){
 });
 
 function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
-  console.log("Looking for "+metadata.simhashCacheURI+".json");
+  //console.log("Looking for "+metadata.simhashCacheURI+".json");
   $.ajax({
     url: metadata.simhashCacheURI+".json",
   }).done(function(data,textStatus,xhr){
@@ -15,10 +15,11 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
     returnedJSON = data; //replace original JSON without URIs with post-simhash
     displayVisualization();
   }).fail(function(data,textStatus,xhr){
-      console.log(textStatus);
+      //console.log(textStatus);
     console.log("No Simhash cache file exists! Waiting for generation to finish.");
     $("#dataState").html($("#dataState").html()+".");
-    window.setTimeout(conditionallyLoadInterface,500);
+    //console.log("TODO: here we would update the status message instead of simply adding another dot.");
+    //window.setTimeout(conditionallyLoadInterface,500);
   });
 }
 

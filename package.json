@@ -24,6 +24,8 @@
     "async": "*",
     "minimist": "*",
     "sync-prompt": "*",
-    "rimraf": "*"
+    "rimraf": "*",
+    "faye": "*",
+    "blueimp-md5": "*"
   }
 }
