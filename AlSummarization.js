@@ -126,7 +126,7 @@ function main(){
 	var	bayeux = new faye.NodeAdapter({mount: '/', timeout: 45});
 
 	//TODO: send an initial notification by the server to faye to state that processing has not started
-
+	/*
 	bayeux.on('handshake', function(clientId) {
 	  console.log("FAYE - handshake initiated "+clientId);
 	})
@@ -137,9 +137,10 @@ function main(){
 	bayeux.on('publish',function(clientId,channelId,data){
 			console.log("FAYE - client published - "+clientId+" "+channelId+" "+data);
 	});
+	*/
 	bayeux.attach(notificationServer);
 	notificationServer.listen(notificationServerPort);
-	console.log("FAYE - server started");
+	//console.log("FAYE - server started");
 
 	//TODO: react accordingly if port listening failed, don't simply assume the service was started.
 	console.log('* '+('Thumbnails service started on Port '+thumbnailServicePort).red);
@@ -802,7 +803,6 @@ function getTimemapGodFunction(uri,response){
 		TAB+'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
 		TAB+'var client = new Faye.Client("http://localhost:'+notificationServerPort+'/");' + CRLF +
 		TAB+'client.subscribe("/'+md5(uri_r)+'", function(message) {'+ CRLF +
-		TAB+' console.log(message);' + CRLF +
 		TAB+' $("#dataState").html(message.uriM);' + CRLF +
 		TAB+' if(message.uriM === "done"){' + CRLF +
 		TAB+'  conditionallyLoadInterface();' + CRLF +
@@ -818,7 +818,7 @@ function getTimemapGodFunction(uri,response){
 	'</html>';
 	response.write(respString);
 	response.end();
-	console.log("HTML for interface sent to client");
+	//console.log("HTML for interface sent to client");
 	if(callback){callback("");}
  }
 
@@ -844,7 +844,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 		bar.tick(1);
 	}
 
-	console.time('simhashing');
+	//console.time('simhashing');
 	var theTimemap = this;
 	return Promise.all(
 		arrayOfSetSimhashFunctions
@@ -855,12 +855,17 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 		client.publish("/"+md5(theTimeMap.originalURI), {
 			uriM: "done"
 		});
+		//remove fayeClients from all mementos so they can be converted to JSON
+		for(var m=0; m<theTimeMap.mementos.length; m++){
+				delete theTimeMap.mementos[m].fayeClient;
+				delete theTimeMap.mementos[m].originalURI;
+		}
+
 		console.log("Checking if there are mementos to remove");
 		var mementosRemoved = 0;
 		console.log("About to go into loop of ## mementos: "+(theTimemap.mementos.length - 1));
 		//remove all mementos whose payload body was a Wayback soft 302
 		for (var i = theTimemap.mementos.length-1; i >= 0; i--) {
-			console.log("Checking "+i+" of "+theTimemap.mementos.length);
 			if (theTimemap.mementos[i].simhash === "isA302DeleteMe") {
 				theTimemap.mementos.splice(i, 1);
 				mementosRemoved++;
@@ -894,7 +899,6 @@ TimeMap.prototype.saveSimhashesToCache = function(callback,format){
 TimeMap.prototype.writeJSONToCache = function(callback){
 	var cacheFile = new SimhashCacheFile(this.originalURI);
 	cacheFile.writeFileContentsAsJSON(JSON.stringify(this.mementos));
-
 	if(callback){callback("");}
 }
 
@@ -1154,7 +1158,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 		}else if(m == 0){console.log("m==0, continuing");}
 	}
 	console.log((this.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
-	metadata = "";
+	//metadata = "";
 	//metadata = copyOfMementos.length+" of "+this.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
 	//t.mementos = copyOfMementos.slice(0);
 	console.log(this.mementos.length+" mementos remain");
