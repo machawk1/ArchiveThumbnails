@@ -475,7 +475,7 @@ Memento.prototype.setSimhash = function(){
 		var buffer2 = "";
 		var memento = this;
 		var mOptions = url.parse(thaturi);
-		console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
+		//console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
 
 		var req = http.request({host: mOptions.host, path: mOptions.path}, function(res) {
 			//var hd = new memwatch.HeapDiff();
@@ -491,12 +491,9 @@ Memento.prototype.setSimhash = function(){
 			res.on('end',function(d){
 				var md5hash = md5(thatmemento.originalURI);
 				console.log("SERVICE: Publishing a message to the Faye server "+'/'+md5hash);
-				//console.log("SERVICE: Publishing a message to the Faye server "+'/hello');
 
-				//thatmemento.fayeClient.publish(thatmemento.originalURI, {
-				//thatmemento.fayeClient.publish("/hello", {
 				thatmemento.fayeClient.publish("/"+md5hash, {
-					text: thatmemento.uri
+					uriM: thatmemento.uri
 				});
 
 
@@ -769,7 +766,11 @@ function getTimemapGodFunction(uri,response){
 		"simhashCacheURI": imageServer + cacheFilePathWithoutDotSlash
 	};
 
-	//new SimhashCacheFile(uri_r)
+	//create array of just URI-Ms for status update to client, maintaining order
+	//var uriMs = ["X","Y"];
+	//for(var mementoI=0; mementoI<this.mementos.length; mementoI){
+	//	uriMs.push(this.mementos[mementoI].uri);
+	//}
 
 	//Boo! Node doesn't support ES6 template strings. Have to build the old fashion way
 	var respString = '<!DOCTYPE html>' +
@@ -795,12 +796,17 @@ function getTimemapGodFunction(uri,response){
 		TAB+'var thumbnailServicePort = '+thumbnailServicePort+';' + CRLF +
 		TAB+'var imageServerPort = '+imageServerPort+';' + CRLF +
 		TAB+'var imageServer = "'+imageServer+'";' + CRLF +
+		//TAB+'var uriMs = '+uriMs + ';' + CRLF +
 		TAB+'var returnedJSON =' + CRLF +
 		TAB+TAB+JSON.stringify(this.mementos)+';' + CRLF +
 		TAB+'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
 		TAB+'var client = new Faye.Client("http://localhost:'+notificationServerPort+'/");' + CRLF +
 		TAB+'client.subscribe("/'+md5(uri_r)+'", function(message) {'+ CRLF +
 		TAB+' console.log(message);' + CRLF +
+		TAB+' $("#dataState").html(message.uriM);' + CRLF +
+		TAB+' if(message.uriM === "done"){' + CRLF +
+		TAB+'  conditionallyLoadInterface();' + CRLF +
+		TAB+' }' + CRLF +
 		TAB+'});' + CRLF +
 		TAB+'</script>' + CRLF +
 		TAB+'<script src="'+imageServer+'util.js"></script>' + CRLF +
@@ -818,6 +824,7 @@ function getTimemapGodFunction(uri,response){
 
 TimeMap.prototype.calculateSimhashes = function(callback){
 	//console.time("memFetch");
+	var theTimeMap = this;
 	var arrayOfSetSimhashFunctions = [];
 	var bar = new ProgressBar("  Simhashing [:bar] :percent :etas", {
 		complete: '=',
@@ -845,6 +852,9 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 		console.log("OMFG, an error!");
 		console.log(err);
 	}).then(function(){
+		client.publish("/"+md5(theTimeMap.originalURI), {
+			uriM: "done"
+		});
 		console.log("Checking if there are mementos to remove");
 		var mementosRemoved = 0;
 		console.log("About to go into loop of ## mementos: "+(theTimemap.mementos.length - 1));

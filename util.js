@@ -2,7 +2,7 @@ $(document).ready(function(){
   //On ready, check if simhash cache exists for the URI:
   // if not, continue to display message from AlSummarization and wait.
   // if so, proceed
-  conditionallyLoadInterface();
+  //conditionallyLoadInterface();
 });
 
 function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
@@ -19,7 +19,7 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
     console.log("No Simhash cache file exists! Waiting for generation to finish.");
     $("#dataState").html($("#dataState").html()+".");
     //console.log("TODO: here we would update the status message instead of simply adding another dot.");
-    //window.setTimeout(conditionallyLoadInterface,500);
+    window.setTimeout(conditionallyLoadInterface,500);
   });
 }
 
