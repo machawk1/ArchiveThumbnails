@@ -130,14 +130,15 @@ function main(){
 	bayeux.on('handshake', function(clientId) {
 	  console.log("FAYE - handshake initiated "+clientId);
 	})
-
+	*/
 	bayeux.on('subscribe',function(clientId,channelId){
 			console.log("FAYE - client subscribed - "+clientId+" "+channelId);
 	});
+
 	bayeux.on('publish',function(clientId,channelId,data){
 			console.log("FAYE - client published - "+clientId+" "+channelId+" "+data);
 	});
-	*/
+
 	bayeux.attach(notificationServer);
 	notificationServer.listen(notificationServerPort);
 	//console.log("FAYE - server started");
@@ -330,6 +331,7 @@ function PublicEndpoint(){
 		//TODO: optimize this out of the conditional so the functions needed for each strategy are self-contained (and possibly OOP-ified)
 		if(strategy == "alSummarization"){
 		  var cacheFile = new SimhashCacheFile(uri_r);
+			cacheFile.path += ".json";
 			console.log("Checking if a cache file exists for "+query['URI-R']+"...");
 		  cacheFile.readFileContents(
 		  	function success(data){ // A cache file has been previously generated using the alSummarization strategy
@@ -389,18 +391,33 @@ function cleanSystemData(cb){
 	//cb();
 }
 
-
+/**
+* Display thumbnail interface based on passed in JSON
+* @param fileContents JSON string consistenting of an array of mementos
+* @param response handler to client's browser interface
+*/
 function processWithFileContents(fileContents,response){
 	//we have the string, so we just need to create a timemap with mementos then draw the interface
+	//var t = createMementosFromCacheFile(fileContents);
 
-  //response.thumbnails['strategy']
 
-	var t = createMementosFromCacheFile(fileContents);
+	var t = createMementosFromJSONFile(fileContents);
+	t.printMementoInformation(response,null,false);
 	console.log("There were "+t.mementos.length+" mementos");
 	t.calculateHammingDistancesWithOnlineFiltering();
 	t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI();
-	t.printMementoInformation(response);
 	t.createScreenshotsForMementos(function(){console.log("Done creating screenshots");});
+
+	// Currently a race condition in that the below code will publish before the
+	//  client side code in the above t.printMementoInformation subscribes.
+	//  Fake latency fixes this but is suboptimal
+	setTimeout(function(){
+		var client = new faye.Client('http://localhost:'+notificationServerPort+'/');
+		client.publish("/"+md5(t.mementos[0].originalURI), {
+			uriM: "done"
+		});
+	},2000);
+
 
 }
 
@@ -417,6 +434,13 @@ function createMementosFromCacheFile(fileContents){
 		m.datetime = lineData.slice(2).join(" ");
 		t.mementos.push(m);
 	}
+	return t;
+}
+
+function createMementosFromJSONFile(fileContents){
+	//create mementos from cache file string
+	var t = new TimeMap();
+	t.mementos = JSON.parse(fileContents);
 	return t;
 }
 
@@ -514,7 +538,7 @@ Memento.prototype.setSimhash = function(){
 					}
 					buffer2 = "";
 					buffer2 = null;
-					//delete buffer2;
+
 					console.log(retStr+" - "+ mOptions.host+ mOptions.path);
 
 					thatmemento.simhash = retStr;
@@ -627,7 +651,7 @@ function getTimemapGodFunction(uri,response){
 			req.end();
 		},
 	 //TODO: remove this function from callback hell
-	function(callback){t.printMementoInformation(response,callback,false);}, //test to return UI back quick, even if calculations aren't complete
+	function(callback){t.printMementoInformation(response,callback,false);}, //return blank UI ASAP
 	function(callback){t.calculateSimhashes(callback);},
 	 function(callback){t.saveSimhashesToCache(callback);},
 	 //function(callback){sortMementosByMementoDatetime(callback);}, //likely unnecessary assuming they're guaranteed sorted (is this true?)
@@ -774,7 +798,7 @@ function getTimemapGodFunction(uri,response){
 	//}
 
 	//Boo! Node doesn't support ES6 template strings. Have to build the old fashion way
-	var respString = '<!DOCTYPE html>' +
+	var respString = '<!DOCTYPE html>' + CRLF +
 		'<html>' + CRLF +
 		'<head>' + CRLF +
 		TAB+'<base href="'+imageServer+'" />' + CRLF +
@@ -803,6 +827,7 @@ function getTimemapGodFunction(uri,response){
 		TAB+'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
 		TAB+'var client = new Faye.Client("http://localhost:'+notificationServerPort+'/");' + CRLF +
 		TAB+'client.subscribe("/'+md5(uri_r)+'", function(message) {'+ CRLF +
+		TAB+' console.log("message received");' + CRLF +
 		TAB+' $("#dataState").html(message.uriM);' + CRLF +
 		TAB+' if(message.uriM === "done"){' + CRLF +
 		TAB+'  conditionallyLoadInterface();' + CRLF +
@@ -818,8 +843,8 @@ function getTimemapGodFunction(uri,response){
 	'</html>';
 	response.write(respString);
 	response.end();
-	//console.log("HTML for interface sent to client");
-	if(callback){callback("");}
+
+	if(callback){console.log("caling bacXk");callback("");}
  }
 
 TimeMap.prototype.calculateSimhashes = function(callback){
@@ -858,7 +883,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 		//remove fayeClients from all mementos so they can be converted to JSON
 		for(var m=0; m<theTimeMap.mementos.length; m++){
 				delete theTimeMap.mementos[m].fayeClient;
-				delete theTimeMap.mementos[m].originalURI;
+				//delete theTimeMap.mementos[m].originalURI;
 		}
 
 		console.log("Checking if there are mementos to remove");
@@ -911,9 +936,9 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 	//Assuming foreach is faster than for-i, this can be executed out-of-order
 	this.mementos.forEach(function(memento,m){
 		var uri = memento.uri;
-		console.log("Hamming distance = "+memento.hammingDistance);
+		//console.log("Hamming distance = "+memento.hammingDistance);
 		if(memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD  && memento.hammingDistance >= 0){
-			console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
+			//console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
 			memento.screenshotURI = null;
 		}else {
 			var filename = "alSum_"+uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"; //sanitize URI->filename
@@ -1135,13 +1160,13 @@ TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 
 	console.log("Calculate hamming distance of "+this.mementos.length+" mementos");
 	for(var m=0; m<this.mementos.length; m++){
-		console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
-		console.log("...with SimHash: "+this.mementos[m].simhash);
+		//console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
+		//console.log("...with SimHash: "+this.mementos[m].simhash);
 		if(m > 0){
 			if((this.mementos[m].simhash.match(/0/g) || []).length == 32){console.log("0s, returning");continue;}
-			console.log("Calculating hamming distance");
+			//console.log("Calculating hamming distance");
 			this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash,this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
-			console.log("Getting hamming basis");
+			//console.log("Getting hamming basis");
 			this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
 
 			console.log("Comparing hamming distances (simhash,uri) = "+this.mementos[m].hammingDistance +"\n" +
@@ -1157,11 +1182,11 @@ TimeMap.prototype.createScreenshotForMemento = function(memento,callback){
 			//console.log(t.mementos[m].uri+" hammed!");
 		}else if(m == 0){console.log("m==0, continuing");}
 	}
-	console.log((this.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming.");
+	console.log((this.mementos.length - copyOfMementos.length) + " mementos trimmed due to insufficient hamming, "+this.mementos.length+" remain.");
 	//metadata = "";
 	//metadata = copyOfMementos.length+" of "+this.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
 	//t.mementos = copyOfMementos.slice(0);
-	console.log(this.mementos.length+" mementos remain");
+
 	copyOfMementos = null;
 
 
