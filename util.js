@@ -24,6 +24,12 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
 }
 
 
+function pollThenReplaceImage(img){
+  	img.onerror=null;
+  	checkAgainIfImageExists(img);
+  	img.src=`${imageServer}_images/spinnerStatic.png`;
+  }
+
 function displayVisualization(){
   console.log(returnedJSON);
   if(!returnedJSON){
@@ -36,7 +42,7 @@ function displayVisualization(){
 
     cfstr +=
       `<div class="image-block" data-hammingDistance="${returnedJSON[i].hammingDistance}">
-        <img onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" width=200 height=200 src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
+        <img width="200" height="200" onError="pollThenReplaceImage(this);" src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
         <div class="caption">
 	       <h2>${returnedJSON[i].datetime}</h2>
 	       <h2><a target="_blank" href="${returnedJSON[i].uri}">${returnedJSON[i].uri}</a></h2>
@@ -44,12 +50,15 @@ function displayVisualization(){
 	       <h2>Hamming Distance: ${(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")}</h2>
 	      </div><!-- End caption, ideally this should use figure and figcaption tags -->
 	      <div class="reflection">
-  	     <img width="200" height="200" onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_reflection' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
+  	     <img width="200" height="200" onError="pollThenReplaceImage(this);" src="${imageServer}_images/spinnerStatic.png" id="${returnedJSON[i].screenshotURI.slice(0,-4)}_reflection" title="${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}" />
          <div class="overlay"></div>
         </div><!-- End reflection -->
       </div>`;
   }
 
+
+  
+  
   console.log("Done building DOM for coverflow");
 
   cfstr += "</div>";
@@ -204,13 +213,14 @@ function displayVisualization(){
 
 
 function checkAgainIfImageExists(imgIn){
-	console.log("running checkAgainIfImageExists()");
+	console.log("running checkAgainIfImageExists() for "+imgIn.title);
 	setTimeout(replaceImageIfAvailable,3000,$(imgIn));
 }
 
 function replaceImageIfAvailable(img){
 	var src = $(img).attr("title");
-
+	console.log("Running replaceImageIfAvailable for "+src);
+	
 	$.ajax({
 		url: src
 	}).success(function(){
