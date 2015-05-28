@@ -26,6 +26,11 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
 
 function pollThenReplaceImage(img){
   	img.onerror=null;
+  	img.onError=null;
+  	$("#"+img.id).error(function(){});
+  	img.onerror="";
+  	
+  	console.log("pollThenReplaceImage() "+img.src);
   	checkAgainIfImageExists(img);
   	img.src=`${imageServer}_images/spinnerStatic.png`;
   }
@@ -195,8 +200,8 @@ function displayVisualization(){
               title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}'
               id="${returnedJSON[i].screenshotURI.slice(0,-4)}_timeline"
               width="25" height="25"
-              onLoad="checkAgainIfImageExists(this);"
-              onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" />&nbsp;${returnedJSON[i].datetime}`;
+              //onLoad="checkAgainIfImageExists(this);"
+              onError="pollThenReplaceImage(this);" />&nbsp;${returnedJSON[i].datetime}`;
       inSummarization.push(memento);
     }
     data.push(memento);
@@ -227,8 +232,9 @@ function replaceImageIfAvailable(img){
 		$("#"+$(img).attr("id")).attr("src",src);
 		$("#"+$(img).attr("id")+"_reflection").attr("src",src);
     	$("#"+$(img).attr("id")+"_timeline").attr("src",src);
-	}).fail(function(){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
+	}).fail(function(xhr,status,err){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
 		console.log("Failed. The image might not be generated yet. Trying again in 3.");
+		console.log(err);
 		setTimeout(replaceImageIfAvailable,3000,$(img));
 	});
 }
