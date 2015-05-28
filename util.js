@@ -26,6 +26,9 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
 
 function displayVisualization(){
   console.log(returnedJSON);
+  if(!returnedJSON){
+  	console.log("returnedJSON is null in displayVisualization");
+  }
   //var str = "<table>";
   var cfstr = "<div id=\"coverflow\">";
   for(var i=0; i<returnedJSON.length; i++){
