@@ -130,7 +130,7 @@ function main(){
 	bayeux.on('handshake', function(clientId) {
 	  console.log("FAYE - handshake initiated "+clientId);
 	})
-	*/
+
 	bayeux.on('subscribe',function(clientId,channelId){
 			console.log("FAYE - client subscribed - "+clientId+" "+channelId);
 	});
@@ -138,7 +138,7 @@ function main(){
 	bayeux.on('publish',function(clientId,channelId,data){
 			console.log("FAYE - client published - "+clientId+" "+channelId+" "+data);
 	});
-
+	*/
 	bayeux.attach(notificationServer);
 	notificationServer.listen(notificationServerPort);
 	//console.log("FAYE - server started");
@@ -515,7 +515,7 @@ Memento.prototype.setSimhash = function(){
 			}
 			res.on('end',function(d){
 				var md5hash = md5(thatmemento.originalURI);
-				console.log("SERVICE: Publishing a message to the Faye server "+'/'+md5hash);
+				//console.log("SERVICE: Publishing a message to the Faye server "+'/'+md5hash);
 
 				thatmemento.fayeClient.publish("/"+md5hash, {
 					uriM: thatmemento.uri
@@ -827,7 +827,6 @@ function getTimemapGodFunction(uri,response){
 		TAB+'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
 		TAB+'var client = new Faye.Client("http://localhost:'+notificationServerPort+'/");' + CRLF +
 		TAB+'client.subscribe("/'+md5(uri_r)+'", function(message) {'+ CRLF +
-		TAB+' console.log("message received");' + CRLF +
 		TAB+' $("#dataState").html(message.uriM);' + CRLF +
 		TAB+' if(message.uriM === "done"){' + CRLF +
 		TAB+'  conditionallyLoadInterface();' + CRLF +
@@ -844,7 +843,7 @@ function getTimemapGodFunction(uri,response){
 	response.write(respString);
 	response.end();
 
-	if(callback){console.log("caling bacXk");callback("");}
+	if(callback){callback("");}
  }
 
 TimeMap.prototype.calculateSimhashes = function(callback){

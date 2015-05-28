@@ -202,8 +202,6 @@ function displayVisualization(){
 
 function checkAgainIfImageExists(imgIn){
 	console.log("running checkAgainIfImageExists()");
-	console.log(imgIn);
-	console.log($(imgIn).attr("id")+"A");
 	setTimeout(replaceImageIfAvailable,3000,$(imgIn));
 }
 
