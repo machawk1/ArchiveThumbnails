@@ -36,7 +36,7 @@ function displayVisualization(){
 
     cfstr +=
       `<div class="image-block" data-hammingDistance="${returnedJSON[i].hammingDistance}">
-        <img onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" width=200 height=200 src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}"_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
+        <img onError="this.onerror=null;checkAgainIfImageExists(this);this.src='${imageServer}_images/spinnerStatic.png';" width=200 height=200 src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
         <div class="caption">
 	       <h2>${returnedJSON[i].datetime}</h2>
 	       <h2><a target="_blank" href="${returnedJSON[i].uri}">${returnedJSON[i].uri}</a></h2>
@@ -216,7 +216,7 @@ function replaceImageIfAvailable(img){
 	}).success(function(){
 		$("#"+$(img).attr("id")).attr("src",src);
 		$("#"+$(img).attr("id")+"_reflection").attr("src",src);
-    $("#"+$(img).attr("id")+"_timeline").attr("src",src);
+    	$("#"+$(img).attr("id")+"_timeline").attr("src",src);
 	}).fail(function(){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
 		console.log("Failed. The image might not be generated yet. Trying again in 3.");
 		setTimeout(replaceImageIfAvailable,3000,$(img));
