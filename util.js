@@ -29,10 +29,10 @@ function pollThenReplaceImage(img){
   	img.onError=null;
   	$("#"+img.id).error(function(){});
   	img.onerror="";
-  	
+
   	console.log("pollThenReplaceImage() "+img.src);
   	checkAgainIfImageExists(img);
-  	img.src=`${imageServer}_images/spinnerStatic.png`;
+  	img.src=`${localAssetServer}_images/spinnerStatic.png`;
   }
 
 function displayVisualization(){
@@ -47,7 +47,7 @@ function displayVisualization(){
 
     cfstr +=
       `<div class="image-block" data-hammingDistance="${returnedJSON[i].hammingDistance}">
-        <img width="200" height="200" onError="pollThenReplaceImage(this);" src='${imageServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_200' title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
+        <img width="200" height="200" onError="pollThenReplaceImage(this);" src='${localAssetServer}_images/spinnerStatic.png' id='${returnedJSON[i].screenshotURI.slice(0,-4)}_200' title='${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}' />
         <div class="caption">
 	       <h2>${returnedJSON[i].datetime}</h2>
 	       <h2><a target="_blank" href="${returnedJSON[i].uri}">${returnedJSON[i].uri}</a></h2>
@@ -55,14 +55,14 @@ function displayVisualization(){
 	       <h2>Hamming Distance: ${(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")}</h2>
 	      </div><!-- End caption, ideally this should use figure and figcaption tags -->
 	      <div class="reflection">
-  	     <img width="200" height="200" onError="pollThenReplaceImage(this);" src="${imageServer}_images/spinnerStatic.png" id="${returnedJSON[i].screenshotURI.slice(0,-4)}_reflection" title="${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}" />
+  	     <img width="200" height="200" onError="pollThenReplaceImage(this);" src="${localAssetServer}_images/spinnerStatic.png" id="${returnedJSON[i].screenshotURI.slice(0,-4)}_reflection" title="${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}" />
          <div class="overlay"></div>
         </div><!-- End reflection -->
       </div>`;
   }
 
 
-  
+
   
   console.log("Done building DOM for coverflow");
 
@@ -196,8 +196,8 @@ function displayVisualization(){
 
   		memento.className = "inSummarization";
   		memento.content =
-        `<img src='${imageServer}_images/spinnerStatic.png'
-              title='${imageServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}'
+        `<img src='${localAssetServer}_images/spinnerStatic.png'
+              title='${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}'
               id="${returnedJSON[i].screenshotURI.slice(0,-4)}_timeline"
               width="25" height="25"
               //onLoad="checkAgainIfImageExists(this);"
@@ -225,7 +225,7 @@ function checkAgainIfImageExists(imgIn){
 function replaceImageIfAvailable(img){
 	var src = $(img).attr("title");
 	console.log("Running replaceImageIfAvailable for "+src);
-	
+
 	$.ajax({
 		url: src
 	}).success(function(){

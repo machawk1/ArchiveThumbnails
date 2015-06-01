@@ -65,11 +65,11 @@ var host = 'http://localhost'; // Format: scheme://hostname
 
 /* Custom ports if specified on command-line */
 var thumbnailServicePort = argv.p ? argv.p : 15421;
-var imageServerPort = argv.ap ? arvg.a : 1338;
+var localAssetServerPort = argv.ap ? arvg.a : 1338;
 var notificationServerPort = argv.ap ? argv.n : 15422;
 
 /* Derived host access points */
-var imageServer = host + ':' + imageServerPort + '/';
+var localAssetServer = host + ':' + localAssetServerPort + '/';
 var thumbnailServer = host + ':' + thumbnailServicePort + '/';
 
 // Fresh system for testing (NOT IMPLEMENTED)
@@ -107,10 +107,7 @@ function main() {
     }
   }
 
-
-
-
-  startImageServer();
+  startLocalAssetServer();
 
   var endpoint = new PublicEndpoint();
   // Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
@@ -151,14 +148,14 @@ function main() {
 * Create access point for resources local to the interface to be queried. This differs
 *  from handling requests from clients.
 */
-function startImageServer() {
+function startLocalAssetServer() {
   connect().use(
     serveStatic(
       __dirname,
       {'setHeaders':function (res,path){res.setHeader("Access-Control-Allow-Origin","*");}}
     )
-  ).listen(imageServerPort);
-  console.log("* "+('Local resource (css, js, etc.) server listening on Port ' + imageServerPort + '...').red);
+  ).listen(localAssetServerPort);
+  console.log("* "+('Local resource (css, js, etc.) server listening on Port ' + localAssetServerPort + '...').red);
 }
 
 
@@ -342,7 +339,7 @@ function PublicEndpoint() {
       });
 
     }
-    else if(strategy == 'monthly' || strategy == 'yearly'){ //TODO: MLN says, 'we only want one temporal strategy'
+    else if(strategy == 'monthly' || strategy == 'yearly'){ //TODO: refine to only use one temporal strategy
         t.setupWithURIR(response,query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
           t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,16);
       });
@@ -365,10 +362,7 @@ function PublicEndpoint() {
           }
         )
       });
-
     }
-
-
  }
 }
 
@@ -392,10 +386,6 @@ function cleanSystemData(cb){
 * @param response handler to client's browser interface
 */
 function processWithFileContents(fileContents,response) {
-  //we have the string, so we just need to create a timemap with mementos then draw the interface
-  //var t = createMementosFromCacheFile(fileContents);
-
-
   var t = createMementosFromJSONFile(fileContents);
   t.printMementoInformation(response,null,false);
   console.log('There were '+t.mementos.length+' mementos');
@@ -412,28 +402,13 @@ function processWithFileContents(fileContents,response) {
       uriM: 'done'
     });
   },2000);
-
-
 }
 
-function createMementosFromCacheFile(fileContents) {
-  //create mementos from cache file string
-  var t = new TimeMap();
-  var lines = fileContents.split('\r\n');
-  t.mementos = [];
-  for(var line = 0; line<lines.length; line++){
-    var lineData = lines[line].split(" ");
-    if(!lineData || lineData == ''){continue;} //don't add any extra lines from the end of the file
-    var m = new Memento(lineData[1]);
-    m.simhash = lineData[0];
-    m.datetime = lineData.slice(2).join(" ");
-    t.mementos.push(m);
-  }
-  return t;
-}
-
+/**
+* Convert a string from the JSON cache file to Memento objects
+* @param fileContents JSON string consistenting of an array of mementos
+*/
 function createMementosFromJSONFile(fileContents) {
-  //create mementos from cache file string
   var t = new TimeMap();
   t.mementos = JSON.parse(fileContents);
   return t;
@@ -452,9 +427,6 @@ function HTTPResponse(statusCode,headers){
     this.headers[key].push(value);
   };
 }
-HTTPResponse.prototype.toJSON = function() {
-  return 'foo';
-};
 
 function HTTPRequest(method,uri,headers){
   this.method = method;
@@ -478,6 +450,7 @@ TimeMap.prototype.toString = function() {
 Memento.prototype.toString = function() {
   return JSON.stringify(this);
 }
+
 // Add Thumbnail Summarization attributes to Memento Class without soiling core
 Memento.prototype.simhash = null;
 Memento.prototype.captureTimeDelta = -1;
@@ -493,7 +466,7 @@ Memento.prototype.setSimhash = function() {
   var thatmemento = this;
   return (new Promise(function(resolve,reject){
     var buffer2 = "";
-    var memento = this;
+    var memento = this; // Potentially unused? The 'this' reference will be relative to the promise here
     var mOptions = url.parse(thaturi);
     //console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
 
@@ -513,7 +486,7 @@ Memento.prototype.setSimhash = function() {
         //console.log("SERVICE: Publishing a message to the Faye server "+'/'+md5hash);
 
         thatmemento.fayeClient.publish("/"+md5hash, {
-          uriM: thatmemento.uri
+          uriM: thatmemento.uri,
         });
 
 
@@ -559,14 +532,13 @@ Memento.prototype.setSimhash = function() {
 * Given a URI, return a TimeMap from the Memento Aggregator
 * @param uri The URI-R in-question
 */
-//TODO: currently a god function that does WAY more than simply getting a timemap
+//TODO: God function that does WAY more than simply getting a timemap
 function getTimemapGodFunction(uri,response) {
+  //TODO: remove TM host and path references, they reside in the TM obj
   var timemapHost = "web.archive.org";
   var timemapPath = '/web/timemap/link/' + uri;
     var options = {
-        //host: 'mementoproxy.lanl.gov',
         host: timemapHost,
-        //path: '/aggr/timemap/link/1/' + uri,
         path: timemapPath,
         port: 80,
         method: 'GET'
@@ -640,7 +612,6 @@ function getTimemapGodFunction(uri,response) {
   function(callback){t.printMementoInformation(response,callback,false);}, //return blank UI ASAP
   function(callback){t.calculateSimhashes(callback);},
    function(callback){t.saveSimhashesToCache(callback);},
-   //function(callback){sortMementosByMementoDatetime(callback);}, //likely unnecessary assuming they're guaranteed sorted (is this true?)
    function(callback){t.calculateHammingDistancesWithOnlineFiltering(callback);},
    //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
    //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
@@ -658,58 +629,8 @@ function getTimemapGodFunction(uri,response) {
    });
 
 
-
-
-
-   function sortMementosByMementoDatetime(callback){
-     //response.write(JSON.stringify(hashes));
-    //response.end();
-
-     //return resolve(hashes)
-     //resolve(100);
-     //t.sortByDatetime();
-     callback("");
-   }
-
-
-
-
-
-   /*
-   //TODO: implement this for the callback chain
-   function calculateCaptureTimeDeltas(callback){
-     //console.log("Calculating capture time deltas");
-     t.mementos.forEach(function(memento,m,ary){
-       if(m > 0){
-         t.mementos[m].captureTimeDelta = getTimeDiffBetweenTwoMementoURIs(t.mementos[m].uri,t.mementos[m-1].uri);
-
-       }else if(m == 0){return;}
-     });
-     callback("");
-   }*/
-
-   /*
-   //TODO: implement this for the callback chain
-   function applyKMedoids(callback){
-     //1. Initialize: randomly select k of the n data points as the medoids
-     //var arr = t.mementos.clone();
-     //var k = 5; //for testing
-     //var selectedK = getRandomSubsetOfMementosArray(arr,k);
-    //2. Associate each data point to the closest medoid. ("closest" here is defined using any valid distance metric, most commonly Euclidean distance, Manhattan distance or Minkowski distance)
-    //3. For each medoid m
-    //     3a. For each non-medoid data point o
-    //     3b. Swap m and o and compute the total cost of the configuration
-    //4. Select the configuration with the lowest cost.
-    //5. Repeat steps 2 to 4 until there is no change in the medoid.
-    throw "applyKMedoids is not implemented";
-    console.log("Applying K Medoids");
-    callback("");
-   }
-   */
-
    // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
    function getRandomSubsetOfMementosArray(arr,siz){
-
       var shuffled = arr.slice(0), i = arr.length, temp, index;
       while (i--) {
         index = Math.floor((i + 1) * Math.random());
@@ -774,20 +695,15 @@ function getTimemapGodFunction(uri,response) {
 
   var metadata = {
     "url": uri_r,
-    "simhashCacheURI": imageServer + cacheFilePathWithoutDotSlash
+    "simhashCacheURI": localAssetServer + cacheFilePathWithoutDotSlash
   };
 
-  //create array of just URI-Ms for status update to client, maintaining order
-  //var uriMs = ["X","Y"];
-  //for(var mementoI=0; mementoI<this.mementos.length; mementoI){
-  //  uriMs.push(this.mementos[mementoI].uri);
-  //}
 
   //Boo! Node doesn't support ES6 template strings. Have to build the old fashion way
   var respString = '<!DOCTYPE html>' + CRLF +
     '<html>' + CRLF +
     '<head>' + CRLF +
-    TAB+'<base href="'+imageServer+'" />' + CRLF +
+    TAB+'<base href="'+localAssetServer+'" />' + CRLF +
     TAB+'<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>' + CRLF +
     TAB+'<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>' + CRLF +
     TAB+'<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>' + CRLF +
@@ -805,8 +721,8 @@ function getTimemapGodFunction(uri,response) {
     TAB+'<script>' + CRLF +
     TAB+'//echo the ports and other endpoint facets for use in util.js' + CRLF +
     TAB+'var thumbnailServicePort = '+thumbnailServicePort+';' + CRLF +
-    TAB+'var imageServerPort = '+imageServerPort+';' + CRLF +
-    TAB+'var imageServer = "'+imageServer+'";' + CRLF +
+    TAB+'var localAssetServerPort = '+localAssetServerPort+';' + CRLF +
+    TAB+'var localAssetServer = "'+localAssetServer+'";' + CRLF +
     //TAB+'var uriMs = '+uriMs + ';' + CRLF +
     TAB+'var returnedJSON =' + CRLF +
     TAB+TAB+JSON.stringify(this.mementos)+';' + CRLF +
@@ -819,7 +735,7 @@ function getTimemapGodFunction(uri,response) {
     TAB+' }' + CRLF +
     TAB+'});' + CRLF +
     TAB+'</script>' + CRLF +
-    TAB+'<script src="'+imageServer+'util.js"></script>' + CRLF +
+    TAB+'<script src="'+localAssetServer+'util.js"></script>' + CRLF +
     '</head>'+ CRLF +
     '<body data-access="' + response.thumbnails.access+ '" data-strategy="' + response.thumbnails.strategy + '">' + CRLF +
     TAB+'<h1 class="interface">Thumbnails for '+uri_r+'<!--<button id="showJSON" class="interface">Show JSON</button>--></h1>' + CRLF +
@@ -833,7 +749,6 @@ function getTimemapGodFunction(uri,response) {
  }
 
 TimeMap.prototype.calculateSimhashes = function(callback){
-  //console.time("memFetch");
   var theTimeMap = this;
   var arrayOfSetSimhashFunctions = [];
   var bar = new ProgressBar('  Simhashing [:bar] :percent :etas', {
