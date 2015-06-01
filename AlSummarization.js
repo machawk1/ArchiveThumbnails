@@ -82,11 +82,11 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
 ****************************** */
 
 /**
-* Initially called to invoke the server instance
+* Start the application by initializing server instances
 */
 function main() {
   memwatch.on('leak', function(info) {
-    console.log("You're leaking!");
+    console.log('You\'re leaking!');
     console.error(info);
   });
   /* memwatch.on('stats', function(stats) {
@@ -95,21 +95,22 @@ function main() {
   });*/
 
   console.log(('*******************************\r\nTHUMBNAIL SUMMARIZATION SERVICE\r\n*******************************').blue);
-  if(nukeSystemData){
+  if (nukeSystemData) {
     var resp = prompt('Delete all derived data (y/N)? ');
-    if(resp === 'y'){
+    if (resp === 'y') {
       console.log('Deleting all dervived data.');
       nukeSystemData = false;
       cleanSystemData(main); //TODO: figure out why the flow does not continue after the nukeSystemData conditional
       console.log('Derived data deleted.');
     }else {
-        console.log('No derived data modified.');
+      console.log('No derived data modified.');
     }
   }
 
   startLocalAssetServer();
 
   var endpoint = new PublicEndpoint();
+
   // Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
   //http.createServer(respond).listen(thumbnailServicePort);
   app.get('/*', endpoint.respondToClient);
@@ -135,12 +136,13 @@ function main() {
   */
   bayeux.attach(notificationServer);
   notificationServer.listen(notificationServerPort);
+
   //console.log("FAYE - server started");
 
   //TODO: react accordingly if port listening failed, don't simply assume the service was started.
-  console.log('* '+('Thumbnails service started on Port '+thumbnailServicePort).red);
-  console.log('* '+('Notification service started on Port '+notificationServerPort).red);
-  console.log('> Try '+thumbnailServer+'?URI-R=http://matkelly.com in your web browser for sample execution.');
+  console.log('* ' + ('Thumbnails service started on Port ' + thumbnailServicePort).red);
+  console.log('* ' + ('Notification service started on Port ' + notificationServerPort).red);
+  console.log('> Try ' + thumbnailServer + '?URI-R=http://matkelly.com in your web browser for sample execution.');
 }
 
 
@@ -152,10 +154,10 @@ function startLocalAssetServer() {
   connect().use(
     serveStatic(
       __dirname,
-      {'setHeaders':function (res,path){res.setHeader("Access-Control-Allow-Origin","*");}}
+      {'setHeaders':function (res,path){res.setHeader('Access-Control-Allow-Origin','*');}}
     )
   ).listen(localAssetServerPort);
-  console.log("* "+('Local resource (css, js, etc.) server listening on Port ' + localAssetServerPort + '...').red);
+  console.log('* ' + ('Local resource (css, js, etc.) server listening on Port ' + localAssetServerPort + '...').red);
 }
 
 
@@ -167,21 +169,21 @@ function PublicEndpoint() {
   /**
   * Default form to enter URI-R if one is not supplied in the query string
   */
-  this.getHTMLSubmissionForm = function(){
-    var form = "<html><head></head><body><form method=\"get\" action=\"/\">";
-    form +=    " <label for=\"uri_r\" style=\"float: left;\">URI-R:</label><input type=\"text\" name=\"URI-R\" />";
-    form +=     " <input type=\"submit\" />";
+  this.getHTMLSubmissionForm = function() {
+    var form = '<html><head></head><body><form method="get" action="/">';
+    form +=    ' <label for="uri_r" style="float: left;">URI-R:</label><input type="text" name="URI-R" />';
+    form +=     ' <input type="submit" />';
     return form;
   };
 
-  this.validAccessParameters = ['interface','wayback','embed']; // parameters supplied for means of access
-  this.validStrategyParameters = ['alSummarization','random','monthly','yearly','skipListed']; //parameter supplied for summarization strategy
+  this.validAccessParameters = ['interface', 'wayback', 'embed']; // parameters supplied for means of access
+  this.validStrategyParameters = ['alSummarization', 'random', 'monthly', 'yearly', 'skipListed']; //parameter supplied for summarization strategy
 
-  this.isAValidAccessParameter = function(accessParameter){
+  this.isAValidAccessParameter = function(accessParameter) {
     return theEndPoint.validAccessParameters.indexOf(accessParameter) > -1;
   };
 
-  this.isAValidStrategyParameter = function(strategyParameter){
+  this.isAValidStrategyParameter = function(strategyParameter) {
     return theEndPoint.validStrategyParameters.indexOf(strategyParameter) > -1;
   };
 
@@ -191,8 +193,8 @@ function PublicEndpoint() {
   * @param request  The request object from the client representing query information
   * @param response Currently active HTTP response to the client used to return information to the client based on the request
   */
-  this.respondToClient = function(request, response){
-    response.clientId = Math.random()*101|0; // associate a simple random integer to the user for logging (this is not scalable with the implemented method)
+  this.respondToClient = function(request, response) {
+    response.clientId = Math.random() * 101 | 0; // associate a simple random integer to the user for logging (this is not scalable with the implemented method)
 
      var headers = {};
      // IE8 does not allow domains to be specified, just the *
