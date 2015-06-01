@@ -159,6 +159,9 @@ function startLocalAssetServer() {
 }
 
 
+/**
+* Setup the public-facing attributes of the service
+*/
 function PublicEndpoint() {
   var theEndPoint = this;
   /**
@@ -249,12 +252,11 @@ function PublicEndpoint() {
 
     uri_r = query['URI-R'];
 
-
-
-
     var access = theEndPoint.validAccessParameters[0]; //not specified? access=interface
+    // Override the default access parameter if the user has supplied a value
+    //  via query parameters
     if(query['access']){
-      access = query['access']; //probably the most inelegant way to do this assignment
+      access = query['access'];
     }
 
     if(!theEndPoint.isAValidAccessParameter(access)){ // A bad access parameter was passed in
@@ -329,27 +331,30 @@ function PublicEndpoint() {
         function success(data){ // A cache file has been previously generated using the alSummarization strategy
           processWithFileContents(data,response)
         },
-        function failed(){getTimemapGodFunction(query['URI-R'],response);}
+        function failed(){
+          getTimemapGodFunction(query['URI-R'],response);
+        }
       );
     }
     else if(strategy == 'random'){
       t.setupWithURIR(response,query['URI-R'], function selectRandomMementosFromTheTimeMap(){
-        var numberOfMementosToSelect = 16; //FIX: currently even steven for testing
+        var numberOfMementosToSelect = 16; // TODO: remove magic number
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos,numberOfMementosToSelect);
       });
 
     }
     else if(strategy == 'monthly' || strategy == 'yearly'){ //TODO: refine to only use one temporal strategy
         t.setupWithURIR(response,query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-          t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,16);
+          t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos,16); // TODO: remove magic number, current scope issues with associating with callback
       });
     }
     else if(strategy == 'skipListed'){
       t.setupWithURIR(response,query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-          t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos,Math.floor(t.mementos.length/16));
+          t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos,Math.floor(t.mementos.length/16)); // TODO: remove magic number, current scope issues with associating with callback
       });
     }
 
+    // TODO: break apart callback hell
     function generateThumbnailsWithSelectedMementos(){
       //suboptimal route but reference to t must be preserved
       //TODO: move this to TimeMap prototype
@@ -366,6 +371,10 @@ function PublicEndpoint() {
  }
 }
 
+/**
+* Delete all derived data including caching and screenshot - namely for testing
+* @param cb Callback to execute upon completion
+*/
 function cleanSystemData(cb){
   //delete all files in ./screenshots/ and ./cache/
   var dirs = ['screenshots','cache'];
@@ -376,8 +385,7 @@ function cleanSystemData(cb){
     });
     console.log(e);
   });
-  //console.log("Alright, executing the callback");
-  //cb();
+  if(cb){cb();}
 }
 
 /**
@@ -413,27 +421,6 @@ function createMementosFromJSONFile(fileContents) {
   t.mementos = JSON.parse(fileContents);
   return t;
 }
-
-
-/**
-* A data structure that allows a trace of the negotiation to be returned
-* @param statusCode HTTP status code of the response
-* @param headers HTTP headers for the response, a key-value array
-*/
-function HTTPResponse(statusCode,headers){
-  this.statusCode = statusCode;
-  this.headers = headers;
-  this.addHeader = function(key,value){
-    this.headers[key].push(value);
-  };
-}
-
-function HTTPRequest(method,uri,headers){
-  this.method = method;
-  this.uri = uri;
-  this.headers = headers;
-}
-
 
 TimeMap.prototype.toString = function() {
   return "{"+
@@ -477,32 +464,25 @@ Memento.prototype.setSimhash = function() {
         buffer2 += data.toString();
       });
       if(res.statusCode != 200){
-        //throw "Error with "+thaturi+":\n\tThis has to be handled (esp 302s), else the simhash is 000";
-        //resolve("3");
         thatmemento.simhash = Memento.prototype.simhashIndicatorForHTTP302;
       }
       res.on('end',function(d){
-        var md5hash = md5(thatmemento.originalURI);
-        //console.log("SERVICE: Publishing a message to the Faye server "+'/'+md5hash);
+        var md5hash = md5(thatmemento.originalURI); // URI-R cannot be passed in the raw
 
         thatmemento.fayeClient.publish("/"+md5hash, {
           uriM: thatmemento.uri,
         });
 
-
-        //console.log("test is "+buffer2.indexOf("Got an HTTP 302 response at crawl time"));
         if(buffer2.indexOf('Got an HTTP 302 response at crawl time') == -1 && thatmemento.simhash != '00000000'){
 
           var sh = simhash((buffer2).split("")).join("");
           var retStr = getHexString(sh);
 
-          //+"  SrcLen: "+buffer2.length+"  Src: "+memento.uri+"  statusCode: "+res.statusCode;
-          //console.log("retstr is "+retStr);
           if(!retStr || retStr == Memento.prototype.simhashIndicatorForHTTP302){
             //normalize so not undefined
             retStr = Memento.prototype.simhashIndicatorForHTTP302;
-
-            resolve('isA302DeleteMe'); //Gateway timeout from the archives, remove from consideration
+            //Gateway timeout from the archives, remove from consideration
+            resolve('isA302DeleteMe');
           }
           buffer2 = "";
           buffer2 = null;
@@ -546,7 +526,7 @@ function getTimemapGodFunction(uri,response) {
 
   console.log('Path: ' + options.host + '/' + options.path);
   var buffer = ''; // An out-of-scope string to save the Timemap string, TODO: better documentation
-  //var sequence = Futures.sequence();
+
   var t, retStr = '';
   var metadata = '';
   console.log('Starting many asynchronous operations...');

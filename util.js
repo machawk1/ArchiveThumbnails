@@ -63,7 +63,7 @@ function displayVisualization(){
 
 
 
-  
+
   console.log("Done building DOM for coverflow");
 
   cfstr += "</div>";
@@ -88,19 +88,11 @@ function displayVisualization(){
   // Get the subset of images that are ready, delay loading the rest while the server reprocesses
   $('img').each(function(){
   	var title = $(this).attr("title");
-    //var displayImage = (title.substr(-4) != "null");
     $(this).fadeOut(400,function(){;
-
-     // if(displayImage){ //don't do a title/src swap for images w/ hamming distance that didn't make the threshold cut
 	  	$(this).attr('src',$(this).attr('title'));
-	  //}else {
-	  //	$(this).parent().addClass("insufficientHamming").css("display","none");
-	 // }
 	}).fadeIn(400);
   });
 
-  //$("body").append("<p id=\"count\">"+afterCount+" of "+beforeCount+" mementos displayed due to thumbnail summarization.</p>");
-  //$("body").append("<p id=\"count\">"+metadata+"</p>");
 
   var viewSwitcherHTML =
     `<ul id="viewSwitcher">
