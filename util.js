@@ -45,8 +45,8 @@ function displayVisualization(){
         <div class="caption">
 	       <h2>${returnedJSON[i].datetime}</h2>
 	       <h2><a target="_blank" href="${returnedJSON[i].uri}">${returnedJSON[i].uri}</a></h2>
-	       <h2>SimHash: ${returnedJSON[i].simhash}</h2>
-	       <h2>Hamming Distance: ${(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")}</h2>
+	       <h2 class="simhashValue">SimHash: ${returnedJSON[i].simhash}</h2>
+	       <h2 class="hammingDistanceValue">Hamming Distance: ${(returnedJSON[i].hammingDistance ? returnedJSON[i].hammingDistance: "N/A")}</h2>
 	      </div><!-- End caption, ideally this should use figure and figcaption tags -->
 	      <div class="reflection">
   	     <img width="200" height="200" onError="pollThenReplaceImage(this);" src="${localAssetServer}_images/spinnerStatic.png" id="${returnedJSON[i].screenshotURI.slice(0,-4)}_reflection" title="${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}" />

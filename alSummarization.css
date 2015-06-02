@@ -67,3 +67,7 @@ body[data-strategy='alSummarization'] {}
 body[data-strategy='random'] {}
 body[data-strategy='monthly'] {}
 body[data-strategy='yearly'] {}
+
+body .ui-state-active .simhashValue, body .ui-state-active  .hammingDistanceValue {display: none;}
+body[data-strategy='alSummarization'] .ui-state-active  .simhashValue,
+ body[data-strategy='alSummarization'] .ui-state-active .hammingDistanceValue {display: none;}
