@@ -68,6 +68,7 @@ var notificationServerPort = argv.ap ? argv.n : 15422;
 /* Derived host access points */
 var localAssetServer = host + ':' + localAssetServerPort + '/';
 var thumbnailServer = host + ':' + thumbnailServicePort + '/';
+var notificationServer = host + ':' + notificationServerPort + '/';
 
 // Fresh system for testing (NOT IMPLEMENTED)
 var nukeSystemData = argv.clean ? argv.clean : false;
@@ -333,7 +334,7 @@ function PublicEndpoint() {
           processWithFileContents(data, response)
         },
         function failed() {
-          getTimemapGodFunction(query['URI-R'], response);
+          getTimemapGodFunctionForAlSummarization(query['URI-R'], response);
         }
 
       );
@@ -349,7 +350,7 @@ function PublicEndpoint() {
       t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
         setTimeout(function() {
-          var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
+          var client = new faye.Client(notificationServer);
           console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
           client.publish('/' + md5(t.mementos[0].originalURI), {
             uriM: 'done'
@@ -418,7 +419,7 @@ function processWithFileContents(fileContents, response) {
   //  client side code in the above t.printMementoInformation subscribes.
   //  Fake latency fixes this but is suboptimal
   setTimeout(function() {
-    var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
+    var client = new faye.Client(notificationServer);
     client.publish('/' + md5(t.mementos[0].originalURI), {
       uriM: 'done'
     });
@@ -531,7 +532,7 @@ Memento.prototype.setSimhash = function() {
 * TODO: God function that does WAY more than simply getting a timemap
 * @param uri The URI-R in-question
 */
-function getTimemapGodFunction(uri, response) {
+function getTimemapGodFunctionForAlSummarization(uri, response) {
   //TODO: remove TM host and path references, they reside in the TM obj
   var timemapHost = 'web.archive.org';
   var timemapPath = '/web/timemap/link/' + uri;
@@ -583,7 +584,6 @@ function getTimemapGodFunction(uri, response) {
               {host: m2.host, path: m2.path}
             ];
 
-            //next(res, d, 0);
             callback('');
           }
         });
@@ -611,22 +611,22 @@ function getTimemapGodFunction(uri, response) {
    //TODO: remove this function from callback hell
   function(callback) {t.printMementoInformation(response, callback, false);}, //return blank UI ASAP
   function(callback) {t.calculateSimhashes(callback);},
-   function(callback) {t.saveSimhashesToCache(callback);},
-   function(callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
-   //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
-   //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
-   function(callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
-   function(callback) {t.writeJSONToCache(callback);},
-   function(callback) {t.printMementoInformation(response, callback);},
-   function(callback) {t.createScreenshotsForMementos(callback);}],
-   function(err, result){
-     if(err){
-       console.log('ERROR!');
-       console.log(err);
-     }else {
-       console.log('There were no errors executing the callback chain');
-     }
-   });
+  function(callback) {t.saveSimhashesToCache(callback);},
+  function(callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
+  //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
+  //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
+  function(callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+  function(callback) {t.writeJSONToCache(callback);},
+  function(callback) {t.printMementoInformation(response, callback);},
+  function(callback) {t.createScreenshotsForMementos(callback);}],
+  function(err, result){
+    if(err){
+      console.log('ERROR!');
+      console.log(err);
+    }else {
+      console.log('There were no errors executing the callback chain');
+    }
+  });
 
 
    // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
@@ -725,7 +725,7 @@ function getTimemapGodFunction(uri, response) {
     TAB + 'var returnedJSON =' + CRLF +
     TAB + TAB + JSON.stringify(this.mementos)+';' + CRLF +
     TAB + 'var metadata = ' + JSON.stringify(metadata) + ';' + CRLF +
-    TAB + 'var client = new Faye.Client("http://localhost:' + notificationServerPort + '/");' + CRLF +
+    TAB + 'var client = new Faye.Client("' + notificationServer + '");' + CRLF +
     TAB + 'console.log("'+md5(uri_r)+'");' + CRLF +
     TAB + 'client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
     TAB + ' console.log("message received!");' + CRLF +
@@ -758,7 +758,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
     total: this.mementos.length
   });
 
-  var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
+  var client = new faye.Client(notificationServer);
 
   for (var m = 0; m < this.mementos.length; m++) {
     //allow the Promise async access to browser-based client communication
@@ -951,7 +951,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, num
 
   console.log("PUBX "+_this.originalURI+" "+md5(_this.originalURI));
   setTimeout(function() {
-    var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
+    var client = new faye.Client(notificationServer);
     client.publish('/' + md5(_this.originalURI), {
       uriM: 'done'
     });

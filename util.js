@@ -1,10 +1,3 @@
-$(document).ready(function(){
-  //On ready, check if simhash cache exists for the URI:
-  // if not, continue to display message from AlSummarization and wait.
-  // if so, proceed
-  //conditionallyLoadInterface();
-});
-
 function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
   //console.log("Looking for "+metadata.simhashCacheURI+".json");
   $.ajax({
