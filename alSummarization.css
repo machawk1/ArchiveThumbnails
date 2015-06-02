@@ -68,6 +68,10 @@ body[data-strategy='random'] {}
 body[data-strategy='monthly'] {}
 body[data-strategy='yearly'] {}
 
-body .ui-state-active .simhashValue, body .ui-state-active  .hammingDistanceValue {display: none;}
+body .ui-state-active .simhashValue, body .ui-state-active  .hammingDistanceValue,
+ body .simhashValue, body .hammingDistanceValue {display: none;}
 body[data-strategy='alSummarization'] .ui-state-active  .simhashValue,
- body[data-strategy='alSummarization'] .ui-state-active .hammingDistanceValue {display: none;}
+ body[data-strategy='alSummarization'] .ui-state-active .hammingDistanceValue,
+ body[data-strategy='alSummarization'] .hammingDistanceValue,
+ body[data-strategy='alSummarization'] .hammingDistanceValue
+ {display: block;}
