@@ -118,7 +118,7 @@ function main() {
   var  bayeux = new faye.NodeAdapter({mount: '/', timeout: 45});
 
   //TODO: send an initial notification by the server to faye to state that processing has not started
-  /*
+
   bayeux.on('handshake', function(clientId) {
     console.log("FAYE - handshake initiated "+clientId);
   })
@@ -130,7 +130,7 @@ function main() {
   bayeux.on('publish',function(clientId,channelId,data){
       console.log("FAYE - client published - "+clientId+" "+channelId+" "+data);
   });
-  */
+
   bayeux.attach(notificationServer);
   notificationServer.listen(notificationServerPort);
 
@@ -321,6 +321,8 @@ function PublicEndpoint() {
 
     var t = new TimeMap();
 
+    t.originalURI = query['URI-R'];
+
     //TODO: optimize this out of the conditional so the functions needed for each strategy are self-contained (and possibly OOP-ified)
     if (strategy == 'alSummarization') {
       var cacheFile = new SimhashCacheFile(uri_r);
@@ -346,6 +348,14 @@ function PublicEndpoint() {
     else if (strategy == 'monthly' || strategy == 'yearly') { //TODO: refine to only use one temporal strategy
       t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
+        setTimeout(function() {
+          var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
+          console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
+          client.publish('/' + md5(t.mementos[0].originalURI), {
+            uriM: 'done'
+          });
+        }, 2000);
+
       });
     }
     else if (strategy == 'skipListed') {
@@ -716,7 +726,9 @@ function getTimemapGodFunction(uri, response) {
     TAB + TAB + JSON.stringify(this.mementos)+';' + CRLF +
     TAB + 'var metadata = ' + JSON.stringify(metadata) + ';' + CRLF +
     TAB + 'var client = new Faye.Client("http://localhost:' + notificationServerPort + '/");' + CRLF +
+    TAB + 'console.log("'+md5(uri_r)+'");' + CRLF +
     TAB + 'client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
+    TAB + ' console.log("message received!");' + CRLF +
     TAB + ' $("#dataState").html(message.uriM);' + CRLF +
     TAB + ' if(message.uriM === "done"){' + CRLF +
     TAB + '  conditionallyLoadInterface();' + CRLF +
@@ -881,6 +893,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
     }//duplicately selected would take an else, so it's unnecessary
 
   }
+
   callback();
 }
 
@@ -890,6 +903,8 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
 TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, numberOfMementosToChoose) {
+  var _this = this;
+  console.log("OriginalURI is "+_this.originalURI);
   if (numberOfMementosToChoose > this.mementos.length) {
     console.log('Number to choose is greater than number existing.');
     return;
@@ -898,16 +913,18 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, num
   var numberOfMementosLeftToChoose = numberOfMementosToChoose;
   var lastMonthRecorded = -1;
 
-  var selectedIndexes = []; //for pruning
+  var selectedIndexes = []; // Maintaining memento indexes to prune
   for (var i = 0; i < this.mementos.length; i++) {
-    var thisYYYYMM = (moment(this.mementos[i].datetime).format('YYYYMM'));
+    var datetimeAsDate = new Date(this.mementos[i].datetime);
+    var thisYYYYMM = datetimeAsDate.getFullYear()+""+datetimeAsDate.getMonth();
+
     if (thisYYYYMM != lastMonthRecorded) {
       this.mementos[i].selected = true;
       lastMonthRecorded = thisYYYYMM;
       console.log(this.mementos[i].datetime + ' accepted');
       selectedIndexes.push(i);
     }else {
-      console.log(this.mementos[i].datetime + ' rejected');
+      console.log(this.mementos[i].datetime + ' rejected (same month as previous selected)');
     }
   }
 
@@ -931,6 +948,14 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, num
   });
 
   console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
+
+  console.log("PUBX "+_this.originalURI+" "+md5(_this.originalURI));
+  setTimeout(function() {
+    var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
+    client.publish('/' + md5(_this.originalURI), {
+      uriM: 'done'
+    });
+  }, 2000);
 
   callback();
 }
