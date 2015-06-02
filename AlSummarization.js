@@ -739,6 +739,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + '    conditionallyLoadInterface();' + CRLF +
     TAB + '   }else if (message.uriM === "done") {' + CRLF +
     TAB + '     displayVisualization();' + CRLF +
+    TAB + '     $("#dataState").html("");' + CRLF +
     TAB + '   }' + CRLF +
     TAB + '  });' + CRLF +
     TAB + '});' + CRLF +
