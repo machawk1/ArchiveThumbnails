@@ -158,6 +158,7 @@ function displayVisualization(){
 
   var data = [];
 
+
   for(var i=0; i<returnedJSON.length; i++){
   	var memento = {
   		id: i,
@@ -169,7 +170,12 @@ function displayVisualization(){
   	};
 
   	var inSummarization = []; var notInSummarization = [];
-  	if(!returnedJSON[i].hammingDistance || (returnedJSON[i].hammingDistance < 4 && i!=0)){
+    // This check really ought to not occur every time and this function should
+    //  be functionalized
+
+  	if( (strategy == "alSummarization" && !returnedJSON[i].hammingDistance || (returnedJSON[i].hammingDistance < 4 && i!=0) ||
+        strategy != "alSummarization" && !returnedJSON[i].screenshotURI
+    )){
   		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
 
   		memento.className = "notInSummarization";
@@ -190,6 +196,7 @@ function displayVisualization(){
               onError="pollThenReplaceImage(this);" />&nbsp;${returnedJSON[i].datetime}`;
       inSummarization.push(memento);
     }
+
     data.push(memento);
     memento = null;
   }

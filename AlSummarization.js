@@ -726,9 +726,9 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + TAB + JSON.stringify(this.mementos)+';' + CRLF +
     TAB + 'var metadata = ' + JSON.stringify(metadata) + ';' + CRLF +
     TAB + 'var client = new Faye.Client("' + notificationServer + '");' + CRLF +
-    TAB + 'console.log("'+md5(uri_r)+'");' + CRLF +
+    TAB + 'var strategy;' + CRLF +
     TAB + '$(document).ready(function(){' + CRLF +
-    TAB + '  var strategy = $($("body")[0]).data("strategy");' + CRLF +
+    TAB + '  strategy = $($("body")[0]).data("strategy");' + CRLF +
     TAB + '  console.log(strategy);' + CRLF +
     TAB + '  client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
     TAB + '   console.log("message received!");' + CRLF +
