@@ -1,5 +1,6 @@
 function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
   //console.log("Looking for "+metadata.simhashCacheURI+".json");
+  console.log("conditionally loading interface");
   $.ajax({
     url: metadata.simhashCacheURI+".json",
   }).done(function(data,textStatus,xhr){

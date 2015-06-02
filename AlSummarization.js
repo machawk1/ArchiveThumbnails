@@ -727,12 +727,20 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + 'var metadata = ' + JSON.stringify(metadata) + ';' + CRLF +
     TAB + 'var client = new Faye.Client("' + notificationServer + '");' + CRLF +
     TAB + 'console.log("'+md5(uri_r)+'");' + CRLF +
-    TAB + 'client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
-    TAB + ' console.log("message received!");' + CRLF +
-    TAB + ' $("#dataState").html(message.uriM);' + CRLF +
-    TAB + ' if(message.uriM === "done"){' + CRLF +
-    TAB + '  conditionallyLoadInterface();' + CRLF +
-    TAB + ' }' + CRLF +
+    TAB + '$(document).ready(function(){' + CRLF +
+    TAB + '  var strategy = $($("body")[0]).data("strategy");' + CRLF +
+    TAB + '  console.log(strategy);' + CRLF +
+    TAB + '  client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
+    TAB + '   console.log("message received!");' + CRLF +
+    TAB + '   console.log(message);' + CRLF +
+    TAB + '   console.log(strategy);' + CRLF +
+    TAB + '   $("#dataState").html(message.uriM);' + CRLF +
+    TAB + '   if (strategy == "alSummarization" && message.uriM === "done") {' + CRLF +
+    TAB + '    conditionallyLoadInterface();' + CRLF +
+    TAB + '   }else if (message.uriM === "done") {' + CRLF +
+    TAB + '     displayVisualization();' + CRLF +
+    TAB + '   }' + CRLF +
+    TAB + '  });' + CRLF +
     TAB + '});' + CRLF +
     TAB + '</script>' + CRLF +
     TAB + '<script src="' + localAssetServer + 'util.js"></script>' + CRLF +
