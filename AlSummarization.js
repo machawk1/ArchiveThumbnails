@@ -292,14 +292,13 @@ function PublicEndpoint() {
     console.log(query);
     console.log('New client request (' + response.clientId + ')\r\n> URI-R: ' + query['URI-R'] + '\r\n> Access: ' + access + '\r\n> Strategy: ' + strategy);
 
-
     if (!validator.isURL(uri_r)) { //return "invalid URL"
       returnJSONError('Invalid URI');
       return;
     }
 
     function echoMementoDatetimeToResponse(mementoDatetime) {
-      response.write("{\"Memento-Datetime\": \""+mementoDatetime.toString("utf8", 0, mementoDatetime.length)+"\",");
+      response.write('{"Memento-Datetime": "' + mementoDatetime.toString('utf8', 0, mementoDatetime.length) + '",');
     }
 
     function closeConnection() {
@@ -334,22 +333,23 @@ function PublicEndpoint() {
         function failed() {
           getTimemapGodFunction(query['URI-R'], response);
         }
+
       );
     }
     else if (strategy == 'random') {
-      t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap(){
+      t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect);
       });
 
     }
     else if (strategy == 'monthly' || strategy == 'yearly') { //TODO: refine to only use one temporal strategy
-      t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+      t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
       });
     }
     else if (strategy == 'skipListed') {
-      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnSkipLists(){ //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnSkipLists() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
       });
     }
@@ -518,9 +518,9 @@ Memento.prototype.setSimhash = function() {
 
 /**
 * Given a URI, return a TimeMap from the Memento Aggregator
+* TODO: God function that does WAY more than simply getting a timemap
 * @param uri The URI-R in-question
 */
-//TODO: God function that does WAY more than simply getting a timemap
 function getTimemapGodFunction(uri, response) {
   //TODO: remove TM host and path references, they reside in the TM obj
   var timemapHost = 'web.archive.org';
@@ -599,16 +599,16 @@ function getTimemapGodFunction(uri, response) {
       req.end();
     },
    //TODO: remove this function from callback hell
-  function(callback){t.printMementoInformation(response,callback,false);}, //return blank UI ASAP
-  function(callback){t.calculateSimhashes(callback);},
-   function(callback){t.saveSimhashesToCache(callback);},
-   function(callback){t.calculateHammingDistancesWithOnlineFiltering(callback);},
+  function(callback) {t.printMementoInformation(response, callback, false);}, //return blank UI ASAP
+  function(callback) {t.calculateSimhashes(callback);},
+   function(callback) {t.saveSimhashesToCache(callback);},
+   function(callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
    //function(callback){calculateCaptureTimeDeltas(callback);},//CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
    //function(callback){applyKMedoids(callback);}, //no functionality herein, no reason to call yet
-   function(callback){t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
-   function(callback){t.writeJSONToCache(callback);},
-   function(callback){t.printMementoInformation(response,callback);},
-   function(callback){t.createScreenshotsForMementos(callback);}],
+   function(callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+   function(callback) {t.writeJSONToCache(callback);},
+   function(callback) {t.printMementoInformation(response, callback);},
+   function(callback) {t.createScreenshotsForMementos(callback);}],
    function(err, result){
      if(err){
        console.log('ERROR!');
@@ -620,39 +620,37 @@ function getTimemapGodFunction(uri, response) {
 
 
    // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
-   function getRandomSubsetOfMementosArray(arr,siz){
-      var shuffled = arr.slice(0), i = arr.length, temp, index;
-      while (i--) {
-        index = Math.floor((i + 1) * Math.random());
-        temp = shuffled[index];
-        shuffled[index] = shuffled[i];
-        shuffled[i] = temp;
+  function getRandomSubsetOfMementosArray(arr,siz) {
+    var shuffled = arr.slice(0);
+    var i = arr.length;
+    var temp;
+    var index;
+    while (i--) {
+      index = Math.floor((i + 1) * Math.random());
+      temp = shuffled[index];
+      shuffled[index] = shuffled[i];
+      shuffled[i] = temp;
+    }
+
+    return shuffled.slice(0, size);
+  }
+
+  function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI) {
+    var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];  //newer
+    var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];  //older
+
+    if (newerDate && olderDate) {
+      try {
+        var diff = (parseInt(newerDate) - parseInt(olderDate));
+        return diff;
+      }catch (e) {
+        console.log(e.message);
       }
-      return shuffled.slice(0, size);
-   }
-
-
-
-
-
-
-   function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI){
-     var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];  //newer
-     var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];  //older
-
-     if(newerDate && olderDate){
-       try{
-         var diff = (parseInt(newerDate) - parseInt(olderDate));
-         return diff;
-       }catch(e){
-         console.log(e.message);
-       }
-     }else {
-       throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri);
-     }
-   }
-
-}
+    }else {
+      throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri);
+    }
+  }
+} /* End God Function */
 
 
 
@@ -670,13 +668,13 @@ function getTimemapGodFunction(uri, response) {
  * HTML to return back as user interface to client
  * @param callback The function to call once this function has completed executed, invoked by caller
  */
- TimeMap.prototype.printMementoInformation = function(response,callback,dataReady) {
+ TimeMap.prototype.printMementoInformation = function(response, callback, dataReady) {
   console.log('About to print memento information');
   var CRLF = '\r\n'; var TAB = '\t';
   var stateInformationString = '';
 
 
-  if(dataReady === false){ //indicative of the data still loading. Yes, I know it's an abuse of CBs
+  if(dataReady === false) { //indicative of the data still loading. Yes, I know it's an abuse of CBs
     stateInformationString = 'Processing data. This could take a while.';
   }
 
@@ -693,7 +691,7 @@ function getTimemapGodFunction(uri, response) {
   var respString = '<!DOCTYPE html>' + CRLF +
     '<html>' + CRLF +
     '<head>' + CRLF +
-    TAB + '<base href="'+localAssetServer+'" />' + CRLF +
+    TAB + '<base href="' + localAssetServer + '" />' + CRLF +
     TAB + '<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>' + CRLF +
     TAB + '<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>' + CRLF +
     TAB + '<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>' + CRLF +
@@ -710,33 +708,33 @@ function getTimemapGodFunction(uri, response) {
     TAB + '<script src="support/faye/faye-browser-min.js"></script>' + CRLF +
     TAB + '<script>' + CRLF +
     TAB + '//echo the ports and other endpoint facets for use in util.js' + CRLF +
-    TAB + 'var thumbnailServicePort = '+thumbnailServicePort+';' + CRLF +
-    TAB + 'var localAssetServerPort = '+localAssetServerPort+';' + CRLF +
-    TAB + 'var localAssetServer = "'+localAssetServer+'";' + CRLF +
+    TAB + 'var thumbnailServicePort = ' + thumbnailServicePort + ';' + CRLF +
+    TAB + 'var localAssetServerPort = ' + localAssetServerPort + ';' + CRLF +
+    TAB + 'var localAssetServer = "' + localAssetServer + '";' + CRLF +
     //TAB + 'var uriMs = '+uriMs + ';' + CRLF +
     TAB + 'var returnedJSON =' + CRLF +
     TAB + TAB + JSON.stringify(this.mementos)+';' + CRLF +
-    TAB + 'var metadata = '+JSON.stringify(metadata)+';' + CRLF +
-    TAB + 'var client = new Faye.Client("http://localhost:'+notificationServerPort+'/");' + CRLF +
-    TAB + 'client.subscribe("/'+md5(uri_r)+'", function(message) {'+ CRLF +
+    TAB + 'var metadata = ' + JSON.stringify(metadata) + ';' + CRLF +
+    TAB + 'var client = new Faye.Client("http://localhost:' + notificationServerPort + '/");' + CRLF +
+    TAB + 'client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
     TAB + ' $("#dataState").html(message.uriM);' + CRLF +
     TAB + ' if(message.uriM === "done"){' + CRLF +
     TAB + '  conditionallyLoadInterface();' + CRLF +
     TAB + ' }' + CRLF +
     TAB + '});' + CRLF +
     TAB + '</script>' + CRLF +
-    TAB + '<script src="'+localAssetServer+'util.js"></script>' + CRLF +
-    '</head>'+ CRLF +
-    '<body data-access="' + response.thumbnails.access+ '" data-strategy="' + response.thumbnails.strategy + '">' + CRLF +
-    TAB + '<h1 class="interface">Thumbnails for '+uri_r+'<!--<button id="showJSON" class="interface">Show JSON</button>--></h1>' + CRLF +
-    TAB + '<p id="dataState">'+stateInformationString+'</p>' + CRLF +
+    TAB + '<script src="' + localAssetServer + 'util.js"></script>' + CRLF +
+    '</head>' + CRLF +
+    '<body data-access="' + response.thumbnails.access + '" data-strategy="' + response.thumbnails.strategy + '">' + CRLF +
+    TAB + '<h1 class="interface">Thumbnails for ' + uri_r + '<!--<button id="showJSON" class="interface">Show JSON</button>--></h1>' + CRLF +
+    TAB + '<p id="dataState">' + stateInformationString + '</p>' + CRLF +
     '</body>' + CRLF +
   '</html>';
   response.write(respString);
   response.end();
 
-  if(callback){callback("");}
- }
+  if (callback) {callback('');}
+}
 
 TimeMap.prototype.calculateSimhashes = function(callback){
   var theTimeMap = this;
@@ -748,9 +746,9 @@ TimeMap.prototype.calculateSimhashes = function(callback){
     total: this.mementos.length
   });
 
-  var client = new faye.Client('http://localhost:'+notificationServerPort+'/');
+  var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
 
-  for(var m=0; m<this.mementos.length; m++){
+  for(var m = 0; m < this.mementos.length; m++){
     //allow the Promise async access to browser-based client communication
     this.mementos[m].fayeClient = client;
     this.mementos[m].originalURI = this.originalURI; //the Promise needs the original URI for Faye publication. Scope creep!
@@ -766,21 +764,23 @@ TimeMap.prototype.calculateSimhashes = function(callback){
   ).catch(function(err){
     console.log('OMFG, an error!');
     console.log(err);
-  }).then(function(){
+  }).then(function() {
     client.publish('/' + md5(theTimeMap.originalURI), {
       uriM: 'done'
     });
+
     //remove fayeClients from all mementos so they can be converted to JSON
-    for(var m=0; m<theTimeMap.mementos.length; m++){
-        delete theTimeMap.mementos[m].fayeClient;
-        //delete theTimeMap.mementos[m].originalURI;
+    for (var m = 0; m < theTimeMap.mementos.length; m++) {
+      delete theTimeMap.mementos[m].fayeClient;
+      //delete theTimeMap.mementos[m].originalURI;
     }
 
     console.log('Checking if there are mementos to remove');
     var mementosRemoved = 0;
-    console.log('About to go into loop of ## mementos: '+(theTimemap.mementos.length - 1));
+    console.log('About to go into loop of ## mementos: ' + (theTimemap.mementos.length - 1));
+
     //remove all mementos whose payload body was a Wayback soft 302
-    for (var i = theTimemap.mementos.length-1; i >= 0; i--) {
+    for (var i = theTimemap.mementos.length - 1; i >= 0; i--) {
       if (theTimemap.mementos[i].simhash === 'isA302DeleteMe') {
         theTimemap.mementos.splice(i, 1);
         mementosRemoved++;
@@ -789,7 +789,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 
     //console.timeEnd('simhashing');
     console.log(mementosRemoved + ' mementos removed due to Wayback "soft 3xxs"');
-    if(callback){callback('');}
+    if (callback) {callback('');}
   });
 }
 
@@ -996,12 +996,12 @@ TimeMap.prototype.createScreenshotForMemento = function(memento,callback) {
 
   var filename = memento.screenshotURI
 
-  try{
+  try {
     fs.openSync(path.join(__dirname + '/screenshots/' + memento.screenshotURI),'r',function(e,r) {console.log(e);console.log(r);});
     console.log(memento.screenshotURI + ' already exists...continuing');
     callback();
     return;
-  }catch(e){
+  }catch (e) {
     console.log((new Date()).getTime() + ' ' + memento.screenshotURI + ' does not exist...generating');
   }
 
@@ -1110,9 +1110,10 @@ TimeMap.prototype.setupWithURIR = function(response, uri_r, callback) {
     res.on('data', function (data) {
       buffer += data.toString();
     });
+
     res.on('end',function(d) {
-      if(buffer.length > 100) {
-        console.log('X Timemap acquired for ' + uri_r + ' from '+timemapHost+timemapPath);
+      if (buffer.length > 100) {
+        console.log('X Timemap acquired for ' + uri_r + ' from ' + timemapHost + timemapPath);
         tmInstance.str = buffer;
         tmInstance.originalURI = uri_r; //need this for a filename for caching
         tmInstance.createMementos();
@@ -1131,12 +1132,13 @@ TimeMap.prototype.setupWithURIR = function(response, uri_r, callback) {
   req.on('error', function(e) { // Houston...
     console.log('problem with request: ' + e.message);
     console.log(e);
-    if(e.message == 'connect ETIMEDOUT'){ // Error experienced when IA went down on 20141211
+    if (e.message == 'connect ETIMEDOUT'){ // Error experienced when IA went down on 20141211
       response.write('Hmm, the connection timed out. Internet Archive might be down.');
       response.end();
     }
 
   });
+
   req.on('socket', function(socket) { // Slow connection is slow
     //socket.setTimeout(3000);
     //socket.on('timeout', function() {
