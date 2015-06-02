@@ -748,7 +748,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
 
   var client = new faye.Client('http://localhost:' + notificationServerPort + '/');
 
-  for(var m = 0; m < this.mementos.length; m++){
+  for (var m = 0; m < this.mementos.length; m++) {
     //allow the Promise async access to browser-based client communication
     this.mementos[m].fayeClient = client;
     this.mementos[m].originalURI = this.originalURI; //the Promise needs the original URI for Faye publication. Scope creep!
@@ -761,7 +761,7 @@ TimeMap.prototype.calculateSimhashes = function(callback){
   var theTimemap = this;
   return Promise.all(
     arrayOfSetSimhashFunctions
-  ).catch(function(err){
+  ).catch(function(err) {
     console.log('OMFG, an error!');
     console.log(err);
   }).then(function() {
@@ -797,7 +797,7 @@ TimeMap.prototype.saveSimhashesToCache = function(callback,format){
   //TODO: remove dependency on global timemap t
 
   var strToWrite = '';
-  for(var m=0; m<this.mementos.length; m++){
+  for (var m = 0; m < this.mementos.length; m++){
     if(this.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302){
       strToWrite += this.mementos[m].simhash + ' ' + this.mementos[m].uri + ' ' + this.mementos[m].datetime + '\r\n';
     }
@@ -808,13 +808,13 @@ TimeMap.prototype.saveSimhashesToCache = function(callback,format){
   cacheFile.replaceContentWith(strToWrite);
 
 
-  if(callback){callback("");}
+  if (callback) {callback('');}
 }
 
 TimeMap.prototype.writeJSONToCache = function(callback){
   var cacheFile = new SimhashCacheFile(this.originalURI);
   cacheFile.writeFileContentsAsJSON(JSON.stringify(this.mementos));
-  if(callback){callback('');}
+  if (callback) {callback('');}
 }
 
 /**
@@ -835,8 +835,9 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
       memento.screenshotURI = filename;
     }
   });
+
   console.log('done with supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back');
-  if(callback){callback("");}
+  if (callback) {callback('');}
 }
 
 
@@ -845,18 +846,19 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 * Converts the filename of each previously selected memento a a valid image filename and associate
 * @param callback The next procedure to execution when this process concludes
 */
-TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callback){
-  for(var m in this.mementos){
-    var ii=0;
-    if(this.mementos[m].selected){
-      var filename = strategy+"_"+this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase()+".png"
+TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callback) {
+  for (var m in this.mementos){
+    var ii = 0;
+    if (this.mementos[m].selected) {
+      var filename = strategy + "_" + this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png';
       this.mementos[m].screenshotURI = filename;
       ii++;
     }
   }
-  console.log('Done creating filenames for '+ii+' mementos');
 
-  if(callback){callback('');}
+  console.log('Done creating filenames for ' + ii + ' mementos');
+
+  if (callback) {callback('');}
 }
 
 /**
@@ -865,12 +867,15 @@ TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callb
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
 TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callback,numberOfMementosToChoose) {
-  if(numberOfMementosToChoose > this.mementos.length){console.log('Number to choose is greater than number existing.');return;}
+  if (numberOfMementosToChoose > this.mementos.length) {
+    console.log('Number to choose is greater than number existing.');
+    return;
+  }
 
   var numberOfMementosLeftToChoose = numberOfMementosToChoose;
-  while(numberOfMementosLeftToChoose > 0){
+  while (numberOfMementosLeftToChoose > 0) {
     var randomI = Math.floor(Math.random() * this.mementos.length);
-    if(!this.mementos[randomI].selected){
+    if (!this.mementos[randomI].selected) {
       this.mementos[randomI].selected = true;
       numberOfMementosLeftToChoose--;
     }//duplicately selected would take an else, so it's unnecessary
@@ -884,8 +889,8 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
 * @param callback The next procedure to execution when this process concludes
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
-TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback,numberOfMementosToChoose) {
-  if(numberOfMementosToChoose > this.mementos.length) {
+TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, numberOfMementosToChoose) {
+  if (numberOfMementosToChoose > this.mementos.length) {
     console.log('Number to choose is greater than number existing.');
     return;
   }
@@ -894,36 +899,38 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback,numb
   var lastMonthRecorded = -1;
 
   var selectedIndexes = []; //for pruning
-  for(var i=0; i<this.mementos.length; i++){
-      var thisYYYYMM = (moment(this.mementos[i].datetime).format("YYYYMM"));
-      if(thisYYYYMM != lastMonthRecorded){
-        this.mementos[i].selected = true;
-        lastMonthRecorded = thisYYYYMM;
-        console.log(this.mementos[i].datetime+' accepted');
-        selectedIndexes.push(i);
-      }else {
-        console.log(this.mementos[i].datetime+' rejected');
-      }
+  for (var i = 0; i < this.mementos.length; i++) {
+    var thisYYYYMM = (moment(this.mementos[i].datetime).format('YYYYMM'));
+    if (thisYYYYMM != lastMonthRecorded) {
+      this.mementos[i].selected = true;
+      lastMonthRecorded = thisYYYYMM;
+      console.log(this.mementos[i].datetime + ' accepted');
+      selectedIndexes.push(i);
+    }else {
+      console.log(this.mementos[i].datetime + ' rejected');
+    }
   }
-  var beforeOK = this.mementos.filter(function (el) {
+
+  var beforeOK = this.mementos.filter(function(el) {
     return el.selected != null
   });
-  console.log("We're going to choose " + numberOfMementosToChoose + ' --- ' + selectedIndexes);
+
+  console.log('We are going to choose ' + numberOfMementosToChoose + ' --- ' + selectedIndexes);
   //prune based on numberOfMementosToChoose
-  while(selectedIndexes.length > numberOfMementosToChoose){
-      var mementoIToRemove = Math.floor(Math.random() * selectedIndexes.length);
-      console.log(selectedIndexes.length+" is too many mementos, removing index "+mementoIToRemove);
-      console.log(this.mementos[mementoIToRemove].datetime+" was "+this.mementos[mementoIToRemove].selected);
-      delete this.mementos[selectedIndexes[mementoIToRemove]].selected;
-      console.log("Now it's "+this.mementos[mementoIToRemove].selected);
-      selectedIndexes.splice(mementoIToRemove,1);
+  while (selectedIndexes.length > numberOfMementosToChoose) {
+    var mementoIToRemove = Math.floor(Math.random() * selectedIndexes.length);
+    console.log(selectedIndexes.length + ' is too many mementos, removing index ' + mementoIToRemove);
+    console.log(this.mementos[mementoIToRemove].datetime + ' was ' + this.mementos[mementoIToRemove].selected);
+    delete this.mementos[selectedIndexes[mementoIToRemove]].selected;
+    console.log('Now it is ' + this.mementos[mementoIToRemove].selected);
+    selectedIndexes.splice(mementoIToRemove, 1);
   }
 
-  var monthlyOK = this.mementos.filter(function (el) {
-      return el.selected;
-    });
-    console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
+  var monthlyOK = this.mementos.filter(function(el) {
+    return el.selected;
+  });
 
+  console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
 
   callback();
 }
@@ -935,23 +942,24 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback,numb
 * @param initialIndex The basis for the count. 0 if not supplied
 * @param numberOfMementosToChoose Artificial restriction on the count
 */
-TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback,skipFactor,initialIndex,numberOfMementosToChoose){
-  if(numberOfMementosToChoose > this.mementos.length){
-    console.log("Number to choose is greater than number existing.");
+TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback, skipFactor, initialIndex, numberOfMementosToChoose) {
+  if (numberOfMementosToChoose > this.mementos.length) {
+    console.log('Number to choose is greater than number existing.');
     return;
   }
 
   var numberOfMementosLeftToChoose = numberOfMementosToChoose;
   var lastMonthRecorded = -1;
 
+  // TODO: add further checks for parameter integrity (e.g. in case strings are passed)
+  if (!initialIndex) {initialIndex = 0;}
 
-  //TODO: add further checks for parameter integrity (e.g. in case strings are passed)
-  if(!initialIndex){initialIndex = 0;}
-  if(skipFactor < 0){skipFactor = 0;}
+  if (skipFactor < 0) {skipFactor = 0;}
 
-  for(var i=initialIndex; i<this.mementos.length; i=i+skipFactor+1){
-      this.mementos[i].selected = true;
+  for (var i = initialIndex; i < this.mementos.length; i = i + skipFactor + 1) {
+    this.mementos[i].selected = true;
   }
+
   console.log('done with skip list logic!');
   callback('');
 }
@@ -964,40 +972,47 @@ TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback,skipF
 * @param withCriteria Function to inclusively filter mementos, i.e. returned from criteria
 *                     function means a screenshot should be generated for it.
 */
-TimeMap.prototype.createScreenshotsForMementos = function(callback,withCriteria){
+TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria) {
   var arrayOfCreateScreenshotFunctions = [];
   console.log('Creating screenshots...');
 
-  function hasScreenshot(e){
+  function hasScreenshot(e) {
     return e.screenshotURI != null;
   }
 
   var self = this;
 
   var criteria = hasScreenshot;
-  if(withCriteria){criteria = withCriteria;}
+  if (withCriteria) {criteria = withCriteria;}
 
   async.eachLimit(
-    shuffleArray(self.mementos.filter(criteria)), //array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
+    shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
     10,
-    self.createScreenshotForMemento,            //create a screenshot
-    function doneCreatingScreenshots(err){      //when finished, check for errors
-      if(err){
+    self.createScreenshotForMemento,            // Create a screenshot
+    function doneCreatingScreenshots(err) {      // When finished, check for errors
+      if (err) {
         console.log('Error creating screenshot');
         console.log(err);
       }
-      callback("");
+
+      callback('');
     }
   );
  };
 
-TimeMap.prototype.createScreenshotForMemento = function(memento,callback) {
+TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   var uri = memento.uri;
 
   var filename = memento.screenshotURI
 
   try {
-    fs.openSync(path.join(__dirname + '/screenshots/' + memento.screenshotURI),'r',function(e,r) {console.log(e);console.log(r);});
+    fs.openSync(
+      path.join(__dirname + '/screenshots/' + memento.screenshotURI),
+      'r', function(e, r) {
+        console.log(e);
+        console.log(r);
+      });
+
     console.log(memento.screenshotURI + ' already exists...continuing');
     callback();
     return;
@@ -1050,20 +1065,20 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
   for (var m = 0; m < this.mementos.length; m++) {
     //console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
     //console.log("...with SimHash: "+this.mementos[m].simhash);
-    if(m > 0){
-      if((this.mementos[m].simhash.match(/0/g) || []).length == 32) {console.log('0s, returning');continue;}
+    if (m > 0) {
+      if ((this.mementos[m].simhash.match(/0/g) || []).length == 32) {console.log('0s, returning');continue;}
       //console.log("Calculating hamming distance");
       this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
       //console.log("Getting hamming basis");
       this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
 
       console.log('Comparing hamming distances (simhash,uri) = ' + this.mementos[m].hammingDistance + '\n' +
-        ' > testing: '+ this.mementos[m].simhash+' '+this.mementos[m].uri + '\n' +
-        ' > pivot:   '+ this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
+        ' > testing: ' + this.mementos[m].simhash + ' ' + this.mementos[m].uri + '\n' +
+        ' > pivot:   ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
 
-
-      if(this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { //filter the mementos if hamming distance is too small
+      if (this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { //filter the mementos if hamming distance is too small
         lastSignificantMementoIndexBasedOnHamming = m;
+
         //copyOfMementos.push(t.mementos[m]);  //only push mementos that pass threshold requirements
       }
 
@@ -1072,6 +1087,7 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
   }
 
   console.log((this.mementos.length - copyOfMementos.length) + ' mementos trimmed due to insufficient hamming, ' + this.mementos.length + ' remain.');
+
   //metadata = "";
   //metadata = copyOfMementos.length+" of "+this.mementos.length + " mementos displayed, trimmed due to insufficient hamming distance.";
   //t.mementos = copyOfMementos.slice(0);
@@ -1111,7 +1127,7 @@ TimeMap.prototype.setupWithURIR = function(response, uri_r, callback) {
       buffer += data.toString();
     });
 
-    res.on('end',function(d) {
+    res.on('end', function(d) {
       if (buffer.length > 100) {
         console.log('X Timemap acquired for ' + uri_r + ' from ' + timemapHost + timemapPath);
         tmInstance.str = buffer;
