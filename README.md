@@ -38,7 +38,7 @@ $ docker build -t archthumb .
 
 In the above command `archthumb` is the name of the image which can be anything, but the same needs to be used when running the container instance.
 
-### Running Docker Container
+### Running Docker Container (experimental)
 
 Running the container is easy. It exposes port `15421` to the host machine that can be mapped to any other port number (if requred).
 
