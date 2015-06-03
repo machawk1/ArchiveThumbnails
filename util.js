@@ -187,7 +187,7 @@ function displayVisualization(){
         `<img src="${localAssetServer}_images/spinnerStatic.png"
               title="${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace('.png', '_200.png')}"
               id="${returnedJSON[i].screenshotURI.slice(0,-4)}_timeline"
-              width="25" height="25"
+              width="25" height="25" alt="foooo"
               onError="pollThenReplaceImage(this);" />&nbsp;${returnedJSON[i].datetime}`;
       inSummarization.push(memento);
     }
@@ -218,11 +218,25 @@ function replaceImageIfAvailable(img){
 		url: src
 	}).success(function(){
 		$('#' + $(img).attr('id')).attr('src', src);
+    console.log("a "+src);
 		$('#' + $(img).attr('id') + '_reflection').attr('src',src);
+    console.log("b "+src);
     $('#' + $(img).attr('id') + '_timeline').attr('src',src);
+    console.log('c');
+    console.log("replaced all for "+src);
 	}).fail(function(xhr, status, err){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
 		console.log('Failed. The image might not be generated yet. Trying again in 3.');
 		console.log(err);
 		setTimeout(replaceImageIfAvailable, 3000, $(img));
 	});
+}
+
+
+function buildQuerystringAndGo(){
+    var strategy = $("#form_strategy option:selected").attr("value");
+    var access = $("#form_access option:selected").attr("value");
+    var urir = $("#form_urir").attr("value");
+    var queryString = "?strategy=" + strategy + "&access=" + access + "&URI-R=" + urir;
+
+    window.location.href = thumbnailServer + queryString;
 }
