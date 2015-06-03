@@ -33,7 +33,7 @@ Clone the repository and change working directory (if not already) then build th
 ```
 $ git clone https://github.com/machawk1/ArchiveThumbnails.git
 $ cd ArchiveThumbnails
-$ docker build -t archthumb .
+$ docker build -t alsummarization .
 ```
 
 In the above command `archthumb` is the name of the image which can be anything, but the same needs to be used when running the container instance.
@@ -43,7 +43,7 @@ In the above command `archthumb` is the name of the image which can be anything,
 Running the container is easy. It exposes port `15421` to the host machine that can be mapped to any other port number (if requred).
 
 ```
-$ docker run -d -p 15421:15421 nodeapp
+$ docker run -d -p 15421:15421 -p 1338:1338 -p 15422:15422 alsummarization
 ```
 
 In the above command the container is running in detached mode and can be accessed from outside on port `15421`. If you want to run the service on a different port, say `80` then change `-p 15421:15421` to `-p 80:15421`.
