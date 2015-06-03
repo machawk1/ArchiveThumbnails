@@ -731,7 +731,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + 'var strategy;' + CRLF +
     TAB + '$(document).ready(function(){' + CRLF +
     TAB + '  strategy = $($("body")[0]).data("strategy");' + CRLF +
-    TAB + '  console.log(strategy);' + CRLF +
+    TAB + '  setStrategyAndAccessInUI();' + CRLF +
     TAB + '  client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
     TAB + '   console.log("message received!");' + CRLF +
     TAB + '   console.log(message);' + CRLF +

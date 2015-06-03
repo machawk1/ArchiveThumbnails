@@ -240,3 +240,12 @@ function buildQuerystringAndGo(){
 
     window.location.href = thumbnailServer + queryString;
 }
+
+/** Change the dropdown UI to reflect parameters passed in */
+function setStrategyAndAccessInUI(){
+  var strategy = $($("body")[0]).data("strategy");
+  var access = $($("body")[0]).data("access");
+
+  $('#form_strategy').val(strategy);
+  $('#form_access').val(access);
+}
