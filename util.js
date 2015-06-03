@@ -1,17 +1,16 @@
 function conditionallyLoadInterface(){ //based on whether the Simhash has been generated
   //console.log("Looking for "+metadata.simhashCacheURI+".json");
-  console.log("conditionally loading interface");
   $.ajax({
     url: metadata.simhashCacheURI+".json",
   }).done(function(data,textStatus,xhr){
-    console.log("A Simhash cache file exists! Loading the interface");
-    $("#dataState").html("");
+    console.log('A Simhash cache file exists! Loading the interface');
+    $('#dataState').html('');
     returnedJSON = data; //replace original JSON without URIs with post-simhash
     displayVisualization();
   }).fail(function(data,textStatus,xhr){
       //console.log(textStatus);
-    console.log("No Simhash cache file exists! Waiting for generation to finish.");
-    $("#dataState").html($("#dataState").html()+".");
+    console.log('No Simhash cache file exists! Waiting for generation to finish.');
+    $('#dataState').html($('#dataState').html()+".");
     //console.log("TODO: here we would update the status message instead of simply adding another dot.");
     window.setTimeout(conditionallyLoadInterface,500);
   });
@@ -21,10 +20,10 @@ function conditionallyLoadInterface(){ //based on whether the Simhash has been g
 function pollThenReplaceImage(img){
   	img.onerror=null;
   	img.onError=null;
-  	$("#"+img.id).error(function(){});
-  	img.onerror="";
+  	$('#' + img.id).error(function(){});
+  	img.onerror = '';
 
-  	console.log("pollThenReplaceImage() "+img.src);
+  	console.log('pollThenReplaceImage() ' + img.src);
   	checkAgainIfImageExists(img);
   	img.src=`${localAssetServer}_images/spinnerStatic.png`;
   }
@@ -32,11 +31,11 @@ function pollThenReplaceImage(img){
 function displayVisualization(){
   console.log(returnedJSON);
   if(!returnedJSON){
-  	console.log("returnedJSON is null in displayVisualization");
+  	console.log('returnedJSON is null in displayVisualization');
   }
   //var str = "<table>";
-  var cfstr = "<div id=\"coverflow\">";
-  for(var i=0; i<returnedJSON.length; i++){
+  var cfstr = '<div id="coverflow">';
+  for (var i = 0; i < returnedJSON.length; i++) {
   	if(returnedJSON[i].screenshotURI == null){continue;} //don't show the low hamming distance images in coverflow, previously also considered i==0
 
     cfstr +=
@@ -55,25 +54,22 @@ function displayVisualization(){
       </div>`;
   }
 
+  console.log('Done building DOM for coverflow');
 
-
-
-  console.log("Done building DOM for coverflow");
-
-  cfstr += "</div>";
+  cfstr += '</div>';
   $('body').append(cfstr);
   $('#showJSON').click(function(){
-  	if($('#json').length){$("#json").remove(); $(this).html("Show JSON"); return;}
-  	$('body').append("<textarea id=\"json\">"+JSON.stringify(returnedJSON,undefined, 2)+"</textarea>");
-	$(this).html("Hide JSON");
+  	if($('#json').length){$('#json').remove(); $(this).html('Show JSON'); return;}
+  	$('body').append('<textarea id="json">' + JSON.stringify(returnedJSON, undefined, 2) + '</textarea>');
+	$(this).html('Hide JSON');
   });
 
 
 
-  var beforeCount = $("div.image-block").length;//UNUSED?
-  var afterCount = $("div.image-block").length;//UNUSED?
+  var beforeCount = $('div.image-block').length;//UNUSED?
+  var afterCount = $('div.image-block').length;//UNUSED?
 
-  $('#coverflow').coverflow({'active':Math.floor($("#coverflow").children().length/2),//{'overlap': 0.7, 'duration': 300}
+  $('#coverflow').coverflow({'active':Math.floor($('#coverflow').children().length / 2),//{'overlap': 0.7, 'duration': 300}
   	'beforeSelect':function(e,i){
   		alert(e);
   	}
@@ -81,9 +77,9 @@ function displayVisualization(){
 
   // Get the subset of images that are ready, delay loading the rest while the server reprocesses
   $('img').each(function(){
-  	var title = $(this).attr("title");
-    $(this).fadeOut(400,function(){;
-	  	$(this).attr('src',$(this).attr('title'));
+  	var title = $(this).attr('title');
+    $(this).fadeOut(400, function(){;
+	  	$(this).attr('src', $(this).attr('title'));
 	}).fadeIn(400);
   });
 
@@ -97,27 +93,27 @@ function displayVisualization(){
     </ul>`;
 
 
-  $("body").append(viewSwitcherHTML);
-  $("#viewSwitcher li a").click(function(){ //activate view
-  	if($(this).parent().hasClass("active")){return;} //do nothing if the current view button is clicked
+  $('body').append(viewSwitcherHTML);
+  $('#viewSwitcher li a').click(function(){ //activate view
+  	if($(this).parent().hasClass('active')){return;} //do nothing if the current view button is clicked
 
-  	$(".active").removeClass("active");
-  	$(this).parent().addClass("active");
-  	if($(this).attr("id") == "switcher_gridView" && $("#gv").length == 0){
-  		var cf = $("#coverflow");
+  	$('.active').removeClass('active');
+  	$(this).parent().addClass('active');
+  	if($(this).attr('id') == 'switcher_gridView' && $('#gv').length == 0){
+  		var cf = $('#coverflow');
   		var gv = cf.clone();
-  		gv.attr("id","gv");
+  		gv.attr('id', 'gv');
   		gv.removeClass();
-  		gv.css("width","100%").fadeOut();
-  		gv.children().removeAttr("class").removeAttr("style").css("float","left").css("display","block");
+  		gv.css('width', '100%').fadeOut();
+  		gv.children().removeAttr('class').removeAttr('style').css('float', 'left').css('display', 'block');
 
-  		$("#coverflow").after(gv);
-  		$("#gv .reflection").remove(); //can't use the selector until it's attached to the DOM
-  		$("#gv div").css("border","1px solid black");
-  		$("#gv div img").css("background-color","white");
-  		$("#gv div").addClass("f1_container");
+  		$('#coverflow').after(gv);
+  		$('#gv .reflection').remove(); //can't use the selector until it's attached to the DOM
+  		$('#gv div').css('border','1px solid black');
+  		$('#gv div img').css('background-color','white');
+  		$('#gv div').addClass('f1_container');
 
-  		$("#gv > div").each(function(){
+  		$('#gv > div').each(function(){
         var figureHTML =
           `<figure class="shadow f1_card" style="width: 200px;">
             <div class="font face">${$(this).html()}</div>
@@ -127,31 +123,31 @@ function displayVisualization(){
 
   			$(this).append(figureHTML);
 
-  			$(this).find(".caption").remove();
-  			$(this).children("img").remove();
+  			$(this).find('.caption').remove();
+  			$(this).children('img').remove();
   		});
-  		$("#gv").append("<br style=\"clear: both;\" />");
+  		$('#gv').append('<br style="clear: both;" />');
 
   		$('.f1_container').click(function() {
 			$(this).toggleClass('active');
 		});
 
 
-  		$("#coverflow").fadeOut();
-  		$("#timeline").fadeOut();
-  		$("#gv").fadeIn();
-  	}else if($(this).attr("id") == "switcher_coverFlow"){
-  		$("#gv").fadeOut();
-  		$("#timeline").fadeOut();
-  		$("#coverflow").fadeIn();
-  	}else if($(this).attr("id") == "switcher_gridView"){
-  		$("#coverflow").fadeOut();
-  		$("#timeline").fadeOut();
-  		$("#gv").fadeIn();
-  	}else if($(this).attr("id") == "switcher_timeline"){
-  		$("#coverflow").fadeOut();
-  		$("#gv").fadeOut();
-  		$("#timeline").fadeIn();
+  		$('#coverflow').fadeOut();
+  		$('#timeline').fadeOut();
+  		$('#gv').fadeIn();
+  	}else if($(this).attr('id') == 'switcher_coverFlow'){
+  		$('#gv').fadeOut();
+  		$('#timeline').fadeOut();
+  		$('#coverflow').fadeIn();
+  	}else if($(this).attr('id') == 'switcher_gridView'){
+  		$('#coverflow').fadeOut();
+  		$('#timeline').fadeOut();
+  		$('#gv').fadeIn();
+  	}else if($(this).attr('id') == 'switcher_timeline'){
+  		$('#coverflow').fadeOut();
+  		$('#gv').fadeOut();
+  		$('#timeline').fadeIn();
   	}
 
   });
@@ -162,7 +158,7 @@ function displayVisualization(){
   for(var i=0; i<returnedJSON.length; i++){
   	var memento = {
   		id: i,
-  		type: "point",
+  		type: 'point',
   		start: new Date(returnedJSON[i].datetime),
   		stack: false,
   		zoomMax: 94670778000,
@@ -173,26 +169,25 @@ function displayVisualization(){
     // This check really ought to not occur every time and this function should
     //  be functionalized
 
-  	if( (strategy == "alSummarization" && !returnedJSON[i].hammingDistance || (returnedJSON[i].hammingDistance < 4 && i!=0) ||
-        strategy != "alSummarization" && !returnedJSON[i].screenshotURI
+  	if( (strategy == 'alSummarization' && !returnedJSON[i].hammingDistance || (returnedJSON[i].hammingDistance < 4 && i!=0) ||
+        strategy != 'alSummarization' && !returnedJSON[i].screenshotURI
     )){
-  		console.log("Draw white dot, not included, for "+returnedJSON[i].datetime);
+  		console.log('Draw white dot, not included, for ' + returnedJSON[i].datetime);
 
-  		memento.className = "notInSummarization";
-  		memento.content = "";//returnedJSON[i].datetime;
+  		memento.className = 'notInSummarization';
+  		memento.content = '';//returnedJSON[i].datetime;
   		//memento.content = returnedJSON[i].datetime;
   		notInSummarization.push(memento);
   	}else  {
-  		console.log("Draw black dot, included, for "+returnedJSON[i].datetime);
-      var imgUri = returnedJSON[i].screenshotURI.replace(".png","_200.png");
+  		console.log('Draw black dot, included, for ' + returnedJSON[i].datetime);
+      var imgUri = returnedJSON[i].screenshotURI.replace('.png', '_200.png');
 
-  		memento.className = "inSummarization";
+  		memento.className = 'inSummarization';
   		memento.content =
-        `<img src='${localAssetServer}_images/spinnerStatic.png'
-              title='${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace(".png","_200.png")}'
+        `<img src="${localAssetServer}_images/spinnerStatic.png"
+              title="${localAssetServer}screenshots/${returnedJSON[i].screenshotURI.replace('.png', '_200.png')}"
               id="${returnedJSON[i].screenshotURI.slice(0,-4)}_timeline"
               width="25" height="25"
-              //onLoad="checkAgainIfImageExists(this);"
               onError="pollThenReplaceImage(this);" />&nbsp;${returnedJSON[i].datetime}`;
       inSummarization.push(memento);
     }
@@ -202,7 +197,7 @@ function displayVisualization(){
   }
 
   var options = {height: '300px'};//{stack: false,};
-  $("body").append("<div id=\"timeline\"></div>");
+  $("body").append('<div id="timeline"></div>');
   var container = document.getElementById('timeline');
   var timeline = new vis.Timeline(container, new vis.DataSet(data), options);
 
@@ -211,23 +206,23 @@ function displayVisualization(){
 
 
 function checkAgainIfImageExists(imgIn){
-	console.log("running checkAgainIfImageExists() for "+imgIn.title);
-	setTimeout(replaceImageIfAvailable,3000,$(imgIn));
+	console.log('running checkAgainIfImageExists() for ' + imgIn.title);
+	setTimeout(replaceImageIfAvailable, 3000, $(imgIn));
 }
 
 function replaceImageIfAvailable(img){
-	var src = $(img).attr("title");
-	console.log("Running replaceImageIfAvailable for "+src);
+	var src = $(img).attr('title');
+	console.log('Running replaceImageIfAvailable for ' + src);
 
 	$.ajax({
 		url: src
 	}).success(function(){
-		$("#"+$(img).attr("id")).attr("src",src);
-		$("#"+$(img).attr("id")+"_reflection").attr("src",src);
-    	$("#"+$(img).attr("id")+"_timeline").attr("src",src);
-	}).fail(function(xhr,status,err){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
-		console.log("Failed. The image might not be generated yet. Trying again in 3.");
+		$('#' + $(img).attr('id')).attr('src', src);
+		$('#' + $(img).attr('id') + '_reflection').attr('src',src);
+    $('#' + $(img).attr('id') + '_timeline').attr('src',src);
+	}).fail(function(xhr, status, err){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
+		console.log('Failed. The image might not be generated yet. Trying again in 3.');
 		console.log(err);
-		setTimeout(replaceImageIfAvailable,3000,$(img));
+		setTimeout(replaceImageIfAvailable, 3000, $(img));
 	});
 }
