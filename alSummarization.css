@@ -11,8 +11,6 @@ ul#viewSwitcher li:hover {background-color: #ccc; cursor: pointer;}
 ul#viewSwitcher li.active {border: 3px solid green; background-color: green; color: white;}
 ul#viewSwitcher li.active:hover {cursor: default;}
 
-.ui-state-active .reflection img {display: none;}
-
 .floatLeft {float: left;}
 .floatRight {float: right;}
 
@@ -90,3 +88,4 @@ body[data-strategy='alSummarization'] .ui-state-active  .simhashValue,
 #subnav label {margin-right: 5px; margin-left: 10px;}
 #subnav span input {margin: 0 0px;}
 #subnav span input[type='submit'] {}
+body[data-access='embed'] #subnav, body[data-access='wayback'] #subnav {color: #3EAAB8; font-weight: bold; text-shadow: 1px 1px 0 #fff;}
