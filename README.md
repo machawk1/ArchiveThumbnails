@@ -22,7 +22,7 @@ To query the server instance generated using your browser visit `http://localhos
 * `http://localhost:15421/?access=wayback&strategy=yearly&URI-R=http://matkelly.com`
 * `http://localhost:15421/http://matkelly.com`
 
-## Running as a Docker Container
+## Running as a Docker Container (experimental)
 
 Running the server in a [Docker](https://www.docker.com/) container can make the process of dependency management easier. The code is shipped with a `Dockerfile` to build a Docker image that will run the service when started. This document assumes that you have Docker setup already, if not then follow the [official guide](https://docs.docker.com/installation/).
 
@@ -38,7 +38,7 @@ $ docker build -t archthumb .
 
 In the above command `archthumb` is the name of the image which can be anything, but the same needs to be used when running the container instance.
 
-### Running Docker Container (experimental)
+### Running Docker Container
 
 Running the container is easy. It exposes port `15421` to the host machine that can be mapped to any other port number (if requred).
 
