@@ -747,7 +747,14 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + '<script src="' + localAssetServer + 'util.js"></script>' + CRLF +
     '</head>' + CRLF +
     '<body data-access="' + response.thumbnails.access + '" data-strategy="' + response.thumbnails.strategy + '">' + CRLF +
-    TAB + '<h1 class="interface">Thumbnails for ' + uri_r + '<!--<button id="showJSON" class="interface">Show JSON</button>--></h1>' + CRLF +
+    TAB + '<h1 class="interface">' + uri_r + '</h1>' + CRLF +
+    TAB + '<section id="subnav">' + CRLF +
+    TAB + '<form method="get" action="/">' + CRLF +
+    TAB + ' <span><label for="strategy">Strategy:</label><select id="strategy"><option value="alSummarization">AlSummarization</option><option>Random</option><option value="interval">Interval</option><option value="temporalInterval">Temporal Interval</option></select></span>' + CRLF +
+    TAB + ' <span><label for="access">Access:</label><select id="access"><option value="interface">Interface</option><option value="wayback">Wayback</option><option value="embed">Embed</option></select></span>' + CRLF +
+    TAB + ' <input type="hidden" name="URI-R" value="' + uri_r + '" />' + CRLF +
+    TAB + ' <input type="submit" value="Go" class="floatRight" />' + CRLF +
+    TAB + '</form>' + CRLF +
     TAB + '<p id="dataState">' + stateInformationString + '</p>' + CRLF +
     '</body>' + CRLF +
   '</html>';

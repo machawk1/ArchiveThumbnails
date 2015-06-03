@@ -18,7 +18,7 @@ background-image: -webkit-gradient( linear, left top, left bottom, color-stop(0.
 filter: progid:DXImageTransform.Microsoft.Gradient( gradientType=0, startColor=0, EndColorStr=#ffffff);
 }
 .ui-state-active > img{box-shadow: 0px 0px 50px 10px #000;border: 3px ridge #999; border-bottom: 0; }
+.ui-state-active .reflection {display: none;}
 .ui-state-active .reflection img {z-index:10; position: relative; }
 .ui-state-active h2 {display: block;} /* Only show the current titles */
 .ui-state-active .caption {display: block;}
-

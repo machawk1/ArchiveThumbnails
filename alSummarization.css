@@ -1,8 +1,8 @@
-body {background-color: black; padding-bottom: 30px;}
-h1 {color: white; text-align: center; font-family: 'Arial',sans-serif; text-shadow: 0px 2px 5px blue;}
-h2 {color: white;  font-size: 14px; font-family: 'Arial',sans-serif; font-weight: normal;  }
+body {background-color: black; margin-top: 0;}
+h1 {color: white; text-align: center; font-family: 'Arial',sans-serif; text-shadow: 0px 2px 5px blue; margin-bottom: 0; margin-top: 0; padding: 0;}
+h2 {color: white;  font-size: 14px; font-family: 'Arial',sans-serif; font-weight: normal; margin: 0;}
 h2 a {color: white;}
-.caption {background: linear-gradient(#333 33%, #000); ;width: 500px; text-align: center; margin-left: -150px; margin-top: -2px; z-index: 1;border: 3px solid white; display: none; border-top: 0; padding-top: 10px;border-radius: 25px; border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: 0px 10px 20px 0px #000;}
+.caption {background: linear-gradient(#333 33%, #000); width: 500px; text-align: center; margin-left: -150px; margin-top: -2px; z-index: 1;border: 3px solid white; display: none; border-top: 0; padding: 5px 0 5px 0; border-radius: 25px; border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: 0px 10px 20px 0px #000;}
 p#count {color: white; bottom: 10px; left: 10px; position: absolute; z-index: 50;}
 ul#viewSwitcher {display: block; background-color: black;  text-align: center; bottom: 0; margin: 0; padding: 5px 0 5px 0; z-index: 99; width: 100%; z-index: 999; position: fixed;}
 ul#viewSwitcher li {background-color: white; color: black; float: left; border-radius: 10px; margin-right: 5px; margin-bottom: 0px; border: 3px solid white;}
@@ -10,6 +10,13 @@ ul#viewSwitcher li a {width: 300px; display: block; text-decoration: none; font-
 ul#viewSwitcher li:hover {background-color: #ccc; cursor: pointer;}
 ul#viewSwitcher li.active {border: 3px solid green; background-color: green; color: white;}
 ul#viewSwitcher li.active:hover {cursor: default;}
+
+.ui-state-active .reflection img {display: none;}
+
+.floatLeft {float: left;}
+.floatRight {float: right;}
+
+#gv, #timeline, #coverflow {margin-top: 1.75em;}
 
 #gv {height: 100%; overflow: auto;}
 #gv .hoverText {position: relative; top: 0; left: 0; font-size: 10px; color: blue;}
@@ -75,3 +82,11 @@ body[data-strategy='alSummarization'] .ui-state-active  .simhashValue,
  body[data-strategy='alSummarization'] .hammingDistanceValue,
  body[data-strategy='alSummarization'] .hammingDistanceValue
  {display: block;}
+
+
+
+#subnav {width: 33%; margin: 0 0 0 33%; color: white; font-family: "Myriad Pro", sans-serif; position: absolute; z-index: 9;}
+#subnav span {width: 35%; text-align: center; }
+#subnav label {margin-right: 5px; margin-left: 10px;}
+#subnav span input {margin: 0 0px;}
+#subnav span input[type='submit'] {}
