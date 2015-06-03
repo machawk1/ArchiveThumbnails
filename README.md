@@ -14,6 +14,14 @@ To execute the code, run `node AlSummarization.js`.
 
 To query the server instance generated using your browser visit `http://localhost:15421/?URI-R=http://matkelly.com`, substituting the URI-R to request a different site's summarization. The additional parameters of `access` and `strategy` can be used to change the summarization process, specifying the means of access and the strategy used for summarization (respectively). `access` can be one of `interface`, `embed`, or `wayback`. `strategy` can be `alSummarization`, `random`, `yearly`, or `skipListed`.
 
+### Example URIs
+
+* `http://localhost:15421/?URI-R=http://matkelly.com`
+* `http://localhost:15421/?access=embed&URI-R=http://matkelly.com`
+* `http://localhost:15421/?strategy=random&URI-R=http://matkelly.com`
+* `http://localhost:15421/?access=wayback&strategy=yearly&URI-R=http://matkelly.com`
+* `http://localhost:15421/http://matkelly.com`
+
 ## Running as a Docker Container
 
 Running the server in a [Docker](https://www.docker.com/) container can make the process of dependency management easier. The code is shipped with a `Dockerfile` to build a Docker image that will run the service when started. This document assumes that you have Docker setup already, if not then follow the [official guide](https://docs.docker.com/installation/).
