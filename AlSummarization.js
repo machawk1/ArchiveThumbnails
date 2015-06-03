@@ -298,6 +298,7 @@ function PublicEndpoint() {
       return;
     }
 
+    /* TODO: unused? */
     function echoMementoDatetimeToResponse(mementoDatetime) {
       response.write('{"Memento-Datetime": "' + mementoDatetime.toString('utf8', 0, mementoDatetime.length) + '",');
     }
@@ -895,6 +896,7 @@ TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callb
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
 TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callback,numberOfMementosToChoose) {
+  var _this = this;
   if (numberOfMementosToChoose > this.mementos.length) {
     console.log('Number to choose is greater than number existing.');
     return;
@@ -909,6 +911,13 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
     }//duplicately selected would take an else, so it's unnecessary
 
   }
+
+  setTimeout(function() {
+    var client = new faye.Client(notificationServer);
+    client.publish('/' + md5(_this.originalURI), {
+      uriM: 'done'
+    });
+  }, 2000);
 
   callback();
 }
@@ -965,7 +974,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, num
 
   console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
 
-  console.log("PUBX "+_this.originalURI+" "+md5(_this.originalURI));
   setTimeout(function() {
     var client = new faye.Client(notificationServer);
     client.publish('/' + md5(_this.originalURI), {
@@ -984,6 +992,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, num
 * @param numberOfMementosToChoose Artificial restriction on the count
 */
 TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback, skipFactor, initialIndex, numberOfMementosToChoose) {
+  var _this = this;
   if (numberOfMementosToChoose > this.mementos.length) {
     console.log('Number to choose is greater than number existing.');
     return;
@@ -1001,7 +1010,13 @@ TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback, skip
     this.mementos[i].selected = true;
   }
 
-  console.log('done with skip list logic!');
+  setTimeout(function() {
+    var client = new faye.Client(notificationServer);
+    client.publish('/' + md5(_this.originalURI), {
+      uriM: 'done'
+    });
+  }, 2000);
+
   callback('');
 }
 
