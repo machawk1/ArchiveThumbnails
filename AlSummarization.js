@@ -175,7 +175,7 @@ function PublicEndpoint() {
   };
 
   this.validAccessParameters = ['interface', 'wayback', 'embed']; // parameters supplied for means of access
-  this.validStrategyParameters = ['alSummarization', 'random', 'monthly', 'yearly', 'skipListed']; //parameter supplied for summarization strategy
+  this.validStrategyParameters = ['alSummarization', 'random', 'temporalInterval', 'interval']; //parameter supplied for summarization strategy
 
   this.isAValidAccessParameter = function(accessParameter) {
     return theEndPoint.validAccessParameters.indexOf(accessParameter) > -1;
@@ -347,9 +347,9 @@ function PublicEndpoint() {
       });
 
     }
-    else if (strategy == 'monthly' || strategy == 'yearly') { //TODO: refine to only use one temporal strategy
+    else if (strategy == "temporalInterval") {
       t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-        t.supplyChosenMementosBasedOnOneMonthly(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
+        t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
         setTimeout(function() {
           var client = new faye.Client(notificationServer);
           console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
@@ -360,9 +360,9 @@ function PublicEndpoint() {
 
       });
     }
-    else if (strategy == 'skipListed') {
-      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnSkipLists() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
-        t.supplyChosenMementosBasedOnSkipLists(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
+    else if (strategy == 'interval') {
+      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
+        t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
       });
     }
 
@@ -752,7 +752,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + '<h1 class="interface">' + uri_r + '</h1>' + CRLF +
     TAB + '<section id="subnav">' + CRLF +
     TAB + '<form method="get" action="/">' + CRLF +
-    TAB + ' <span><label for="strategy">Strategy:</label><select id="form_strategy" name="strategy"><option value="alSummarization">AlSummarization</option><option value="random">Random</option><option value="skipListed">Interval</option><option value="yearly">Temporal Interval</option></select></span>' + CRLF +
+    TAB + ' <span><label for="strategy">Strategy:</label><select id="form_strategy" name="strategy"><option value="alSummarization">AlSummarization</option><option value="random">Random</option><option value="interval">Interval</option><option value="temporalInterval">Temporal Interval</option></select></span>' + CRLF +
     TAB + ' <span><label for="access">Access:</label><select name="access" id="form_access"><option value="interface">Interface</option><option value="wayback">Wayback</option><option value="embed">Embed</option></select></span>' + CRLF +
     TAB + ' <input type="hidden" name="URI-R" id="form_urir" value="' + decodeURIComponent(uri_r) + '" />' + CRLF +
     TAB + ' <input type="button" value="Go" onclick="buildQuerystringAndGo()" class="floatRight" />' + CRLF +
@@ -928,7 +928,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
 * @param callback The next procedure to execution when this process concludes
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
-TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, numberOfMementosToChoose) {
+TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function(callback, numberOfMementosToChoose) {
   var _this = this;
   console.log("OriginalURI is "+_this.originalURI);
   if (numberOfMementosToChoose > this.mementos.length) {
@@ -986,13 +986,13 @@ TimeMap.prototype.supplyChosenMementosBasedOnOneMonthly = function(callback, num
 }
 
 /**
-* // Select mementos based on skip lists
+* // Select mementos based on interval
 * @param callback The next procedure to execution when this process concludes
 * @param skipFactor Number of Mementos to skip, n=1 ==> 1,3,5,7
 * @param initialIndex The basis for the count. 0 if not supplied
 * @param numberOfMementosToChoose Artificial restriction on the count
 */
-TimeMap.prototype.supplyChosenMementosBasedOnSkipLists = function(callback, skipFactor, initialIndex, numberOfMementosToChoose) {
+TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipFactor, initialIndex, numberOfMementosToChoose) {
   var _this = this;
   if (numberOfMementosToChoose > this.mementos.length) {
     console.log('Number to choose is greater than number existing.');
