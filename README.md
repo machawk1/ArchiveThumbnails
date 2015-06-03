@@ -8,7 +8,7 @@ Archives"](http://www.cs.odu.edu/~mln/pubs/ecir-2014/ecir-2014.pdf) for the Web 
 
 To execute the code, run `node AlSummarization.js`.
 
-To query the server instance generated, use `curl -H "Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT" localhost:15421/?URI-R=http://cnn.com` or some parametric variation.
+To query the server instance generated using your browser visit `http://localhost:15421/?URI-R=http://matkelly.com`, substituting the URI-R to request a different site's summarization.
 
 ## Running as a Docker Container
 
