@@ -351,7 +351,7 @@ function PublicEndpoint() {
         setTimeout(function() {
           var client = new faye.Client(notificationServer);
 
-          client.publish('/' + md5(t.mementos[0].originalURI), {
+          client.publish('/' + md5(t.originalURI), {
             uriM: 'done'
           });
         }, 2000);
@@ -364,7 +364,7 @@ function PublicEndpoint() {
         setTimeout(function() {
           var client = new faye.Client(notificationServer);
 
-          client.publish('/' + md5(t.mementos[0].originalURI), {
+          client.publish('/' + md5(t.originalURI), {
             uriM: 'done'
           });
         }, 2000);
@@ -379,7 +379,7 @@ function PublicEndpoint() {
       setTimeout(function() {
         var client = new faye.Client(notificationServer);
 
-        client.publish('/' + md5(t.mementos[0].originalURI), {
+        client.publish('/' + md5(t.originalURI), {
           uriM: 'done'
         });
       }, 2000);
