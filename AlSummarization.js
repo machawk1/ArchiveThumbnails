@@ -350,7 +350,7 @@ function PublicEndpoint() {
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect);
         setTimeout(function() {
           var client = new faye.Client(notificationServer);
-          console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
+
           client.publish('/' + md5(t.mementos[0].originalURI), {
             uriM: 'done'
           });
@@ -363,7 +363,7 @@ function PublicEndpoint() {
         t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
         setTimeout(function() {
           var client = new faye.Client(notificationServer);
-          console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
+
           client.publish('/' + md5(t.mementos[0].originalURI), {
             uriM: 'done'
           });
@@ -378,7 +378,7 @@ function PublicEndpoint() {
 
       setTimeout(function() {
         var client = new faye.Client(notificationServer);
-        console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
+
         client.publish('/' + md5(t.mementos[0].originalURI), {
           uriM: 'done'
         });
