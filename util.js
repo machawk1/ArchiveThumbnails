@@ -234,9 +234,10 @@ function replaceImageIfAvailable(img){
 
 function buildQuerystringAndGo(){
     var strategy = $("#form_strategy option:selected").attr("value");
-    var access = $("#form_access option:selected").attr("value");
+    //var access = $("#form_access option:selected").attr("value");
     var urir = $("#form_urir").attr("value");
-    var queryString = "?strategy=" + strategy + "&access=" + access + "&URI-R=" + urir;
+    //var queryString = "?strategy=" + strategy + "&access=" + access + "&URI-R=" + urir;
+    var queryString = "?strategy=" + strategy + "&URI-R=" + urir;
 
     window.location.href = thumbnailServer + queryString;
 }
