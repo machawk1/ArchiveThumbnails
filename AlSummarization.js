@@ -169,8 +169,9 @@ function PublicEndpoint() {
   */
   this.getHTMLSubmissionForm = function() {
     var form = '<html><head></head><body><form method="get" action="/">';
-    form +=    ' <label for="uri_r" style="float: left;">URI-R:</label><input type="text" name="URI-R" />';
-    form +=     ' <input type="submit" />';
+    form +=    ' <label for="uri_r" style="float: left;">URI-R:</label><input type="text" name="URI-R" id="urir" />';
+    form +=     ' <input type="button" onlick="go();" />';
+    form +=     '<script>function go(){document.location.href = "/?URI-R=" + document.getElementById("urir").value;}</script>';
     return form;
   };
 
@@ -751,9 +752,6 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + '  strategy = $($("body")[0]).data("strategy");' + CRLF +
     TAB + '  setStrategyAndAccessInUI();' + CRLF +
     TAB + '  client.subscribe("/' + md5(uri_r) + '", function(message) {' + CRLF +
-    TAB + '   console.log("message received!");' + CRLF +
-    TAB + '   console.log(message);' + CRLF +
-    TAB + '   console.log(strategy);' + CRLF +
     TAB + '   $("#dataState").html(message.uriM);' + CRLF +
     TAB + '   if (strategy == "alSummarization" && message.uriM === "done") {' + CRLF +
     TAB + '    conditionallyLoadInterface();' + CRLF +
