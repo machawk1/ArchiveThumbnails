@@ -218,12 +218,8 @@ function replaceImageIfAvailable(img){
 		url: src
 	}).success(function(){
 		$('#' + $(img).attr('id')).attr('src', src);
-    console.log("a "+src);
 		$('#' + $(img).attr('id') + '_reflection').attr('src',src);
-    console.log("b "+src);
     $('#' + $(img).attr('id') + '_timeline').attr('src',src);
-    console.log('c');
-    console.log("replaced all for "+src);
 	}).fail(function(xhr, status, err){ //if the image has not been generated yet, this 404 will cause a CORS problem, disregard it.
 		console.log('Failed. The image might not be generated yet. Trying again in 3.');
 		console.log(err);
