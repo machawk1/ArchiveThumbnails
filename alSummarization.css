@@ -83,7 +83,7 @@ body[data-strategy='alSummarization'] .ui-state-active  .simhashValue,
 
 
 
-#subnav {width: 33%; margin: 0 0 0 33%; color: white; font-family: "Myriad Pro", sans-serif; position: absolute; z-index: 9;}
+#subnav {width: 400px; margin: 0 0 0 33%; color: white; font-family: "Myriad Pro", sans-serif; position: absolute; z-index: 9;}
 #subnav span {width: 35%; text-align: center; }
 #subnav label {margin-right: 5px; margin-left: 10px;}
 #subnav span input {margin: 0 0px;}

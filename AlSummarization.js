@@ -771,9 +771,9 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + '<section id="subnav">' + CRLF +
     TAB + '<form method="get" action="/">' + CRLF +
     TAB + ' <span><label for="strategy">Strategy:</label><select id="form_strategy" name="strategy"><option value="alSummarization">AlSummarization</option><option value="random">Random</option><option value="interval">Interval</option><option value="temporalInterval">Temporal Interval</option></select></span>' + CRLF +
-    TAB + ' <span><label for="access">Access:</label><select name="access" id="form_access"><option value="interface">Interface</option><option value="wayback">Wayback</option><option value="embed">Embed</option></select></span>' + CRLF +
+    //TAB + ' <span><label for="access">Access:</label><select name="access" id="form_access"><option value="interface">Interface</option><option value="wayback">Wayback</option><option value="embed">Embed</option></select></span>' + CRLF +
     TAB + ' <input type="hidden" name="URI-R" id="form_urir" value="' + decodeURIComponent(uri_r) + '" />' + CRLF +
-    TAB + ' <input type="button" value="Go" onclick="buildQuerystringAndGo()" class="floatRight" />' + CRLF +
+    TAB + ' <input type="button" value="Go" onclick="buildQuerystringAndGo()"  />' + CRLF +
     TAB + '</form>' + CRLF +
     TAB + '<p id="dataState">' + stateInformationString + '</p>' + CRLF +
     '</body>' + CRLF +
