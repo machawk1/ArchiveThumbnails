@@ -270,8 +270,11 @@ function PublicEndpoint() {
     headers['X-Means-Of-Access'] = access;
 
     var strategy = theEndPoint.validStrategyParameters[0]; //not specified? access=interface
+    var strategyHeuristic = true; // If no strategy is expicitly specified, test-and-guess
+
     if (query['strategy']) {
       strategy = query['strategy'];
+      strategyHeuristic = false;
     }
 
     if (!theEndPoint.isAValidStrategyParameter(strategy)) { // A bad strategy parameter was passed in
@@ -344,6 +347,13 @@ function PublicEndpoint() {
       t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect);
+        setTimeout(function() {
+          var client = new faye.Client(notificationServer);
+          console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
+          client.publish('/' + md5(t.mementos[0].originalURI), {
+            uriM: 'done'
+          });
+        }, 2000);
       });
 
     }
@@ -364,6 +374,14 @@ function PublicEndpoint() {
       t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval() { //TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
       });
+
+      setTimeout(function() {
+        var client = new faye.Client(notificationServer);
+        console.log("PUBLISHING to "+md5(t.mementos[0].originalURI));
+        client.publish('/' + md5(t.mementos[0].originalURI), {
+          uriM: 'done'
+        });
+      }, 2000);
     }
 
     // TODO: break apart callback hell
