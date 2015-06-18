@@ -1,9 +1,12 @@
 {
   "name": "ArchiveThumbnails",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "An implementation for Ahmed AlSum's \"Thumbnail Summarization Techniques for Web Archives\"",
   "repository": "https://github.com/machawk1/ArchiveThumbnails",
+  "license": "GPL-2.0",
+  "author": "Mat Kelly <mkelly@cs.odu.edu> (http://www.cs.odu.edu/~mkelly)",
   "start": "node AlSummarization.js",
+  "bugs": "https://github.com/machawk1/ArchiveThumbnails/issues",
   "dependencies": {
     "express": "*",
     "connect": "*",
