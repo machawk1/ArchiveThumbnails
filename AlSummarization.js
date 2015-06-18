@@ -124,11 +124,11 @@ function main() {
     console.log('FAYE - handshake initiated ' + clientId);
   });
 
-  bayeux.on('subscribe', function(clientId,channelId){
+  bayeux.on('subscribe', function(clientId, channelId){
     console.log('FAYE - client subscribed - ' + clientId + ' ' + channelId);
   });
 
-  bayeux.on('publish', function(clientId,channelId,data){
+  bayeux.on('publish', function(clientId, channelId, data){
     console.log('FAYE - client published - ' + clientId + ' ' + channelId + ' ' + data);
   });
 
@@ -221,7 +221,7 @@ function PublicEndpoint() {
       var fileExtension = query['img'].substr('-3'); //is this correct to use a string and not an int!?
       console.log('fetching ' + query['img'] + ' content');
 
-      var img = fs.readFileSync(__dirname+'/' + query['img']);
+      var img = fs.readFileSync(__dirname + '/' + query['img']);
       response.writeHead(200, {'Content-Type': 'image/' + fileExtension });
       response.end(img, 'binary');
 
@@ -287,7 +287,7 @@ function PublicEndpoint() {
 
     headers['X-Summarization-Strategy'] = strategy;
 
-    if (!uriR.match(/^[a-zA-Z]+:\/\//)) {uriR = 'http://' + uriR;}// Prepend scheme if necessary
+    if (!uriR.match(/^[a-zA-Z]+:\/\//)) {uriR = 'http://' + uriR; }// Prepend scheme if missing
 
 
     headers['Content-Type'] = 'text/html'; //application/json
@@ -299,15 +299,6 @@ function PublicEndpoint() {
     if (!validator.isURL(uriR)) { //return "invalid URL"
       returnJSONError('Invalid URI');
       return;
-    }
-
-    /* TODO: unused? */
-    function echoMementoDatetimeToResponse(mementoDatetime) {
-      response.write('{"Memento-Datetime": "' + mementoDatetime.toString('utf8', 0, mementoDatetime.length) + '",');
-    }
-
-    function closeConnection() {
-      response.end();
     }
 
     function returnJSONError(str) {
@@ -392,7 +383,7 @@ function PublicEndpoint() {
         function(callback) {t.printMementoInformation(response,
           function() {
             t.createScreenshotsForMementos(
-              function() {console.log('Done creating screenshots');}
+              function() {console.log('Done creating screenshots'); }
 
             );
           }
@@ -409,9 +400,9 @@ function PublicEndpoint() {
 function cleanSystemData(cb) {
   //delete all files in ./screenshots/ and ./cache/
   var dirs = ['screenshots', 'cache'];
-  dirs.forEach(function(e, i, a) {
+  dirs.forEach(function(e, i) {
     rimraf(__dirname + '/' + e + '/*', function(err) {
-      if (err) throw err;
+      if (err) {throw err; }
       console.log('Deleted contents of ./' + e + '/');
     });
 
@@ -432,7 +423,7 @@ function processWithFileContents(fileContents, response) {
   console.log('There were ' + t.mementos.length + ' mementos');
   t.calculateHammingDistancesWithOnlineFiltering();
   t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI();
-  t.createScreenshotsForMementos(function() {console.log('Done creating screenshots');});
+  t.createScreenshotsForMementos(function() {console.log('Done creating screenshots'); });
 
   // Currently a race condition in that the below code will publish before the
   //  client side code in the above t.printMementoInformation subscribes.
@@ -459,9 +450,9 @@ TimeMap.prototype.toString = function() {
   return '{' +
     '"timemaps":[' + this.timemaps.join(',') + '],' +
     '"timegates":[' + this.timegates.join(',') + '],' +
-    '"mementos":[' + this.mementos.join(',') + ']'
+    '"mementos":[' + this.mementos.join(',') + ']' +
   '}';
-}
+};
 
 
 /**
@@ -469,7 +460,7 @@ TimeMap.prototype.toString = function() {
 */
 Memento.prototype.toString = function() {
   return JSON.stringify(this);
-}
+};
 
 // Add Thumbnail Summarization attributes to Memento Class without soiling core
 Memento.prototype.simhash = null;
@@ -484,7 +475,7 @@ Memento.prototype.setSimhash = function() {
   //retain the URI-R for reference in the promise (this context lost with async)
   var thaturi = this.uri;
   var thatmemento = this;
-  return (new Promise(function(resolve,reject){
+  return (new Promise(function(resolve, reject) {
     var buffer2 = '';
     var memento = this; // Potentially unused? The 'this' reference will be relative to the promise here
     var mOptions = url.parse(thaturi);
