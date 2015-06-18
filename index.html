@@ -1,5 +1,7 @@
 <!DOCTYPE HTML>
 <!-- 
+This is the HTML file served to a user if no URI-R is supplied in the query string.
+
 TODO
 * Add jquery min.map so as to not produce errors with each execution (likely a jQ 2 thing)
 * Fix initial value of date field when internet is accessible. Preferably use moment.js
@@ -20,12 +22,6 @@ $.noConflict();
 var nodejshost = "localhost";//"128.82.7.20";//"localhost";
 
 jQuery(document).ready(function($){
-      //$('#datetimepicker').datetimepicker({
-      //  format: 'dddd, dd MM yyyy HH:mm:ss Z'
-      //});
-	//console.log((new Date()).format("mm/dd/yyyy"));
-	//$("#date").attr("value",(new Date()).today());
-	//file:// cannot be used, use local apache
 	$("#submitButton").click(function(){
 		if($("#uri_r").val().length <= 0){
 			$("#message").html("You forgot a URI-R!");
@@ -55,9 +51,6 @@ jQuery(document).ready(function($){
 			$("#message").html("Something's wrong with the server. Is the node server running?");
 			$("#message").addClass("error");
 		});
-		//console.log($("#date").val());//need Mon, 17 Jul 2006 05:55:01 GMT
-		//console.log("Mon, 17 Jul 2006 05:55:01 GMT");
-		//console.log(moment($("#date").val(),"EEE, dd MMM yyyy HH:mm:ss Z")); //Is this correct for RFC1123
 		return false;
 	});
 	
