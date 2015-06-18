@@ -42,10 +42,10 @@ var webshot = require('webshot'); // PhantomJS wrapper
 var argv = require('minimist')(process.argv.slice(2));
 var prompt = require('sync-prompt').prompt;
 
-var mementoFramework = require('./mementoFramework.js');
+var mementoFramework = require('./_js/mementoFramework.js');
 var Memento = mementoFramework.Memento;
 var TimeMap = mementoFramework.TimeMap;
-var SimhashCacheFile = require('./simhashCache.js').SimhashCacheFile;
+var SimhashCacheFile = require('./_js/simhashCache.js').SimhashCacheFile;
 
 var colors = require('colors');
 var im = require('imagemagick');
@@ -726,13 +726,13 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     TAB + '<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>' + CRLF +
     TAB + '<script src="md5.min.js"></script>' + CRLF +
     TAB + '<!--<script src="gridder/js/jquery.gridder.min.js"></script>-->' + CRLF +
-    TAB + '<script src="moment-with-langs.min.js"></script>' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="coverflow/dist/coverflow.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="alSummarization.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="reflection.css" />' + CRLF +
+    TAB + '<script src="_js/moment-with-langs.min.js"></script>' + CRLF +
+    TAB + '<link rel="stylesheet" type="text/css" href="_css/coverflow.css" />' + CRLF +
+    TAB + '<link rel="stylesheet" type="text/css" href="_css/alSummarization.css" />' + CRLF +
+    TAB + '<link rel="stylesheet" type="text/css" href="_css/reflection.css" />' + CRLF +
     TAB + '<link rel="stylesheet" type="text/css" href="vis/vis.min.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="flip.css" />' + CRLF +
-    TAB + '<script src="coverflow/dist/coverflow.min.js"></script>' + CRLF +
+    TAB + '<link rel="stylesheet" type="text/css" href="_css/flip.css" />' + CRLF +
+    TAB + '<script src="_js/coverflow.min.js"></script>' + CRLF +
     TAB + '<script src="vis/vis.min.js"></script>"' + CRLF +
     TAB + '<script src="support/faye/faye-browser-min.js"></script>' + CRLF +
     TAB + '<script>' + CRLF +

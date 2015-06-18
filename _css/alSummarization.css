@@ -38,9 +38,9 @@ figure {padding: 0; margin: 0;}
 
 body #viewSwitcher li {color: white; background-repeat: no-repeat; background-position: center center; list-style-type: none;}
 body #viewSwitcher li a {height: 50px; width: 100px; margin-top: -20px;}
-body #viewSwitcher li#switcher_coverFlow_li {background-image: url('./_images/coverflow.png'); }
-body #viewSwitcher li#switcher_gridView_li {background-image: url('./_images/grid.png'); }
-body #viewSwitcher li#switcher_timeline_li {background-image: url('./_images/timeline.png'); }
+body #viewSwitcher li#switcher_coverFlow_li {background-image: url('../_images/coverflow.png'); }
+body #viewSwitcher li#switcher_gridView_li {background-image: url('../_images/grid.png'); }
+body #viewSwitcher li#switcher_timeline_li {background-image: url('../_images/timeline.png'); }
 
 
 body[data-access='interface'] {}
