@@ -496,14 +496,14 @@ Memento.prototype.setSimhash = function() {
       res.on('data', function(data) {
         buffer2 += data.toString();
       });
-
+      
       if (res.statusCode != 200) {
         thatmemento.simhash = Memento.prototype.simhashIndicatorForHTTP302;
       }
 
       res.on('end', function(d) {
         var md5hash = md5(thatmemento.originalURI); // URI-R cannot be passed in the raw
-
+		
         thatmemento.fayeClient.publish('/' + md5hash, {
           uriM: thatmemento.uri
         });
@@ -1274,28 +1274,28 @@ process.on('SIGINT', function() {
 });
 
 //Useful Functions
-function checkBin(n){return/^[01]{1, 64}$/.test(n);}
-function checkDec(n){return/^[0-9]{1, 64}$/.test(n);}
-function checkHex(n){return/^[0-9A-Fa-f]{1, 64}$/.test(n);}
-function pad(s,z){s=""+s;return s.length<z?pad('0' + s, z):s;}
-function unpad(s){s=""+s;return s.replace(/^0+/, '');}
+function checkBin(n){return/^[01]{1,64}$/.test(n)}
+function checkDec(n){return/^[0-9]{1,64}$/.test(n)}
+function checkHex(n){return/^[0-9A-Fa-f]{1,64}$/.test(n)}
+function pad(s,z){s=""+s;return s.length<z?pad("0"+s,z):s}
+function unpad(s){s=""+s;return s.replace(/^0+/,'')}
 
 //Decimal operations
-function dec2Bin(n){if(!checkDec(n)||n<0) return 0; return n.toString(2);}
-function dec2Hex(n){if(!checkDec(n)||n<0) return 0; return n.toString(16);}
+function Dec2Bin(n){if(!checkDec(n)||n<0)return 0;return n.toString(2)}
+function Dec2Hex(n){if(!checkDec(n)||n<0)return 0;return n.toString(16)}
 
 //Binary Operations
-function bin2Dec(n){if(!checkBin(n)) return 0; return parseInt(n, 2).toString(10);}
-function bin2Hex(n){if(!checkBin(n)) return 0; return parseInt(n, 2).toString(16);}
+function Bin2Dec(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(10)}
+function Bin2Hex(n){if(!checkBin(n))return 0;return parseInt(n,2).toString(16)}
 
 //Hexadecimal Operations
-function hex2Bin(n){if(!checkHex(n)) return 0; return parseInt(n, 16).toString(2);}
-function hex2Dec(n){if(!checkHex(n)) return 0; return parseInt(n, 16).toString(10);}
+function Hex2Bin(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(2)}
+function Hex2Dec(n){if(!checkHex(n))return 0;return parseInt(n,16).toString(10)}
 
 function getHexString(onesAndZeros) {
   var str = '';
   for(var i = 0; i < onesAndZeros.length; i = i + 4){
-    str += bin2Hex(onesAndZeros.substr(i, 4));
+    str += Bin2Hex(onesAndZeros.substr(i,4));
   }
 
   return str;
