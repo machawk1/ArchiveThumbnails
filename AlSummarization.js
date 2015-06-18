@@ -62,7 +62,7 @@ var host = 'http://localhost'; // Format: scheme://hostname
 
 /* Custom ports if specified on command-line */
 var thumbnailServicePort = argv.p ? argv.p : 15421;
-var localAssetServerPort = argv.ap ? arvg.a : 1338;
+var localAssetServerPort = argv.ap ? argv.a : 1338;
 var notificationServerPort = argv.ap ? argv.n : 15422;
 
 /* Derived host access points */
