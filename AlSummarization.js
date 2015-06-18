@@ -115,7 +115,7 @@ function main() {
   app.listen(thumbnailServicePort);
 
   /* Notification server for status updates of long-running processes */
-  var notificationServer =   http.createServer();
+  var notificationServerInstance =   http.createServer();
   var  bayeux = new faye.NodeAdapter({mount: '/', timeout: 45});
 
   //TODO: send an initial notification by the server to faye to state that processing has not started
@@ -132,8 +132,8 @@ function main() {
       console.log("FAYE - client published - "+clientId+" "+channelId+" "+data);
   });
 
-  bayeux.attach(notificationServer);
-  notificationServer.listen(notificationServerPort);
+  bayeux.attach(notificationServerInstance);
+  notificationServerInstance.listen(notificationServerPort);
 
   //console.log("FAYE - server started");
 
