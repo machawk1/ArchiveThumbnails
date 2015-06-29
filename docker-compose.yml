@@ -1,0 +1,8 @@
+thumb:
+  build: .
+  ports:
+   - "15421:15421"
+   - "15422:15422"
+   - "1338:1338"
+  volumes:
+   - ./screenshots:/app/screenshots
