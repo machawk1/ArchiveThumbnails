@@ -1,16 +1,15 @@
-FROM      ubuntu:latest
+FROM       ubuntu:latest
+MAINTAINER Mat Kelly <mkelly@cs.odu.edu>
 
-RUN       apt-get update
-RUN       apt-get install -y git curl nano nodejs npm phantomjs imagemagick
-RUN       ln -s /usr/bin/nodejs  /usr/bin/node
-RUN       mkdir /app
-ADD       . /app
+RUN        apt-get update && \
+           apt-get install -y git curl nano nodejs npm phantomjs imagemagick
+RUN        ln -s /usr/bin/nodejs  /usr/bin/node
 
-WORKDIR   /app
+ADD        . /app
+WORKDIR    /app
 
-RUN       npm install
+RUN        npm install
 
-EXPOSE    15421
-EXPOSE    15422
-EXPOSE    1338
-CMD       ["node", "AlSummarization.js"]
+EXPOSE     15421 15422 1338
+
+CMD        ["node", "AlSummarization.js"]
