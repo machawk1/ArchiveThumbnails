@@ -51,3 +51,13 @@ $ docker run -d -p 15421:15421 -p 1338:1338 -p 15422:15422 alsummarization
 In the above command the container is running in detached mode and can be accessed from outside on port `15421`. If you want to run the service on a different port, say `80` then change `-p 15421:15421` to `-p 80:15421`.
 
 Container is completely transparent from the outside and it will be accessed as if the service is running in the host machine itself.
+
+### Running via Docker Compose
+
+An alternate way of running the service container is using [Docker Compose](https://docs.docker.com/compose/). We have provided a default `docker-compose.yml` file to build and run the container easily. Provided that the Docker daemon is running and the Docker Compose binary is installed, running following command from the directory where this repository is checked out will build an image if necessary and spin a container.
+
+```
+$ docker-compose up
+```
+
+The `docker-compose.yml` file has port mapping as described in the previous section. Additionally it also makes the generated thumbnail persistent on the host machine in the `thumbnails` directory under this checked out code directory. Please feel free to modify or inherit from the `docker-compose.yml` file according to your needs.
