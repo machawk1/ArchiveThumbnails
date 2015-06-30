@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Archive Thumbnail Generation</title>
+<style type="text/css">
+label {float: left;}
+#urir {width: 50%; margin-left: 1.0em;}
+</style>
+</head>
+
+<body>
+<h1>Archive Thumbnails</h1>
+
+<p>Enter a URL (URI-R in <a href="http://tools.ietf.org/html/rfc7089">Memento</a> parlance) to view a summarization of how the web page at that address has changed over time.</p>
+
+<form method="get" action="/" onsubmit="return false;">
+	<label for="uriR">URI-R:</label>
+	<input type="text" name="URI-R" id="urir" placeholder="http://matkelly.com" />
+	<input type="button" onclick="go();" value="Show Archival Summarization!" />
+	
+	<script>
+		function go(){
+			document.location.href = "/?URI-R=" + document.getElementById("urir").value;
+		}
+	</script>
+</form>
+
+<img src="_images/basicInterface/mln_grid_comprehensive.png" />
+<img src="_images/basicInterface/mln_grid_coverflow.png">
+
+<a href="https://github.com/machawk1/ArchiveThumbnails"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+</body>
+</html>

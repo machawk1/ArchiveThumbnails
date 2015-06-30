@@ -168,11 +168,8 @@ function PublicEndpoint() {
   * Default form to enter URI-R if one is not supplied in the query string
   */
   this.getHTMLSubmissionForm = function() {
-    var form = '<html><head></head><body><form method="get" action="/">';
-    form +=    ' <label for="uriR" style="float: left;">URI-R:</label><input type="text" name="URI-R" id="urir" />';
-    form +=     ' <input type="button" onlick="go();" />';
-    form +=     '<script>function go(){document.location.href = "/?URI-R=" + document.getElementById("urir").value;}</script>';
-    return form;
+    var baseInterfaceHTML = fs.readFileSync(__dirname + '/base.html');
+    return baseInterfaceHTML;
   };
 
   this.validAccessParameters = ['interface', 'wayback', 'embed']; // parameters supplied for means of access
