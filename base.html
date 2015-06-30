@@ -17,7 +17,7 @@ p#info {margin-top: 3.5em;}
 
 <p>Enter a URL (URI-R in <a href="http://tools.ietf.org/html/rfc7089">Memento</a> parlance) to view a summarization of how the web page at that address has changed over time.</p>
 
-<form method="get" action="/" onsubmit="return false;">
+<form method="get" action="/" onsubmit="go(); return false;">
 	<label for="uriR">URI-R:</label>
 	<input type="text" name="URI-R" id="urir" placeholder="http://matkelly.com" />
 	<input type="button" onclick="go();" value="Show Archival Summarization!" />
