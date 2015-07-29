@@ -39,6 +39,7 @@
     "test": "make test"
   },
   "devDependencies": {
+    "chai": "^3.2.0",
     "jscs": "^1.13.1",
     "mocha": "0.3.x",
     "mocha-jscs": "^1.2.0",

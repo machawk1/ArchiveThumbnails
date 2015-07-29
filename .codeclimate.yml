@@ -1,0 +1,17 @@
+# Save as .codeclimate.yml (note leading .) in project root directory
+languages:
+  Ruby: false
+  JavaScript: true
+  PHP: false
+  Python: false
+exclude_paths:
+- "cache/*"
+- "cruft/*"
+- "datepicker/*"
+- "licenses/*"
+- "node_modules/*"
+- "_meta/*"
+- "screenshots/*"
+- "support/*"
+- "test/*"
+- "vis/*"
