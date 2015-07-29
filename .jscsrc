@@ -1,0 +1,9 @@
+{
+  "preset": "node-style-guide",
+  "maximumLineLength": 10000,
+  "requireCapitalizedComments": null,
+  "requireQuotedKeysInObjects": true,
+  "disallowQuotedKeysInObjects": null,
+  "disallowTrailingComma": true,
+  "requireTrailingComma": null
+}
