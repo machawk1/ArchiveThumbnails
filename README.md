@@ -35,14 +35,12 @@ Clone the repository and change working directory (if not already) then build th
 ```
 $ git clone https://github.com/machawk1/ArchiveThumbnails.git
 $ cd ArchiveThumbnails
-$ docker build -t alsummarization .
+$ docker build -t archthumb .
 ```
 
 In the above command `archthumb` is the name of the image which can be anything, but the same needs to be used when running the container instance.
 
 ### Running Docker Container
-
-Running the container is easy. It exposes port `15421` to the host machine that can be mapped to any other port number (if requred).
 
 ```
 $ docker run -d -p 15421:15421 -p 1338:1338 -p 15422:15422 alsummarization
