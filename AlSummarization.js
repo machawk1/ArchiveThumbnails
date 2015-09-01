@@ -58,7 +58,7 @@ var md5 = require('blueimp-md5').md5;
 
 var app = express();
 
-var host = 'http://localhost'; // Format: scheme://hostname
+var host = 'http://' + (process.env.SERVER_HOST || 'localhost'); // Format: scheme://hostname
 
 /* Custom ports if specified on command-line */
 var thumbnailServicePort = argv.p ? argv.p : 15421;
