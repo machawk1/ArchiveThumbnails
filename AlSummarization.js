@@ -1135,7 +1135,18 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
     // console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
     // console.log("...with SimHash: "+this.mementos[m].simhash);
     if (m > 0) {
-      if ((this.mementos[m].simhash.match(/0/g) || []).length === 32) {console.log('0s, returning'); continue;}
+      console.log(this.mementos[0]);
+      console.log(this.mementos[0]['simhash']);
+      console.log("Simhash: "+this.mementos[m].simhash);
+      console.log(this.mementos[m].simhash);
+      console.log(this.mementos[m]['simhash']);
+      console.log(typeof (this.mementos[m].simhash));
+      console.log(typeof (this.mementos[m]['simhash']));
+      if (typeof this.mementos[m]['simhash'] == 'object') { // Odd behavior of the simhash attr being reported as an obj, correct it here
+        this.mementos[m]['simhash'] = this.mementos[m]['simhash'] + '';
+      }
+      
+      if ((this.mementos[m]['simhash'].match(/0/g) || []).length === 32) {console.log('0s, returning'); continue;}
       // console.log("Calculating hamming distance");
       this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
       // console.log("Getting hamming basis");
