@@ -41,6 +41,7 @@ var webshot = require('webshot'); // PhantomJS wrapper
 
 var argv = require('minimist')(process.argv.slice(2));
 var prompt = require('sync-prompt').prompt;
+var request = require('sync-request');
 
 var mementoFramework = require('./_js/mementoFramework.js');
 var Memento = mementoFramework.Memento;
@@ -82,18 +83,21 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
    TODO: reorder functions (main first) to be more maintainable 20141205
 ****************************** */
 
-function batchAlsumTest(uriR) {
-  var cacheFile = new SimhashCacheFile(uriR);
+function batchAlsumTest(uriRs) {
+  var cacheFile = new SimhashCacheFile(uriRs[0]);
   cacheFile.path += '.json';
 
-  cacheFile.readFileContents(
-    function success(data) { 
-      processWithFileContents(data);
-    },
-    function failed() {
-      getTimemapGodFunctionForAlSummarization(uriR);
-    }
-  );
+  var fileContents = cacheFile.readFileContentsSync();
+  console.log('fc ');
+
+  if (fileContents) {
+    console.log('Found cache file at ' + cacheFile.path);
+    processWithFileContents(data);
+  } else {
+    console.log('No cache file found at ' + cacheFile.path + '. Generating one now...');
+    getTimemapGodFunctionForAlSummarization(uriRs[0]);
+  }
+
 }
 
 /**
@@ -104,17 +108,8 @@ function main() {
                'THUMBNAIL SUMMARIZATION SERVICE\r\n' +
                '*******************************').blue);
 
-  startLocalAssetServer();
-
-
-
-lineReader.eachLine('uris_lulwah.txt', function(line, last) {
-  console.log('SimHashing ' + line);
-  batchAlsumTest(line);
-  
-  
-  //if(last){}
-});
+var lines = fs.readFileSync('uris_lulwah.txt').toString().split("\n");
+batchAlsumTest(lines);
 
 
   var endpoint = new PublicEndpoint();
@@ -131,25 +126,6 @@ return;
   console.log('* ' + ('Thumbnails service started on Port ' + thumbnailServicePort).red);
   console.log('> Try ' + thumbnailServer + '?URI-R=http://matkelly.com in your web browser for sample execution.');
 }
-
-
-/**
-* Create access point for resources local to the interface to be queried. This differs
-*  from handling requests from clients.
-*/
-function startLocalAssetServer() {
-  connect().use(
-    serveStatic(
-      __dirname,
-      {'setHeaders': function(res,path) {
-          res.setHeader('Access-Control-Allow-Origin', '*');
-        }
-      }
-    )
-  ).listen(localAssetServerPort);
-  console.log('* ' + ('Local resource (css, js, etc.) server listening on Port ' + localAssetServerPort + '...').red);
-}
-
 
 /**
 * Setup the public-facing attributes of the service
@@ -313,10 +289,11 @@ function PublicEndpoint() {
 
     // TODO: optimize this out of the conditional so the functions needed for each strategy are self-contained (and possibly OOP-ified)
     if (strategy === 'alSummarization') {
+      console.log('***************');
       var cacheFile = new SimhashCacheFile(uriR);
       cacheFile.path += '.json';
       console.log('Checking if a cache file exists for ' + query['URI-R'] + '...');
-      cacheFile.readFileContents(
+      cacheFile.readFileContentSync(
         function success(data) { // A cache file has been previously generated using the alSummarization strategy
           processWithFileContents(data);
         },
@@ -369,7 +346,6 @@ function PublicEndpoint() {
       // suboptimal route but reference to t must be preserved
       // TODO: move this to TimeMap prototype
       t.supplySelectedMementosAScreenshotURI(strategy, function(callback) {
-
           t.createScreenshotsForMementos(
             function() {console.log('Done creating screenshots');}
           );
@@ -519,97 +495,46 @@ Memento.prototype.setSimhash = function() {
   }));
 }
 
+
+function fetchTimemap(uri) {
+  console.log('fetchTimeMap');
+  var res = request('GET', uri);
+  var tmData = res.body.toString('utf-8');
+
+  var t = new TimeMap(tmData);
+  t.originalURI = uri; // Need this for a filename for caching
+  t.createMementos();
+
+  if (t.mementos.length === 0) {
+    console.log('There were no mementos for ' + uri + ' :(');
+    return;
+  }
+  
+  return t;
+}
+
 /**
 * Given a URI, return a TimeMap from the Memento Aggregator
 * TODO: God function that does WAY more than simply getting a timemap
 * @param uri The URI-R in-question
 */
-function getTimemapGodFunctionForAlSummarization(uri, response) {
-  // TODO: remove TM host and path references, they reside in the TM obj
+function getTimemapGodFunctionForAlSummarization(uri) {
   var timemapHost = 'web.archive.org';
   var timemapPath = '/web/timemap/link/' + uri;
-  var options = {
-    'host': timemapHost,
-    'path': timemapPath,
-    'port': 80,
-    'method': 'GET'
-  };
 
-  console.log('Path: ' + options.host + '/' + options.path);
-  var buffer = ''; // An out-of-scope string to save the Timemap string, TODO: better documentation
-
-  var t;
-  var retStr = '';
-  var metadata = '';
   console.log('Starting many asynchronous operations...');
-  async.series([
-    // TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
-    // TODO: abstract this method to its callback form. Currently, this is reaching and populating the timemap out of scope and can't be simply isolated (I tried)
-    function fetchTimemap(callback) {
-      var req = http.request(options, function(res) {
-        res.setEncoding('utf8');
+  var tm = fetchTimemap('http://' + timemapHost + timemapPath);
+  if (!tm) {return;}
+  
+  tm.calculateSimhashes();
+  
+  
+  
 
-        res.on('data', function(data) {
-          buffer += data.toString();
-        });
-
-        res.on('end', function(d) {
-
-          if (buffer.length > 100) {  // Magic number = arbitrary
-            console.log('Timemap acquired for ' + uri + ' from ' + timemapHost + timemapPath);
-            t = new TimeMap(buffer);
-            t.originalURI = uri; // Need this for a filename for caching
-            t.createMementos();
-
-            if (t.mementos.length === 0) {
-              console.log('There were no mementos for ' + uri + ' :(');
-              return;
-            }
-
-            console.log('Fetching HTML for ' + t.mementos.length + ' mementos.');
-
-            var m1 = url.parse(t.mementos[0].uri);
-            if(t.mementos.length == 1){
-             console.log("There was only 1 memento for " + uri);
-             return;
-            }
-            
-            var m2 = url.parse(t.mementos[1].uri);
-            var endpoints = [
-              {'host': m1.host, 'path': m1.path},
-              {'host': m2.host, 'path': m2.path}
-            ];
-
-            callback('');
-          }
-        });
-      });
-
-      req.on('error', function(e) { // Houston...
-        console.log('problem with request: ' + e.message);
-        console.log(e);
-        if (e.message === 'connect ETIMEDOUT') { // Error experienced when IA went down on 20141211
-          response.write('Hmm, the connection timed out. Internet Archive might be down.');
-          response.end();
-        }
-      });
-
-      req.on('socket', function(socket) { // Slow connection is slow
-        /*
-        socket.setTimeout(3000);
-        socket.on('timeout', function() {
-          console.log("The server took too long to respond and we're only getting older so we aborted.");
-          req.abort();
-        }); */
-      });
-
-      req.end();
-    },
+/*
   function(callback) {t.calculateSimhashes(callback);},
   function(callback) {t.saveSimhashesToCache(callback);},
   function(callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
-  // function(callback) {calculateCaptureTimeDeltas(callback);},// CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
-  // function(callback) {applyKMedoids(callback);}, // No functionality herein, no reason to call yet
   function(callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
   function(callback) {t.writeJSONToCache(callback);},
   function(callback) {t.createScreenshotsForMementos(callback);}],
@@ -621,7 +546,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
       console.log('There were no errors executing the callback chain');
     }
   });
-
+*/
 
   // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
   function getRandomSubsetOfMementosArray(arr,siz) {
@@ -1127,7 +1052,7 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
    ********************************* */
 
 function getHamming(str1, str2) {
-  if (!(str1.length) || !(str2.length)) { // Catch nulls
+  if (str1 || !str2) { // Catch nulls
     return 0;
   }
 

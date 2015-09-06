@@ -25,7 +25,19 @@ function SimhashCacheFile(forUri){
 			fs.unlink(this.path,function(){})
 		};
 
-		this.readFileContents = function(callbackSuccess,callbackFail){
+		this.readFileContentsSync = function(callbackSuccess,callbackFail){
+            try {
+				var x = fs.readFileSync(this.path,"utf-8");
+				console.log("X");
+				console.log(x);
+				return x;
+            }catch(e) {
+              // No file by that name
+              console.log('There was no cache file at ' + this.path);
+              return null;
+            }
+			
+			/*
 			fs.readFile(this.path,"utf-8",function(err,data){
 				if(err){
 					//The cache file hasn't been created
@@ -35,6 +47,7 @@ function SimhashCacheFile(forUri){
 
 				callbackSuccess(data);
 			});
+			*/
 		};
 
 		this.writeFileContentsAsJSON = function(str){
