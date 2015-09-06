@@ -528,16 +528,14 @@ function getTimemapGodFunctionForAlSummarization(uri) {
   
   tm.calculateSimhashes();
   
-  
-  
 
-/*
-  function(callback) {t.calculateSimhashes(callback);},
-  function(callback) {t.saveSimhashesToCache(callback);},
-  function(callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
-  function(callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
-  function(callback) {t.writeJSONToCache(callback);},
-  function(callback) {t.createScreenshotsForMementos(callback);}],
+async.series([
+  function(callback) {tm.calculateSimhashes(callback);},
+  function(callback) {tm.saveSimhashesToCache(callback);},
+  function(callback) {tm.calculateHammingDistancesWithOnlineFiltering(callback);},
+  function(callback) {tm.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+  function(callback) {tm.writeJSONToCache(callback);},
+  function(callback) {tm.createScreenshotsForMementos(callback);}],
   function(err, result) {
     if (err) {
       console.log('ERROR!');
@@ -546,7 +544,7 @@ function getTimemapGodFunctionForAlSummarization(uri) {
       console.log('There were no errors executing the callback chain');
     }
   });
-*/
+
 
   // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
   function getRandomSubsetOfMementosArray(arr,siz) {
