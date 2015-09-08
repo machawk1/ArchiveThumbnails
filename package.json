@@ -17,7 +17,7 @@
     "simhash": "*",
     "moment": "*",
     "progress": "*",
-    "memwatch": "*",
+    "memwatch-next": "*",
     "node-phantom": "*",
     "validator": "*",
     "underscore": "*",

@@ -28,7 +28,7 @@ var simhash = require('simhash')('md5');
 var moment = require('moment');
 
 var ProgressBar = require('progress');
-var memwatch = require('memwatch');
+var memwatch = require('memwatch-next');
 
 var phantom = require('node-phantom');
 
