@@ -52,9 +52,6 @@ var colors = require('colors');
 var im = require('imagemagick');
 var rimraf = require('rimraf');
 
-var faye = require('faye'); // For status-based notifications to client
-
-// Faye's will not allow a URI-* as the channel name, hash it for Faye
 var md5 = require('blueimp-md5').md5;
 
 var app = express();
@@ -88,14 +85,13 @@ function batchAlsumTest(uriRs) {
   cacheFile.path += '.json';
 
   var fileContents = cacheFile.readFileContentsSync();
-  console.log('fc ');
 
   if (fileContents) {
     console.log('Found cache file at ' + cacheFile.path);
     processWithFileContents(data);
   } else {
     console.log('No cache file found at ' + cacheFile.path + '. Generating one now...');
-    getTimemapGodFunctionForAlSummarization(uriRs[0]);
+    getTimemapX(uriRs);
   }
 
 }
@@ -120,7 +116,6 @@ batchAlsumTest(lines);
   app.listen(thumbnailServicePort);
 return;
 
-  // console.log("FAYE - server started");
 
   // TODO: react accordingly if port listening failed, don't simply assume the service was started.
   console.log('* ' + ('Thumbnails service started on Port ' + thumbnailServicePort).red);
@@ -306,39 +301,17 @@ function PublicEndpoint() {
       t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect);
-        setTimeout(function() {
-          var client = new faye.Client(notificationServer);
-
-          client.publish('/' + md5(t.originalURI), {
-            'uriM': 'done'
-          });
-        }, 2000);
       });
 
     }else if (strategy === 'temporalInterval') {
       t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
-        setTimeout(function() {
-          var client = new faye.Client(notificationServer);
-
-          client.publish('/' + md5(t.originalURI), {
-            'uriM': 'done'
-          });
-        }, 2000);
 
       });
     }else if (strategy === 'interval') {
       t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
       });
-
-      setTimeout(function() {
-        var client = new faye.Client(notificationServer);
-
-        client.publish('/' + md5(t.originalURI), {
-          'uriM': 'done'
-        });
-      }, 2000);
     }
 
     // TODO: break apart callback hell
@@ -385,13 +358,6 @@ function processWithFileContents(fileContents) {
   t.calculateHammingDistancesWithOnlineFiltering();
   t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI();
   t.createScreenshotsForMementos(function() {console.log('Done creating screenshots'); });
-
-  setTimeout(function() {
-    var client = new faye.Client(notificationServer);
-    client.publish('/' + md5(t.mementos[0].originalURI), {
-      'uriM': 'done'
-    });
-  }, 2000);
 }
 
 /**
@@ -425,6 +391,7 @@ Memento.prototype.simhash = null;
 Memento.prototype.captureTimeDelta = -1;
 Memento.prototype.hammingDistance = -1;
 Memento.prototype.simhashIndicatorForHTTP302 = '00000000';
+var simhashesCreated = 0;
 
 /**
 * Fetch URI-M HTML contents and generate a Simhash
@@ -453,9 +420,6 @@ Memento.prototype.setSimhash = function() {
       res.on('end', function(d) {
         var md5hash = md5(thatmemento.originalURI); // URI-R cannot be passed in the raw
 
-        thatmemento.fayeClient.publish('/' + md5hash, {
-          'uriM': thatmemento.uri
-        });
 
         if (buffer2.indexOf('Got an HTTP 302 response at crawl time') === -1 && thatmemento.simhash != '00000000') {
 
@@ -473,8 +437,9 @@ Memento.prototype.setSimhash = function() {
           buffer2 = '';
           buffer2 = null;
 
-          console.log(retStr + ' - ' + mOptions.host + mOptions.path);
-
+          //console.log(retStr + ' - ' + mOptions.host + mOptions.path);
+          simhashesCreated++;
+          
           thatmemento.simhash = retStr;
 
           resolve(retStr);
@@ -497,7 +462,7 @@ Memento.prototype.setSimhash = function() {
 
 
 function fetchTimemap(uri) {
-  console.log('fetchTimeMap');
+  console.log('Fetching TimeMap for ' + uri);
   var res = request('GET', uri);
   var tmData = res.body.toString('utf-8');
 
@@ -513,37 +478,45 @@ function fetchTimemap(uri) {
   return t;
 }
 
+function nextURI(uris) {
+  uris.shift();
+  if(uris.length > 0) {
+	getTimemapX(uris);
+  }
+}
+
 /**
 * Given a URI, return a TimeMap from the Memento Aggregator
 * TODO: God function that does WAY more than simply getting a timemap
 * @param uri The URI-R in-question
 */
-function getTimemapGodFunctionForAlSummarization(uri) {
+function getTimemapX(uris) {
+  var uri = uris[0];
   var timemapHost = 'web.archive.org';
   var timemapPath = '/web/timemap/link/' + uri;
 
   console.log('Starting many asynchronous operations...');
   var tm = fetchTimemap('http://' + timemapHost + timemapPath);
-  if (!tm) {return;}
+  if (!tm) {nextURI(uris); return;}
   
-  tm.calculateSimhashes();
-  
-
-async.series([
-  function(callback) {tm.calculateSimhashes(callback);},
-  function(callback) {tm.saveSimhashesToCache(callback);},
-  function(callback) {tm.calculateHammingDistancesWithOnlineFiltering(callback);},
-  function(callback) {tm.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
-  function(callback) {tm.writeJSONToCache(callback);},
-  function(callback) {tm.createScreenshotsForMementos(callback);}],
-  function(err, result) {
-    if (err) {
-      console.log('ERROR!');
-      console.log(err);
-    }else {
-      console.log('There were no errors executing the callback chain');
-    }
-  });
+  async.series([
+  	  function(callback){callback('');},
+	  function(callback) {tm.calculateSimhashes(callback);},
+	  function(callback) {tm.saveSimhashesToCache(callback);},
+	  function(callback) {tm.calculateHammingDistancesWithOnlineFiltering(callback);},
+	  function(callback) {tm.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+	  function(callback) {tm.writeJSONToCache(callback);},
+	  function(callback) {tm.createScreenshotsForMementos(callback);}],
+	  function(err, result) {
+		if (err) {
+		  console.log('ERROR!');
+		  console.log(err);
+		}else {
+		  console.log('There were no errors executing the callback chain');
+		  nextURI(uris);
+		}
+	  }
+  );
 
 
   // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
@@ -593,25 +566,21 @@ async.series([
 
 
 TimeMap.prototype.calculateSimhashes = function(callback) {
+  
   var theTimeMap = this;
+  console.log('Calculating Simhashes for ' + theTimeMap.originalURI);
   var arrayOfSetSimhashFunctions = [];
-  var bar = new ProgressBar('  Simhashing [:bar] :percent :etas', {
-    'complete': '=',
-    'incomplete': ' ',
-    'width': 20,
-    'total': this.mementos.length
-  });
-
-  var client = new faye.Client(notificationServer);
 
   for (var m = 0; m < this.mementos.length; m++) {
-    // Allow the Promise async access to browser-based client communication
-    this.mementos[m].fayeClient = client;
-    this.mementos[m].originalURI = this.originalURI; // The Promise needs the original URI for Faye publication. Scope creep!
-
+    this.mementos[m].originalURI = this.originalURI; 
     arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash());
-    bar.tick(1);
   }
+
+  function echoNumberOfMementosComplete(uri,totalNumberOfMementos) {
+    console.log(simhashesCreated + '/' + totalNumberOfMementos + ' generated for ' + uri);
+  }
+
+  var reportSimhashStatus = setInterval(echoNumberOfMementosComplete,2000,this.originalURI,this.mementos.length);
 
   // console.time('simhashing');
   var theTimemap = this;
@@ -621,16 +590,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
     console.log('OMFG, an error!');
     console.log(err);
   }).then(function() {
-    client.publish('/' + md5(theTimeMap.originalURI), {
-      'uriM': 'done'
-    });
-
-    // Remove fayeClients from all mementos so they can be converted to JSON
-    for (var m = 0; m < theTimeMap.mementos.length; m++) {
-      delete theTimeMap.mementos[m].fayeClient;
-      // Delete theTimeMap.mementos[m].originalURI;
-    }
-
+    clearInterval(reportSimhashStatus);
     console.log('Checking if there are mementos to remove');
     var mementosRemoved = 0;
     console.log('About to go into loop of ## mementos: ' + (theTimemap.mementos.length - 1));
@@ -651,7 +611,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
 
 TimeMap.prototype.saveSimhashesToCache = function(callback,format) {
   // TODO: remove dependency on global timemap t
-
+  console.log('Saving Simhashes to Cache');
   var strToWrite = '';
   for (var m = 0; m < this.mementos.length; m++) {
     if (this.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302) {
@@ -739,13 +699,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
 
   }
 
-  setTimeout(function() {
-    var client = new faye.Client(notificationServer);
-    client.publish('/' + md5(_this.originalURI), {
-      'uriM': 'done'
-    });
-  }, 2000);
-
   callback();
 }
 
@@ -800,12 +753,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function(callbac
 
   console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
 
-  setTimeout(function() {
-    var client = new faye.Client(notificationServer);
-    client.publish('/' + md5(_this.originalURI), {
-      'uriM': 'done'
-    });
-  }, 2000);
 
   callback();
 };
@@ -834,13 +781,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipF
   for (var i = initialIndex; i < this.mementos.length; i = i + skipFactor + 1) {
     this.mementos[i].selected = true;
   }
-
-  setTimeout(function() {
-    var client = new faye.Client(notificationServer);
-    client.publish('/' + md5(_this.originalURI), {
-      'uriM': 'done'
-    });
-  }, 2000);
 
   callback('');
 };
@@ -948,14 +888,14 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
   for (var m = 0; m < this.mementos.length; m++) {
     // console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
     // console.log("...with SimHash: "+this.mementos[m].simhash);
-    if (m > 0) {
-      console.log(this.mementos[0]);
+    if (m > 0) { // Hamming distance is only applicable once we have a basis
+      /*console.log(this.mementos[0]);
       console.log(this.mementos[0]['simhash']);
       console.log("Simhash: "+this.mementos[m].simhash);
       console.log(this.mementos[m].simhash);
       console.log(this.mementos[m]['simhash']);
       console.log(typeof (this.mementos[m].simhash));
-      console.log(typeof (this.mementos[m]['simhash']));
+      console.log(typeof (this.mementos[m]['simhash']));*/
       if (typeof this.mementos[m]['simhash'] == 'object') { // Odd behavior of the simhash attr being reported as an obj, correct it here
         this.mementos[m]['simhash'] = this.mementos[m]['simhash'] + '';
       }
@@ -965,19 +905,23 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
       this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
       // console.log("Getting hamming basis");
       this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
+       
+                  
+      var formattedSimhashStrings = formatStringsToHighlightDifferences([this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash]);
+      var testingString = formattedSimhashStrings[0];
+      var pivotString = formattedSimhashStrings[1];
+      
 
       console.log('Comparing hamming distances (simhash,uri) = ' + this.mementos[m].hammingDistance + '\n' +
-        ' > testing: ' + this.mementos[m].simhash + ' ' + this.mementos[m].uri + '\n' +
-        ' > pivot:   ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
+        ' > testing: ' + testingString + ' ' + this.mementos[m].uri + '\n' +
+        ' > pivot:   ' + pivotString + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
 
       if (this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { // Filter the mementos if hamming distance is too small
         lastSignificantMementoIndexBasedOnHamming = m;
 
         // copyOfMementos.push(t.mementos[m]); // Only push mementos that pass threshold requirements
       }
-
-      // console.log(t.mementos[m].uri+" hammed!");
-    }else if (m === 0) {console.log('m==0, continuing'); }
+    }
   }
 
   console.log((this.mementos.length - copyOfMementos.length) + ' mementos trimmed due to insufficient hamming, ' + this.mementos.length + ' remain.');
@@ -986,6 +930,18 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
   if (callback) {callback(''); }
 };
 
+
+function formatStringsToHighlightDifferences(strs) { // This does not do what we expect due to the concatenation subsequently overwriting the color formatting
+  return strs;
+
+  for(var i = 0; i < strs.length; i++){
+    if (strs[0].substr(i,1) != strs[1].substr(i,1)) {
+	  strs[0] = strs[0].substr(0,i) + strs[0].substr(i,1).red + (i + 1 < strs[0].length ? strs[0].substr(i+1) : '');
+	  strs[1] = strs[1].substr(0,i) + strs[1].substr(i,1).red + (i + 1 < strs[1].length ? strs[1].substr(i+1) : '');
+    }
+  }
+  return strs;
+}
 
 /**
 * Goes to URI-T(?), grabs contents, parses, and associates mementos
@@ -1023,7 +979,8 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
 
         if (tmInstance.mementos.length === 0) {
           console.log('There were no mementos for ' + uriR);
-          return;
+          //return;
+          callback();
         }
 
         callback();
@@ -1050,7 +1007,7 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
    ********************************* */
 
 function getHamming(str1, str2) {
-  if (str1 || !str2) { // Catch nulls
+  if (!str1 || !str2) { // Catch nulls
     return 0;
   }
 
