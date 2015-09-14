@@ -105,7 +105,7 @@ function main() {
                '*******************************').blue);
 
 //var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
-var lines = fs.readFileSync('uris_lulwah_problematic.txt').toString().split("\n");
+var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
 batchAlsumTest(lines);
 
 
