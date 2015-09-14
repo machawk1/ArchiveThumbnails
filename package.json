@@ -29,7 +29,8 @@
     "sync-prompt": "*",
     "rimraf": "*",
     "faye": "*",
-    "blueimp-md5": "*"
+    "blueimp-md5": "*",
+    "line-reader": "*"
   },
   "main": "index",
   "engines": {

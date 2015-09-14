@@ -104,7 +104,8 @@ function main() {
                'THUMBNAIL SUMMARIZATION SERVICE\r\n' +
                '*******************************').blue);
 
-var lines = fs.readFileSync('uris_lulwah.txt').toString().split("\n");
+//var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
+var lines = fs.readFileSync('uris_lulwah_problematic.txt').toString().split("\n");
 batchAlsumTest(lines);
 
 
@@ -424,7 +425,9 @@ Memento.prototype.setSimhash = function() {
         if (buffer2.indexOf('Got an HTTP 302 response at crawl time') === -1 && thatmemento.simhash != '00000000') {
 
           var sh = simhash((buffer2).split('')).join('');
-          var retStr = getHexString(sh);
+          //console.log(sh);
+          //var retStr = getHexString(sh);
+          var retStr = sh; // Changing the Simhash to a bin string from hex for more refined calculation
 
           if (!retStr || retStr === Memento.prototype.simhashIndicatorForHTTP302) {
             // Normalize so not undefined
@@ -579,7 +582,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
   function echoNumberOfMementosComplete(uri,totalNumberOfMementos) {
     console.log(simhashesCreated + '/' + totalNumberOfMementos + ' generated for ' + uri);
   }
-
+  simhashesCreated = 0;
   var reportSimhashStatus = setInterval(echoNumberOfMementosComplete,2000,this.originalURI,this.mementos.length);
 
   // console.time('simhashing');
@@ -901,12 +904,12 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
       }
       
       if ((this.mementos[m]['simhash'].match(/0/g) || []).length === 32) {console.log('0s, returning'); continue;}
-      // console.log("Calculating hamming distance");
+      console.log("Calculating hamming distance");
       this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
       // console.log("Getting hamming basis");
       this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
-       
-                  
+                 
+      /*
       var formattedSimhashStrings = formatStringsToHighlightDifferences([this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash]);
       var testingString = formattedSimhashStrings[0];
       var pivotString = formattedSimhashStrings[1];
@@ -915,7 +918,7 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
       console.log('Comparing hamming distances (simhash,uri) = ' + this.mementos[m].hammingDistance + '\n' +
         ' > testing: ' + testingString + ' ' + this.mementos[m].uri + '\n' +
         ' > pivot:   ' + pivotString + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
-
+      */
       if (this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { // Filter the mementos if hamming distance is too small
         lastSignificantMementoIndexBasedOnHamming = m;
 
@@ -1006,30 +1009,34 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
         RELEVANT yet ABSTRACTED generic functions
    ********************************* */
 
-function getHamming(str1, str2) {
-  if (!str1 || !str2) { // Catch nulls
+function getHamming(str1_bin, str2_bin) {
+  if (!str1_bin || !str2_bin) { // Catch nulls
     return 0;
   }
 
-  if (str1.length !== str2.length) {
-    console.log('Oh noes! Hamming went awry! The lengths are not equal!');
-    console.log(str1 + ' ' + str2 + ' ' + str1.length + ' ' + str2.length);
-
-    // ^Throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
-
+  if (str1_bin.length !== str2_bin.length) {
     // Resilience instead of crashing
-    console.log('Unequal lengths when both strings must be equal to calculate hamming distance.');
+    console.log('Unequal lengths when both strings must be equal to calculate hamming distance:');
+    console.log(str1_bin + ' ' + str2_bin + ' ' + str1_bin.length + ' ' + str2_bin.length);
     return 0;
-  }else if (str1 === str2) {
+  }else if (str1_bin === str2_bin) {
     return 0;
   }
 
-  var d = 0;
-  for (var ii = 0; ii < str1.length; ii++) {
-    if (str1[ii] !== str2[ii]) {d++; }
+  var calculatedHammingDistance = 0;  
+  //var str1_bin = Hex2BinWithPadding(str1_hex);
+  //var str2_bin = Hex2BinWithPadding(str2_hex);
+  
+  console.log('foo');
+  for (var ii = 0; ii < str1_bin.length; ii++) {
+    if (str1_bin[ii] !== str2_bin[ii]) {
+      calculatedHammingDistance++;
+    }
   }
-
-  return d;
+  
+  //console.log('H('+str1_bin+','+str2_bin+') = ' + calculatedHammingDistance);
+  
+  return calculatedHammingDistance;
 }
 
 // Fischer-Yates shuffle so we don't fetch the memento in-order but preserve
@@ -1121,6 +1128,22 @@ function Hex2Bin(n) {
   }
 
   return parseInt(n,16).toString(2);
+}
+
+function Hex2BinWithPadding(n) { // Turns (e.g.) 4e to 01001110 instead of 1001110
+  if (!checkHex(n)) {
+    return 0;
+  }
+  
+  var binStr = '';
+  for(var i = 0; i < n.length; i++) {
+    var targetChar = n.charAt(i);
+    var targetCharAsNaiveHex = parseInt(targetChar,16).toString(2);
+    pad = '0000'
+    binStr += (pad + targetCharAsNaiveHex).slice(-pad.length)
+  }
+  
+  return binStr;
 }
 
 function Hex2Dec(n) {
