@@ -16,7 +16,7 @@ http*
 screenshots/*.png
 cache/simhash_*
 cache/simhashes_*
-composites/*
+composites/*.png
 
 # node remnants
 node_modules
