@@ -7,6 +7,8 @@ if(!isset($_GET['uri']) || $_GET['uri'] == "") {echo "You must pass a URI parame
 
 $uri = $_GET['uri'];
 $sanitizedURI = trim(preg_replace('/[\.\/\-]/','',$uri));
+$sanitizedURI = str_replace('www','',$sanitizedURI);
+$sanitizedURI = str_replace('http','',$sanitizedURI);
 
 $files = glob('./screenshots/*'.$sanitizedURI.'_200.png');
 if(count($files) == 0) {
@@ -14,25 +16,27 @@ if(count($files) == 0) {
   return;
 }
 
+
 $mod = floor(count($files)/16);
 $str = '';
 $cmd = 'montage ';
-$fileStr = '';
 
 $imageCount = 0;
 $selectedImages = array();
 
+// For URIs that have fewer than 16 thumbnails
+if($mod < 1) { $mod = 1;}
+
+
 
 for($f=0; $f<count($files); $f++) {
-  $str .= "<span";
-  if($f % $mod != 0){
-    $str .= ' style="color: #ccc;"';
-    $fileStr .= $files[$f].' ';
+  if($f % $mod == 0){
     array_push($selectedImages,'./'.$files[$f]);
-    if(++$imageCount >= 16) {break;}
+    ++$imageCount;
+    if($imageCount >= 16) {break;}
   }
-  $str .= ">".$files[$f]."</span><br />";
 }
+
 
 $im = new Imagick($selectedImages);
 $res = $im->montageImage(new ImagickDraw(), '4x4', '200x150', '0', '0');
