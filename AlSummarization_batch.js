@@ -58,16 +58,6 @@ var app = express();
 
 var host = 'http://' + (process.env.SERVER_HOST || 'localhost'); // Format: scheme://hostname
 
-/* Custom ports if specified on command-line */
-var thumbnailServicePort = argv.p ? argv.p : 15421;
-var localAssetServerPort = argv.ap ? argv.a : 1338;
-var notificationServerPort = argv.ap ? argv.n : 15422;
-
-/* Derived host access points */
-var localAssetServer = host + ':' + localAssetServerPort + '/';
-var thumbnailServer = host + ':' + thumbnailServicePort + '/';
-var notificationServer = host + ':' + notificationServerPort + '/';
-
 // Fresh system for testing (NOT IMPLEMENTED)
 var nukeSystemData = argv.clean ? argv.clean : false;
 var uriR = '';
@@ -100,27 +90,13 @@ function batchAlsumTest(uriRs) {
 * Start the application by initializing server instances
 */
 function main() {
-  console.log(('*******************************\r\n' +
-               'THUMBNAIL SUMMARIZATION SERVICE\r\n' +
-               '*******************************').blue);
+  console.log(('************************************\r\n' +
+               'THUMBNAIL SUMMARIZATION - BATCH MODE\r\n' +
+               '************************************').blue);
+  
+  var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
+  batchAlsumTest(lines);
 
-//var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
-var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
-batchAlsumTest(lines);
-
-
-  var endpoint = new PublicEndpoint();
-
-  // Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
-  // http.createServer(respond).listen(thumbnailServicePort);
-  app.get('/*', endpoint.respondToClient);
-  app.listen(thumbnailServicePort);
-return;
-
-
-  // TODO: react accordingly if port listening failed, don't simply assume the service was started.
-  console.log('* ' + ('Thumbnails service started on Port ' + thumbnailServicePort).red);
-  console.log('> Try ' + thumbnailServer + '?URI-R=http://matkelly.com in your web browser for sample execution.');
 }
 
 /**
@@ -149,184 +125,6 @@ function PublicEndpoint() {
   this.isAValidStrategyParameter = function(strategyParameter) {
     return theEndPoint.validStrategyParameters.indexOf(strategyParameter) > -1;
   };
-
-
-  /**
-  * Handle an HTTP request and respond appropriately
-  * @param request  The request object from the client representing query information
-  * @param response Currently active HTTP response to the client used to return information to the client based on the request
-  */
-  this.respondToClient = function(request, response) {
-    response.clientId = Math.random() * 101 | 0; // associate a simple random integer to the user for logging (this is not scalable with the implemented method)
-
-    var headers = {};
-
-    // IE8 does not allow domains to be specified, just the *
-    // headers['Access-Control-Allow-Origin'] = req.headers.origin;
-    headers['Access-Control-Allow-Origin'] = '*';
-    headers['Access-Control-Allow-Methods'] = 'GET';
-    headers['Access-Control-Allow-Credentials'] = false;
-    headers['Access-Control-Max-Age'] = '86400'; // 24 hours
-    headers['Access-Control-Allow-Headers'] = 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime';
-
-    if (request.method !== 'GET') {
-      console.log('Bad method ' + request.method + ' sent from client. Try HTTP GET');
-      response.writeHead(405, headers);
-      response.end();
-      return;
-    }
-
-    var query = url.parse(request.url, true).query;
-    /******************************
-       IMAGE PARAMETER - allows binary image data to be returned from service
-    **************************** */
-    if (query.img) {
-      // Return image data here
-      var fileExtension = query.img.substr('-3'); // Is this correct to use a string and not an int!?
-      console.log('fetching ' + query.img + ' content');
-
-      var img = fs.readFileSync(__dirname + '/' + query.img);
-      response.writeHead(200, {'Content-Type': 'image/' + fileExtension });
-      response.end(img, 'binary');
-
-      return;
-    }
-
-    /******************************
-       URI-R PARAMETER - required if not img, supplies basis for archive query
-    **************************** */
-
-    function isARESTStyleURI(uri) {
-      return (uri.substr(0, 5) === '/http');
-    }
-
-    if (!query['URI-R'] && // a URI-R was not passed via the query string...
-        request._parsedUrl && !isARESTStyleURI(request._parsedUrl.pathname.substr(0, 5))) { // ...or the REST-style specification
-      console.log('No URI-R sent with request. ' + request.url + ' was sent. Try ' + thumbnailServer + '/?URI-R=http://matkelly.com');
-      response.writeHead(400, headers);
-      response.write(theEndPoint.getHTMLSubmissionForm());
-      response.end();
-      return;
-    }else if (request._parsedUrl && !query['URI-R']) {
-      // Populate query['URI-R'] with REST-style URI and proceed like nothing happened
-      query['URI-R'] = request._parsedUrl.pathname.substr(1);
-    }else if (query['URI-R']) { // URI-R is specied as a query parameter
-      console.log('URI-R valid, using query parameter.');
-    }
-
-    uriR = query['URI-R'];
-
-    var access = theEndPoint.validAccessParameters[0]; // Not specified? access=interface
-    // Override the default access parameter if the user has supplied a value
-    //  via query parameters
-    if (query.access) {
-      access = query.access;
-    }
-
-    if (!theEndPoint.isAValidAccessParameter(access)) { // A bad access parameter was passed in
-      console.log('Bad access query parameter: ' + access);
-      response.writeHead(501, headers);
-      response.write('The access parameter was incorrect. Try one of ' + theEndPoint.validAccessParameters.join(',') + ' or omit it entirely from the query string\r\n');
-      response.end();
-      return;
-    }
-
-    headers['X-Means-Of-Access'] = access;
-
-    var strategy = theEndPoint.validStrategyParameters[0]; // Not specified? access=interface
-    var strategyHeuristic = true; // If no strategy is expicitly specified, test-and-guess
-
-    if (query.strategy) {
-      strategy = query.strategy;
-      strategyHeuristic = false;
-    }
-
-    if (!theEndPoint.isAValidStrategyParameter(strategy)) { // A bad strategy parameter was passed in
-      console.log('Bad strategy query parameter: ' + strategy);
-      response.writeHead(501, headers);
-      response.write('The strategy parameter was incorrect. Try one of ' + theEndPoint.validStrategyParameters.join(',') + ' or omit it entirely from the query string\r\n');
-      response.end();
-      return;
-    }
-
-    headers['X-Summarization-Strategy'] = strategy;
-
-    if (!uriR.match(/^[a-zA-Z]+:\/\//)) {uriR = 'http://' + uriR; }// Prepend scheme if missing
-
-
-    headers['Content-Type'] = 'text/html'; // application/json
-
-    response.writeHead(200, headers);
-    console.log(query);
-    console.log('New client request (' + response.clientId + ')\r\n> URI-R: ' + query['URI-R'] + '\r\n> Access: ' + access + '\r\n> Strategy: ' + strategy);
-
-    if (!validator.isURL(uriR)) { // Return "invalid URL"
-      returnJSONError('Invalid URI');
-      return;
-    }
-
-    function returnJSONError(str) {
-      response.write('{"Error": "' + str + '"}');
-      response.end();
-    }
-
-    response.thumbnails = []; // Carry the original query parameters over to the eventual response
-    response.thumbnails['access'] = access;
-    response.thumbnails['strategy'] = strategy;
-
-    /*TODO: include consideration for strategy parameter supplied here
-            If we consider the strategy, we can simply use the TimeMap instead of the cache file
-            Either way, the 'response' should be passed to the function representing the chosen strategy
-            so the function still can return HTML to the client
-    */
-    var t = new TimeMap();
-
-    t.originalURI = query['URI-R'];
-
-    // TODO: optimize this out of the conditional so the functions needed for each strategy are self-contained (and possibly OOP-ified)
-    if (strategy === 'alSummarization') {
-      console.log('***************');
-      var cacheFile = new SimhashCacheFile(uriR);
-      cacheFile.path += '.json';
-      console.log('Checking if a cache file exists for ' + query['URI-R'] + '...');
-      cacheFile.readFileContentSync(
-        function success(data) { // A cache file has been previously generated using the alSummarization strategy
-          processWithFileContents(data);
-        },
-        function failed() {
-          getTimemapGodFunctionForAlSummarization(query['URI-R'], response);
-        }
-
-      );
-    }else if (strategy === 'random') {
-      t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
-        var numberOfMementosToSelect = 16; // TODO: remove magic number
-        t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect);
-      });
-
-    }else if (strategy === 'temporalInterval') {
-      t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
-        t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
-
-      });
-    }else if (strategy === 'interval') {
-      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
-        t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
-      });
-    }
-
-    // TODO: break apart callback hell
-    function generateThumbnailsWithSelectedMementos() {
-      // suboptimal route but reference to t must be preserved
-      // TODO: move this to TimeMap prototype
-      t.supplySelectedMementosAScreenshotURI(strategy, function(callback) {
-          t.createScreenshotsForMementos(
-            function() {console.log('Done creating screenshots');}
-          );
-
-      });
-    }
-  }
 }
 
 /**
@@ -407,7 +205,11 @@ Memento.prototype.setSimhash = function() {
     var mOptions = url.parse(thaturi);
     // console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
 
-    var req = http.request({'host': mOptions.host, 'path': mOptions.path}, function(res) {
+    var req = http.request({
+        'host': mOptions.host, 
+        'path': mOptions.path,
+        'headers': {'Accept-Datetime': 'Thu, 31 May 2007 20:35:00 GMT'}
+    }, function(res) {
       // var hd = new memwatch.HeapDiff();
       res.setEncoding('utf8');
       res.on('data', function(data) {
@@ -474,7 +276,7 @@ function fetchTimemap(uri) {
   t.createMementos();
 
   if (t.mementos.length === 0) {
-    console.log('There were no mementos for ' + uri + ' :(');
+    console.log('XThere were no mementos for ' + uri + ' :(');
     return;
   }
   
@@ -483,8 +285,16 @@ function fetchTimemap(uri) {
 
 function nextURI(uris) {
   uris.shift();
-  if(uris.length > 0) {
+  
+  if (uris.length > 0) {
+    if (uris[0].length === 0) { // Skip blank lines in input file, recurse
+      uris.shift();
+      nextURI(uris);
+      return;
+    }
 	getTimemapX(uris);
+  } else {
+    console.log('Done processing all URIs.');
   }
 }
 
@@ -515,7 +325,7 @@ function getTimemapX(uris) {
 		  console.log('ERROR!');
 		  console.log(err);
 		}else {
-		  console.log('There were no errors executing the callback chain');
+		  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');
 		  nextURI(uris);
 		}
 	  }
@@ -580,7 +390,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
   }
 
   function echoNumberOfMementosComplete(uri,totalNumberOfMementos) {
-    console.log(simhashesCreated + '/' + totalNumberOfMementos + ' generated for ' + uri);
+    console.log(' - ' + simhashesCreated + '/' + totalNumberOfMementos + ' generated for ' + uri);
   }
   simhashesCreated = 0;
   var reportSimhashStatus = setInterval(echoNumberOfMementosComplete,2000,this.originalURI,this.mementos.length);
@@ -594,13 +404,13 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
     console.log(err);
   }).then(function() {
     clearInterval(reportSimhashStatus);
-    console.log('Checking if there are mementos to remove');
+
     var mementosRemoved = 0;
-    console.log('About to go into loop of ## mementos: ' + (theTimemap.mementos.length - 1));
+    console.log('Iterating  through ' + (theTimemap.mementos.length - 1) + ' mementos to find those with HTTP 3XX codes and removing.');
 
     // Remove all mementos whose payload body was a Wayback soft 302
     for (var i = theTimemap.mementos.length - 1; i >= 0; i--) {
-      if (theTimemap.mementos[i].simhash === 'isA302DeleteMe') {
+      if (theTimemap.mementos[i].simhash === 'isA302DeleteMe' || theTimemap.mementos[i].simhash === '00000000') {
         theTimemap.mementos.splice(i, 1);
         mementosRemoved++;
       }
@@ -839,8 +649,8 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     console.log(memento.screenshotURI + ' already exists...continuing');
     callback();
     return;
-  }catch (e) {
-    console.log((new Date()).getTime() + ' ' + memento.screenshotURI + ' does not exist...generating');
+  }catch (e) { //(new Date()).getTime()
+    console.log(' - ' + memento.screenshotURI + ' does not exist...generating');
   }
 
   var options = {
@@ -856,7 +666,6 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
 
   };
 
-  console.log('About to start screenshot generation process for ' + uri);
   webshot(uri, 'screenshots/' + filename, options, function(err) {
     if (err) {
       console.log('Error creating a screenshot for ' + uri);
@@ -871,64 +680,47 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
             console.log('We could not downscale ./screenshots/' + filename + ' :(');
           }
 
-          console.log('Successfully scaled ' + filename + ' to 200 pixels', stdout);
+          console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.', stdout);
+          deleteFile('./screenshots/' + filename);
         });
 
-      console.log('t=' + (new Date()).getTime() + ' ' + 'Screenshot created for ' + uri);
+      console.log(' - CREATED screenshot ' + uri);
       callback();
     }
   });
-
 };
+
+function deleteFile(path) {
+  fs.unlink(path, function(err) {
+    if (!err) {
+      console.log(' - DELETED' + path);
+    } else {
+      console.log('Error deleting ' + path);
+    }
+  });
+}
 
 TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callback) {
   console.time('Hamming And Filtering, a synchronous operation');
 
   var lastSignificantMementoIndexBasedOnHamming = 0;
-  var copyOfMementos = [this.mementos[0]];
 
   console.log('Calculate hamming distance of ' + this.mementos.length + ' mementos');
   for (var m = 0; m < this.mementos.length; m++) {
-    // console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
-    // console.log("...with SimHash: "+this.mementos[m].simhash);
     if (m > 0) { // Hamming distance is only applicable once we have a basis
-      /*console.log(this.mementos[0]);
-      console.log(this.mementos[0]['simhash']);
-      console.log("Simhash: "+this.mementos[m].simhash);
-      console.log(this.mementos[m].simhash);
-      console.log(this.mementos[m]['simhash']);
-      console.log(typeof (this.mementos[m].simhash));
-      console.log(typeof (this.mementos[m]['simhash']));*/
       if (typeof this.mementos[m]['simhash'] == 'object') { // Odd behavior of the simhash attr being reported as an obj, correct it here
         this.mementos[m]['simhash'] = this.mementos[m]['simhash'] + '';
       }
       
       if ((this.mementos[m]['simhash'].match(/0/g) || []).length === 32) {console.log('0s, returning'); continue;}
-      console.log("Calculating hamming distance");
       this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
-      // console.log("Getting hamming basis");
       this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
                  
-      /*
-      var formattedSimhashStrings = formatStringsToHighlightDifferences([this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash]);
-      var testingString = formattedSimhashStrings[0];
-      var pivotString = formattedSimhashStrings[1];
-      
-
-      console.log('Comparing hamming distances (simhash,uri) = ' + this.mementos[m].hammingDistance + '\n' +
-        ' > testing: ' + testingString + ' ' + this.mementos[m].uri + '\n' +
-        ' > pivot:   ' + pivotString + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
-      */
       if (this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { // Filter the mementos if hamming distance is too small
         lastSignificantMementoIndexBasedOnHamming = m;
-
-        // copyOfMementos.push(t.mementos[m]); // Only push mementos that pass threshold requirements
       }
     }
   }
-
-  console.log((this.mementos.length - copyOfMementos.length) + ' mementos trimmed due to insufficient hamming, ' + this.mementos.length + ' remain.');
-  copyOfMementos = null;
 
   if (callback) {callback(''); }
 };
@@ -962,7 +754,7 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
 
   var buffer = '';
   var retStr = '';
-  console.log('Starting many asynchronous operations...');
+  console.log('Starting many asynchronous operationsX...');
   console.log('Timemap output here');
   var tmInstance = this;
 
@@ -981,7 +773,7 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
         tmInstance.createMementos();
 
         if (tmInstance.mementos.length === 0) {
-          console.log('There were no mementos for ' + uriR);
+          console.log('YThere were no mementos for ' + uriR);
           //return;
           callback();
         }
@@ -1027,7 +819,6 @@ function getHamming(str1_bin, str2_bin) {
   //var str1_bin = Hex2BinWithPadding(str1_hex);
   //var str2_bin = Hex2BinWithPadding(str2_hex);
   
-  console.log('foo');
   for (var ii = 0; ii < str1_bin.length; ii++) {
     if (str1_bin[ii] !== str2_bin[ii]) {
       calculatedHammingDistance++;
