@@ -4,20 +4,18 @@ function SimhashCacheFile(forUri){
 		//operation = "replace","append","read"
 
 		//TODO, check if it already exists
-		this.path = "./cache/simhashes_"+forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
+		this.path = './cache/simhashes_' + forUri.replace(/[^a-z0-9]/gi, '').toLowerCase();
 
 		this.replaceContentWith = function(str){
-			console.log("in replaceContentWith()");
-			console.log("> deleting old cache file");
+			console.log(' - DELETING old cache file.');
 			this.deleteCacheFile();
-			console.log("> done deleting cache file, writing new contents");
+            console.log(' - WRITING new cache file...');
 			this.writeFileContents(str);
-			console.log("> done writing new contents to cache");
 		};
 
 		this.writeFileContents = function(str){
 			fs.appendFileSync(this.path,str);
-			console.log("Wrote simhash to "+this.path);
+			console.log(' - WRITING new cache file complete.');
 		};
 
 		this.deleteCacheFile = function(){
@@ -28,12 +26,11 @@ function SimhashCacheFile(forUri){
 		this.readFileContentsSync = function(callbackSuccess,callbackFail){
             try {
 				var x = fs.readFileSync(this.path,"utf-8");
-				console.log("X");
-				console.log(x);
+
 				return x;
             }catch(e) {
               // No file by that name
-              console.log('There was no cache file at ' + this.path);
+              //console.log('There was no cache file at ' + this.path);
               return null;
             }
 			
@@ -51,6 +48,7 @@ function SimhashCacheFile(forUri){
 		};
 
 		this.writeFileContentsAsJSON = function(str){
+		    console.log('JSON written out');
 			fs.writeFile(this.path+".json",str,function(err){if(err){throw error;}});
 		};
 
