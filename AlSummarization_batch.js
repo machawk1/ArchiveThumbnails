@@ -88,8 +88,8 @@ function batchProcessWithAllStrategies(uriRs) {
     console.log('GENERATING cache file at ' + cacheFile.path + ', one does not currently exist.');
     async.series([
       function(callback){executeAlSummarizationStrategy(uriRs, callback);},
-      function(callback){console.log('Performing strategy 2');performStrategy_interval(callback);},
-      function(callback){console.log('Performing strategy 3');performStrategy_temporalInterval(callback);}
+      function(callback){performStrategy_interval(callback);},
+      function(callback){performStrategy_temporalInterval(callback);}
       ]
     );
   }
@@ -120,6 +120,7 @@ function isValidStrategy(strategyIn) {
 
 
 function performStrategy_interval(cb) {
+  console.log('*************************INTERVAL STRATEGY*************************');
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
   var mementos = [];
@@ -135,7 +136,8 @@ function performStrategy_interval(cb) {
     
     var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
     console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-    
+    var indexes = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
+    console.log(indexes);
   }
 
   cb();
@@ -149,6 +151,14 @@ function countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos) {
     }
   }
   return screenshotCount;
+}
+
+function getIndexesForMementosNeededToBuildInterval(mementos, iterationFactor) {
+  var indexes = [];
+  for(var i = 0; i < mementos.length; i = i + iterationFactor) {
+    indexes.push(i);
+  }
+  return indexes;
 }
 
 function performStrategy_temporalInterval(cb) {
