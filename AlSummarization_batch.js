@@ -70,24 +70,29 @@ var lineReader = require('line-reader');
 var HAMMING_DISTANCE_THRESHOLD = 4;
 var HAMMING_DISTANCE_THRESHOLD_INIT = 4;
 
-/********************************
-   TODO: reorder functions (main first) to be more maintainable 20141205
-****************************** */
-
-function batchAlsumTest(uriRs) {
+function batchProcessWithAllStrategies(uriRs) {
   var cacheFile = new SimhashCacheFile(uriRs[0]);
   cacheFile.path += '.json';
 
+  // **********************************
+  // Invoke AlSummarization strategy
+  // **********************************
   var fileContents = cacheFile.readFileContentsSync();
-
+  
+  console.log('testing interval function');
+  
   if (fileContents) {
     console.log('Found cache file at ' + cacheFile.path);
     processWithFileContents(data);
   } else {
     console.log('GENERATING cache file at ' + cacheFile.path + ', one does not currently exist.');
-    getTimemapX(uriRs);
+    async.series([
+      function(callback){executeAlSummarizationStrategy(uriRs, callback);},
+      function(callback){console.log('Performing strategy 2');performStrategy_interval(callback);},
+      function(callback){console.log('Performing strategy 3');performStrategy_temporalInterval(callback);}
+      ]
+    );
   }
-
 }
 
 /**
@@ -98,19 +103,9 @@ function main() {
                'THUMBNAIL SUMMARIZATION - BATCH MODE\r\n' +
                '************************************').blue);
   
-  if (!isValidStrategy(strategy)) {
-    console.log('Invalid strategy specified, use one of ' + validStrategyParameters.join(', '));
-    return;
-  }
-  
-  console.log(' Strategy specified: ' + strategy);
-  
-  if (strategy == 'alSummarization') {
-    var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
-    batchAlsumTest(lines);
-  }
-  
 
+  var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
+  batchProcessWithAllStrategies(lines);
 }
 
 function isValidStrategy(strategyIn) {
@@ -122,6 +117,46 @@ function isValidStrategy(strategyIn) {
   
   return false;
 }
+
+
+function performStrategy_interval(cb) {
+  var cacheFiles = fs.readdirSync('./cache/');
+  var filteredCacheFiles = [];
+  var mementos = [];
+  for(var c=0; c<cacheFiles.length; c++){
+   if(cacheFiles[c].indexOf('.') !== 0 && cacheFiles[c].substr(-5) === '.json') {
+     filteredCacheFiles.push(cacheFiles[c]);
+   }
+  }
+  
+  for(var cFile=0; cFile < filteredCacheFiles.length; cFile++) {
+    // Do interval strategy for a URI
+    mementos = JSON.parse(fs.readFileSync('cache/' + filteredCacheFiles[cFile]).toString());
+    
+    var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+    console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+    
+  }
+
+  cb();
+}
+
+function countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos) {
+  var screenshotCount = 0;
+  for(var m = 0; m < mementos.length; m++) {
+    if (mementos[m].screenshotURI) {
+      screenshotCount++;
+    }
+  }
+  return screenshotCount;
+}
+
+function performStrategy_temporalInterval(cb) {
+  console.log('In strategy 3');
+}
+
+
+
 
 /**
 * Delete all derived data including caching and screenshot - namely for testing
@@ -261,7 +296,6 @@ Memento.prototype.setSimhash = function() {
   }));
 }
 
-
 function fetchTimemap(uri) {
   console.log('Fetching TimeMap for ' + uri);
   var res = request('GET', uri);
@@ -279,35 +313,34 @@ function fetchTimemap(uri) {
   return t;
 }
 
-function nextURI(uris) {
+function nextURI(uris, cb, nextStrategyCallback) {
   uris.shift();
   
   if (uris.length > 0) {
     if (uris[0].length === 0) { // Skip blank lines in input file, recurse
       uris.shift();
-      nextURI(uris);
+      nextURI(uris, cb, nextStrategyCallback);
       return;
     }
-	getTimemapX(uris);
+	cb(uris, nextStrategyCallback);
   } else {
-    console.log('DONE processing all URIs.');
+    nextStrategyCallback();
   }
 }
 
 /**
 * Given a URI, return a TimeMap from the Memento Aggregator
-* TODO: God function that does WAY more than simply getting a timemap
 * @param uri The URI-R in-question
 */
-function getTimemapX(uris) {
+function executeAlSummarizationStrategy(uris, cb) {
   var uri = uris[0];
   var timemapHost = 'web.archive.org';
   var timemapPath = '/web/timemap/link/' + uri;
 
   console.log('Starting many asynchronous operations...');
   var tm = fetchTimemap('http://' + timemapHost + timemapPath);
-  if (!tm) {nextURI(uris); return;}
-  
+  if (!tm) {console.log("bar");nextURI(uris, cb); return;}
+    
   async.series([
   	  function(callback){callback('');},
 	  function(callback) {tm.calculateSimhashes(callback);},
@@ -316,52 +349,50 @@ function getTimemapX(uris) {
 	  function(callback) {tm.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
 	  function(callback) {tm.writeJSONToCache(callback);},
 	  function(callback) {tm.createScreenshotsForMementos(callback);}],
-	  function(err, result) {
+    function(err, result) {
 		if (err) {
 		  console.log('ERROR with http://' + timemapHost + timemapPath + ' : ' +err);
-		  nextURI(uris);
 		}else {
-		  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');
-		  nextURI(uris);
+		  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');  
 		}
+
+
+		nextURI(uris, executeAlSummarizationStrategy, cb);
 	  }
   );
+} 
 
-
-  // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
-  function getRandomSubsetOfMementosArray(arr,siz) {
-    var shuffled = arr.slice(0);
-    var i = arr.length;
-    var temp;
-    var index;
-    while (i--) {
-      index = Math.floor((i + 1) * Math.random());
-      temp = shuffled[index];
-      shuffled[index] = shuffled[i];
-      shuffled[i] = temp;
-    }
-
-    return shuffled.slice(0, size);
+// Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
+function getRandomSubsetOfMementosArray(arr,siz) {
+  var shuffled = arr.slice(0);
+  var i = arr.length;
+  var temp;
+  var index;
+  while (i--) {
+    index = Math.floor((i + 1) * Math.random());
+    temp = shuffled[index];
+    shuffled[index] = shuffled[i];
+    shuffled[i] = temp;
   }
 
-  function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI) {
-    var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];  // Newer
-    var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];  // Older
+  return shuffled.slice(0, size);
+}
 
-    if (newerDate && olderDate) {
-      try {
-        var diff = (parseInt(newerDate) - parseInt(olderDate));
-        return diff;
-      }catch (e) {
-        console.log(e.message);
-      }
-    }else {
-      throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri);
+function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI) {
+  var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];  // Newer
+  var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];  // Older
+
+  if (newerDate && olderDate) {
+    try {
+	  var diff = (parseInt(newerDate) - parseInt(olderDate));
+	  return diff;
+    }catch (e) {
+	  console.log(e.message);
     }
+  }else {
+    throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri);
   }
-} /* End God Function */
-
-
+}
 
 
 
