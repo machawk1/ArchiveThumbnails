@@ -30,7 +30,8 @@
     "rimraf": "*",
     "faye": "*",
     "blueimp-md5": "*",
-    "line-reader": "*"
+    "line-reader": "*",
+    "sync-request": "*"
   },
   "main": "index",
   "engines": {
