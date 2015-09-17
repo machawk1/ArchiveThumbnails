@@ -65,6 +65,7 @@ var uriR = '';
 var lineReader = require('line-reader');
 
 var HAMMING_DISTANCE_THRESHOLD = 4;
+var HAMMING_DISTANCE_THRESHOLD_INIT = 4;
 
 /********************************
    TODO: reorder functions (main first) to be more maintainable 20141205
@@ -80,7 +81,7 @@ function batchAlsumTest(uriRs) {
     console.log('Found cache file at ' + cacheFile.path);
     processWithFileContents(data);
   } else {
-    console.log('No cache file found at ' + cacheFile.path + '. Generating one now...');
+    console.log('GENERATING cache file at ' + cacheFile.path + ', one does not currently exist.');
     getTimemapX(uriRs);
   }
 
@@ -294,7 +295,7 @@ function nextURI(uris) {
     }
 	getTimemapX(uris);
   } else {
-    console.log('Done processing all URIs.');
+    console.log('DONE processing all URIs.');
   }
 }
 
@@ -390,7 +391,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
   }
 
   function echoNumberOfMementosComplete(uri,totalNumberOfMementos) {
-    console.log(' - ' + simhashesCreated + '/' + totalNumberOfMementos + ' generated for ' + uri);
+    console.log(' - ' + simhashesCreated + '/' + totalNumberOfMementos + ' simhashes generated for ' + uri);
   }
   simhashesCreated = 0;
   var reportSimhashStatus = setInterval(echoNumberOfMementosComplete,2000,this.originalURI,this.mementos.length);
@@ -406,8 +407,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
     clearInterval(reportSimhashStatus);
 
     var mementosRemoved = 0;
-    console.log('Iterating  through ' + (theTimemap.mementos.length - 1) + ' mementos to find those with HTTP 3XX codes and removing.');
-
+    var numberOfMementosPre302Trimming = theTimemap.mementos.length;
     // Remove all mementos whose payload body was a Wayback soft 302
     for (var i = theTimemap.mementos.length - 1; i >= 0; i--) {
       if (theTimemap.mementos[i].simhash === 'isA302DeleteMe' || theTimemap.mementos[i].simhash === '00000000') {
@@ -417,14 +417,14 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
     }
 
     // console.timeEnd('simhashing');
-    console.log(mementosRemoved + ' mementos removed due to Wayback "soft 3xxs"');
+    console.log('REMOVED ' + mementosRemoved + ' mementos removed due to Wayback "soft 3xxs". ' + numberOfMementosPre302Trimming + ' --> ' + theTimemap.mementos.length);
     if (callback) {callback('');}
   });
 }
 
 TimeMap.prototype.saveSimhashesToCache = function(callback,format) {
   // TODO: remove dependency on global timemap t
-  console.log('Saving Simhashes to Cache');
+  console.log('CACHING simhashes to a local file');
   var strToWrite = '';
   for (var m = 0; m < this.mementos.length; m++) {
     if (this.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302) {
@@ -432,10 +432,8 @@ TimeMap.prototype.saveSimhashesToCache = function(callback,format) {
     }
   }
 
-  console.log('Done getting simhashes from array');
   var cacheFile = new SimhashCacheFile(this.originalURI);
   cacheFile.replaceContentWith(strToWrite);
-
 
   if (callback) {callback('');}
 }
@@ -453,18 +451,46 @@ TimeMap.prototype.writeJSONToCache = function(callback) {
 */
 TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = function(callback) {
   // Assuming foreach is faster than for-i, this can be executed out-of-order
-  this.mementos.forEach(function(memento,m) {
-    var uri = memento.uri;
-    // console.log("Hamming distance = "+memento.hammingDistance);
-    if (memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD  && memento.hammingDistance >= 0) {
-      // console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
-      memento.screenshotURI = null;
-    }else {
-      var filename = 'alSum_' + uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png'; // Sanitize URI->filename
-      memento.screenshotURI = filename;
-    }
-  });
+  
+  // TODO: verify that the number of mementos meets our magic threshold of 4<x<16
+  
+  var summarizedMementoCountOk = false;
+  var currentHammingThreshold = HAMMING_DISTANCE_THRESHOLD;
+  while(!summarizedMementoCountOk) {
+	  var mementosSelected = 0;
+  
+	  this.mementos.forEach(function(memento,m) {
+		var uri = memento.uri;
+		// console.log("Hamming distance = "+memento.hammingDistance);
+		if (memento.hammingDistance < currentHammingThreshold  && memento.hammingDistance >= 0) {
+		  // console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
+		  memento.screenshotURI = null;
+		} else {
+		  var filename = 'alSum_' + uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png'; // Sanitize URI->filename
+		  memento.screenshotURI = filename;
+		  ++mementosSelected;
+		}
+	  });
 
+	  if (currentHammingThreshold === HAMMING_DISTANCE_THRESHOLD_INIT) {
+		if (mementosSelected < 4) {
+		  console.log('ABORTING due to too few mementos as base hamming threshold');
+		  throw "INSUFFICIENT_MEMENTOS: " + mementosSelected
+		}
+	  }
+      
+      console.log('HAMMING filtering resulted in ' + mementosSelected + ' mementos.');
+	  if (mementosSelected < 4) {
+	    console.log('HAMMING threshold surpassed, revert!');
+		// Revert to previous hamming distance
+	  } else if (mementosSelected > 16) {
+		currentHammingThreshold += 1;
+		console.log('HAMMING threshold insufficient, increasing to ' + currentHammingThreshold);
+	  } else {
+	    console.log('HAMMING criteria met with ' + mementosSelected + ' mementos and hamming = ' + currentHammingThreshold);
+	    summarizedMementoCountOk = true;
+	  }
+  }
   console.log('done with supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back');
   if (callback) {callback('');}
 }
@@ -607,8 +633,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipF
 *                     function means a screenshot should be generated for it.
 */
 TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria) {
-  console.log('Creating screenshots...');
-
   function hasScreenshot(e) {
     return e.screenshotURI !== null;
   }
@@ -617,7 +641,8 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
 
   var criteria = hasScreenshot;
   if (withCriteria) {criteria = withCriteria; }
-
+  
+  console.log('Creating screenshots for ' + self.mementos.filter(criteria).length + ' mementos...');
   async.eachLimit(
     shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
     10,
@@ -693,7 +718,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
 function deleteFile(path) {
   fs.unlink(path, function(err) {
     if (!err) {
-      console.log(' - DELETED' + path);
+      console.log(' - DELETED ' + path);
     } else {
       console.log('Error deleting ' + path);
     }
@@ -701,25 +726,27 @@ function deleteFile(path) {
 }
 
 TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callback) {
-  console.time('Hamming And Filtering, a synchronous operation');
-
   var lastSignificantMementoIndexBasedOnHamming = 0;
 
-  console.log('Calculate hamming distance of ' + this.mementos.length + ' mementos');
+  console.log('CALCULATING hamming distances for ' + this.mementos.length + ' mementos');
   for (var m = 0; m < this.mementos.length; m++) {
     if (m > 0) { // Hamming distance is only applicable once we have a basis
       if (typeof this.mementos[m]['simhash'] == 'object') { // Odd behavior of the simhash attr being reported as an obj, correct it here
         this.mementos[m]['simhash'] = this.mementos[m]['simhash'] + '';
       }
       
-      if ((this.mementos[m]['simhash'].match(/0/g) || []).length === 32) {console.log('0s, returning'); continue;}
+      if ((this.mementos[m]['simhash'].match(/0/g) || []).length === 32) {
+        console.log('ENCOUNTERED simhash of 0s, returning.'); 
+        continue;
+      }
       this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
       this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
-                 
+      
       if (this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { // Filter the mementos if hamming distance is too small
         lastSignificantMementoIndexBasedOnHamming = m;
       }
     }
+    console.log(' - memento[' + m + '] hamming: ' + this.mementos[m].hammingDistance);
   }
 
   if (callback) {callback(''); }
