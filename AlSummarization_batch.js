@@ -62,6 +62,9 @@ var host = 'http://' + (process.env.SERVER_HOST || 'localhost'); // Format: sche
 var nukeSystemData = argv.clean ? argv.clean : false;
 var uriR = '';
 
+var validStrategyParameters = ['alSummarization', 'random', 'temporalInterval', 'interval'];
+var strategy = argv.strategy ? argv.strategy : validStrategyParameters[0];
+
 var lineReader = require('line-reader');
 
 var HAMMING_DISTANCE_THRESHOLD = 4;
@@ -95,37 +98,29 @@ function main() {
                'THUMBNAIL SUMMARIZATION - BATCH MODE\r\n' +
                '************************************').blue);
   
-  var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
-  batchAlsumTest(lines);
+  if (!isValidStrategy(strategy)) {
+    console.log('Invalid strategy specified, use one of ' + validStrategyParameters.join(', '));
+    return;
+  }
+  
+  console.log(' Strategy specified: ' + strategy);
+  
+  if (strategy == 'alSummarization') {
+    var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
+    batchAlsumTest(lines);
+  }
+  
 
 }
 
-/**
-* Setup the public-facing attributes of the service
-*/
-function PublicEndpoint() {
-  var theEndPoint = this;
-  /**
-  * Default form to enter URI-R if one is not supplied in the query string
-  */
-  this.getHTMLSubmissionForm = function() {
-    var baseInterfaceHTML = fs.readFileSync(__dirname + '/base.html');
-    return baseInterfaceHTML;
-  };
-
-  // Parameters supplied for means of access:
-  this.validAccessParameters = ['interface', 'wayback', 'embed'];
-
-  // Parameter supplied for summarization strategy:
-  this.validStrategyParameters = ['alSummarization', 'random', 'temporalInterval', 'interval'];
-
-  this.isAValidAccessParameter = function(accessParameter) {
-    return theEndPoint.validAccessParameters.indexOf(accessParameter) > -1;
-  };
-
-  this.isAValidStrategyParameter = function(strategyParameter) {
-    return theEndPoint.validStrategyParameters.indexOf(strategyParameter) > -1;
-  };
+function isValidStrategy(strategyIn) {
+  for(var s = validStrategyParameters.length - 1; s >= 0; s--) {
+    if (strategyIn == validStrategyParameters[s]) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -204,8 +199,8 @@ Memento.prototype.setSimhash = function() {
     var buffer2 = '';
     var memento = this; // Potentially unused? The 'this' reference will be relative to the promise here
     var mOptions = url.parse(thaturi);
-    // console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
-
+    //console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
+    
     var req = http.request({
         'host': mOptions.host, 
         'path': mOptions.path,
@@ -323,8 +318,8 @@ function getTimemapX(uris) {
 	  function(callback) {tm.createScreenshotsForMementos(callback);}],
 	  function(err, result) {
 		if (err) {
-		  console.log('ERROR!');
-		  console.log(err);
+		  console.log('ERROR with http://' + timemapHost + timemapPath + ' : ' +err);
+		  nextURI(uris);
 		}else {
 		  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');
 		  nextURI(uris);
@@ -475,13 +470,16 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 	  if (currentHammingThreshold === HAMMING_DISTANCE_THRESHOLD_INIT) {
 		if (mementosSelected < 4) {
 		  console.log('ABORTING due to too few mementos as base hamming threshold');
-		  throw "INSUFFICIENT_MEMENTOS: " + mementosSelected
+
+		  callback(new Error("INSUFFICIENT_MEMENTOS: " + mementosSelected));
+		  return;
 		}
 	  }
       
       console.log('HAMMING filtering resulted in ' + mementosSelected + ' mementos.');
 	  if (mementosSelected < 4) {
 	    console.log('HAMMING threshold surpassed, revert!');
+	    callback(new Error('CANNOT MEET memento count requirements of 4<x<16'));
 		// Revert to previous hamming distance
 	  } else if (mementosSelected > 16) {
 		currentHammingThreshold += 1;
@@ -592,7 +590,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function(callbac
 
   console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
 
-
   callback();
 };
 
@@ -687,7 +684,8 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     // Remove the Wayback UI
     'onLoadFinished': function() {
       document.getElementById('wm-ipp').style.display = 'none';
-    }
+    },
+    'timeout': 60000
 
   };
 
