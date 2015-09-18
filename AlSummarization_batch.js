@@ -824,7 +824,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     'onLoadFinished': function() {
       document.getElementById('wm-ipp').style.display = 'none';
     },
-    'timeout': 60000
+    'timeout': 120000
 
   };
 
