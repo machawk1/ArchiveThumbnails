@@ -789,7 +789,7 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
         console.log(err);
       }
 
-      callback('');
+      if(callback){callback('');}
     }
   );
 };
