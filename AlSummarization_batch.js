@@ -87,8 +87,8 @@ function batchProcessWithAllStrategies(uriRs) {
   } else {
     console.log('GENERATING cache file at ' + cacheFile.path + ', one does not currently exist.');
     async.series([
-      function(callback){executeAlSummarizationStrategy(uriRs, callback);},
-      function(callback){performStrategy_interval(callback);},
+      //function(callback){executeAlSummarizationStrategy(uriRs, callback);},
+      //function(callback){performStrategy_interval(callback);},
       function(callback){performStrategy_temporalInterval(callback);}
       ]
     );
@@ -124,23 +124,58 @@ function performStrategy_interval(cb) {
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
   var mementos = [];
-  for(var c=0; c<cacheFiles.length; c++){
+  for(var c = 0; c < cacheFiles.length; c++){
    if(cacheFiles[c].indexOf('.') !== 0 && cacheFiles[c].substr(-5) === '.json') {
      filteredCacheFiles.push(cacheFiles[c]);
    }
   }
   
-  for(var cFile=0; cFile < filteredCacheFiles.length; cFile++) {
+  for(var cFile = 0; cFile < filteredCacheFiles.length; cFile++) {
     // Do interval strategy for a URI
     mementos = JSON.parse(fs.readFileSync('cache/' + filteredCacheFiles[cFile]).toString());
     
     var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
     console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
     var indexes = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
-    console.log(indexes);
+    console.log('Indexes chosen by interval ' + indexes.join(' '));
+    createThumbnailsForMementos(mementos, indexes);
   }
 
   cb();
+}
+
+function performStrategy_temporalInterval(cb) {
+  console.log('*************************TEMPORAL INTERVAL STRATEGY*************************');
+  var cacheFiles = fs.readdirSync('./cache/');
+  var filteredCacheFiles = [];
+  var mementos = [];
+  for(var c = 0; c < cacheFiles.length; c++){
+   if(cacheFiles[c].indexOf('.') !== 0 && cacheFiles[c].substr(-5) === '.json') {
+     filteredCacheFiles.push(cacheFiles[c]);
+   }
+  }
+  
+  for(var cFile = 0; cFile < filteredCacheFiles.length; cFile++) {
+    // Do interval strategy for a URI
+    mementos = JSON.parse(fs.readFileSync('cache/' + filteredCacheFiles[cFile]).toString());
+    
+    var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+    console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+    var indexes = getIndexesForMementosNeededToBuildTemporalInterval(mementos, alSumCount);
+    //console.log('Indexes chosen by interval ' + indexes.join(' '));
+    //createThumbnailsForMementos(mementos, indexes);
+  }
+
+  cb();
+}
+function createThumbnailsForMementos(mementos, indexes) {
+  for(var i = 0; i < mementos.length; i++) { // Generate filename of to-be thumbnail
+    mementos[i].screenshotURI = 'interval_' + mementos[i].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png';  
+  }
+  
+  var t = new TimeMap();
+  t.mementos = mementos;
+  t.createScreenshotsForMementos();
 }
 
 function countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos) {
@@ -161,12 +196,77 @@ function getIndexesForMementosNeededToBuildInterval(mementos, iterationFactor) {
   return indexes;
 }
 
-function performStrategy_temporalInterval(cb) {
-  console.log('In strategy 3');
+function getIndexesForMementosNeededToBuildTemporalInterval(mementos, alSumCount) {
+
+  var indexes = [];
+  var lastMonthYearSignature = '';
+  
+  // 1. Get only one memento per month-year
+  var whitelistedMementoCount = 0;
+
+  for(var i = 0; i < mementos.length; i++) {
+    // Moment does not support RFC1123, use UNIX timestamp conversion
+    var theMoment =  moment.unix(convertRFC1123toUnixTimesStamp(mementos[i].datetime)); 
+    var monthYearSignature = theMoment.month() + '' + theMoment.year();
+    if (monthYearSignature !== lastMonthYearSignature) {
+      mementos[i].screenshotURI = 'toFill';
+      whitelistedMementoCount++;
+     // console.log("R"+whitelistedMementoCount);
+    }else {
+      mementos[i].screenshotURI = null;
+    }
+    lastMonthYearSignature = monthYearSignature;
+  }  
+  
+  console.log('WHITELISTED ' + whitelistedMementoCount + ' mementos');
+  
+  // 2. Remove mementos from the end with similar year signature 
+  if (whitelistedMementoCount > alSumCount) {
+     var pivotYear = -1;
+     for (var i = mementos.length - 1; i >= 0; i--) { 
+       // Include only mementos flagged for inclusion
+       if (mementos[i].screenshotURI) {
+         var theMoment =  moment.unix(convertRFC1123toUnixTimesStamp(mementos[i].datetime)); 
+         var theMomentYear = theMoment.year();
+         if (theMomentYear === pivotYear) {
+           mementos[i].screenshotURI = null;
+           
+           whitelistedMementoCount--;
+         } else if (theMomentYear < pivotYear) {
+           pivotYear = theMomentYear;
+         }else {
+           var lastMementoMoment = moment.unix(convertRFC1123toUnixTimesStamp(mementos[mementos.length - 1].datetime));
+           pivotYear = lastMementoMoment.year();         
+         }
+       }
+       
+       if(whitelistedMementoCount === alSumCount) {
+  		  break;
+  		}   
+     }
+ 
+     if(whitelistedMementoCount > alSumCount) { // Done filtering by month, still too many
+       console.log('Still too many mementos. Reduce by another means.');
+     }
+     
+     console.log('REDUCED whitelist to ' + whitelistedMementoCount + ' mementos');
+  
+     for(var mm=0, i=0; mm<mementos.length; mm++){
+       if(mementos[mm].screenshotURI) {
+         i++;
+         console.log('#' + i + ' (' + mm + '/' + mementos.length + '): ' + mementos[mm].datetime + ' ' + mementos[mm].screenshotURI);
+       }
+     }
+  } else {
+    console.log('Monthly was too strict. We need to re-add mementos');
+  }
+  
+  return indexes;
 }
 
-
-
+function convertRFC1123toUnixTimesStamp(inputString) {
+  return parseInt((new Date(inputString)).getTime()) / 1000;
+}  
 
 /**
 * Delete all derived data including caching and screenshot - namely for testing
