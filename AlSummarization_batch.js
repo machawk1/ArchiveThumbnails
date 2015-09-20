@@ -84,13 +84,25 @@ function batchProcessWithAllStrategies(uriRs) {
     processWithFileContents(data);
   } else {
     console.log('GENERATING cache file at ' + cacheFile.path + ', one does not currently exist.');
-    async.series([
-      function(callback){executeAlSummarizationStrategy(uriRs, callback);},
-      function(callback){performStrategy_interval(callback);},
-      function(callback){performStrategy_temporalInterval(callback);}
-      ]
-    );
+    
+    performAllStrategiesWithURIRs(uriRs);
   }
+}
+
+function performAllStrategiesWithURIRs(uriRs) {
+  var uri = uriRs[0];
+  async.series([
+    function(callback){performStrategy_alsum(uri, callback);},
+    function(callback){performStrategy_interval(uri, callback);},
+    function(callback){performStrategy_temporalInterval(uri, callback);}
+    ], function(err, results) {
+      console.log('done with URI. Call next one here (todo).');
+      uriRs.shift();
+      
+      if (!uriRs || uriRs[0] === '') {console.log('Done with all URIs'); return;}
+      performAllStrategiesWithURIRs(uriRs);
+    }
+  );
 }
 
 /**
@@ -117,7 +129,18 @@ function isValidStrategy(strategyIn) {
 }
 
 
-function performStrategy_interval(cb) {
+function performStrategy_interval(uri, cb) {
+  var timemapHost = 'web.archive.org';
+  var timemapPath = '/web/timemap/link/' + uri;
+  var tmURI = 'http' + timemapHost + timemapPath;
+
+  var cacheFile = new SimhashCacheFile(tmURI);
+  cacheFile.path += '.json';
+  if (!cacheFile.exists()) {
+    console.log(('ERROR: Cache file at ' + cacheFile.path + ' does not exist. Not performing interval').red);
+    return cb();
+  }
+
   console.log('*************************INTERVAL STRATEGY*************************');
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
@@ -139,10 +162,22 @@ function performStrategy_interval(cb) {
     createThumbnailsForMementos(mementos, 'interval');
   }
 
-  cb();
+  return cb();
 }
 
-function performStrategy_temporalInterval(cb) {
+function performStrategy_temporalInterval(uri, cb) {
+  var timemapHost = 'web.archive.org';
+  var timemapPath = '/web/timemap/link/' + uri;
+  var tmURI = 'http' + timemapHost + timemapPath;
+  
+  var cacheFile = new SimhashCacheFile(tmURI);
+  cacheFile.path += '.json';
+  if (!cacheFile.exists()) {
+    console.log(('ERROR: Cache file at ' + cacheFile.path + ' does not exist. Not performing temporal interval').red);
+    return cb();
+  }
+
+
   console.log('*************************TEMPORAL INTERVAL STRATEGY*************************');
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
@@ -164,7 +199,7 @@ function performStrategy_temporalInterval(cb) {
     createThumbnailsForMementos(mementos, 'temporalInterval');
   }
 
-  cb();
+  return cb();
 }
 function createThumbnailsForMementos(mementos, strategy) {
   for(var i = 0; i < mementos.length; i++) { // Generate filename of to-be thumbnail
@@ -282,7 +317,7 @@ function cleanSystemData(cb) {
     console.log(e);
   });
 
-  if (cb) {cb();}
+  if (cb) {return cb();}
 }
 
 /**
@@ -440,14 +475,14 @@ function nextURI(uris, cb, nextStrategyCallback) {
 * Given a URI, return a TimeMap from the Memento Aggregator
 * @param uri The URI-R in-question
 */
-function executeAlSummarizationStrategy(uris, cb) {
-  var uri = uris[0];
+function performStrategy_alsum(uri, cb) {
+  //var uri = uris[0];
   var timemapHost = 'web.archive.org';
   var timemapPath = '/web/timemap/link/' + uri;
 
   console.log('Starting many asynchronous operations...');
   var tm = fetchTimemap('http://' + timemapHost + timemapPath);
-  if (!tm) {console.log("bar");nextURI(uris, cb); return;}
+  if (!tm) {console.log("ERROR: TimeMap could not be created in memory."); return cb();}
     
   async.series([
   	  function(callback){callback('');},
@@ -463,9 +498,9 @@ function executeAlSummarizationStrategy(uris, cb) {
 		}else {
 		  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');  
 		}
-
-
-		nextURI(uris, executeAlSummarizationStrategy, cb);
+        
+        return cb();
+		//nextURI(uris, performStrategy_alsum, cb);
 	  }
   );
 } 

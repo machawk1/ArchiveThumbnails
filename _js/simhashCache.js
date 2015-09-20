@@ -53,11 +53,16 @@ function SimhashCacheFile(forUri){
 		};
 
 		this.exists = function(){
-			console.log("This is not the right thing to do. exists() is async and requires a callback. Change flow of caller");
-			//fs.exists(this.path,function(){console.log("The cache file at });
+		  try{
+			fs.statSync(this.path);
+		  }catch(err){
+			if(err.code == 'ENOENT') return false;
+		  }
+		  return true;
 		}
 
 }
+
 
 module.exports = {
 	SimhashCacheFile : SimhashCacheFile
