@@ -46,6 +46,18 @@ function SimhashCacheFile(forUri){
 			});
 			*/
 		};
+		
+		this.readFileContents = function(callbackSuccess,callbackFail){
+			fs.readFile(this.path,"utf-8",function(err,data){
+				if(err){
+					//The cache file hasn't been created
+					callbackFail();
+					return;
+				}
+
+				callbackSuccess(data);
+			});
+		};
 
 		this.writeFileContentsAsJSON = function(str){
 		    console.log('JSON written out');
