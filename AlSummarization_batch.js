@@ -52,7 +52,7 @@ var SimhashCacheFile = require('./_js/simhashCache.js').SimhashCacheFile;
 
 var colors = require('colors');
 var im = require('imagemagick');
-var gm = require('gm');
+var gm = require('gm').subClass({ imageMagick: true });;
 var rimraf = require('rimraf');
 
 var md5 = require('blueimp-md5').md5;
@@ -817,16 +817,18 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
   if (withCriteria) {criteria = withCriteria; }
   
   console.log('Creating screenshots for ' + self.mementos.filter(criteria).length + ' mementos...');
+  
+  
   async.eachLimit(
     shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
-    5,
+    1,
     self.createScreenshotForMemento,            // Create a screenshot
     function doneCreatingScreenshots(err) {      // When finished, check for errors
       if (err) {
         console.log('Error creating screenshot');
         console.log(err);
       }
-
+      phridge.disposeAll();
       if(callback){callback('');}
     }
   );
@@ -851,24 +853,12 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   }catch (e) { //(new Date()).getTime()
     console.log(' - ' + memento.screenshotURI + ' does not exist...generating');
   }
-/*
-  var options = {
-    'phantomConfig': {
-      'ignore-ssl-errors': true,
-      'local-to-remote-url-access': true // ,
-      // 'default-white-background': true,
-    },
-    // Remove the Wayback UI
-    'onLoadFinished': function() {
-      document.getElementById('wm-ipp').style.display = 'none';
-    },
-    'timeout': 120000
-  };
-  */
-  phridge.spawn({
-     '--ignore-ssl-errors': true,
-     '--local-to-remote-url-access': true
-   })
+
+
+  /* ***********************
+     GENERATE SCREENSHOT USING PHRIDGE
+     *********************** */
+  phridge.spawn({'--ignore-ssl-errors': true, '--local-to-remote-url-access': true})
    .then(function(phantom) {
      return phantom.openPage(uri);
     })
@@ -895,7 +885,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   })
   .finally(phantom.dispose)
   .done(function(text) {
-    callback();
+    if(callback) {callback();}
   });
  
 
@@ -942,6 +932,21 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     });
   });
       
+
+
+  var options = {
+    'phantomConfig': {
+      'ignore-ssl-errors': true,
+      'local-to-remote-url-access': true // ,
+      // 'default-white-background': true,
+    },
+    // Remove the Wayback UI
+    'onLoadFinished': function() {
+      document.getElementById('wm-ipp').style.display = 'none';
+    },
+    'timeout': 120000
+  };
+  
 
   webshot(uri, 'screenshots/' + filename, options, function(err) {
     if (err) {
