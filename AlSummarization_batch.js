@@ -820,7 +820,7 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
     10,
     self.createScreenshotForMemento,            // Create a screenshot
     function doneCreatingScreenshots(err) {      // When finished, check for errors
-      if (err) {web
+      if (err) {
         console.log('Error creating screenshot');
         console.log(err);
       }
