@@ -34,7 +34,8 @@
     "sync-request": "*",
     "memwatch": "*",
     "gm": "*",
-    "phridge": "*"
+    "phridge": "*",
+    "phantom": "*"
   },
   "main": "index",
   "engines": {
