@@ -32,7 +32,8 @@
     "blueimp-md5": "*",
     "line-reader": "*",
     "sync-request": "*",
-    "memwatch": "*"
+    "memwatch": "*",
+    "gm": "*"
   },
   "main": "index",
   "engines": {

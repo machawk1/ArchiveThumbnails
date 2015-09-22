@@ -50,6 +50,7 @@ var SimhashCacheFile = require('./_js/simhashCache.js').SimhashCacheFile;
 
 var colors = require('colors');
 var im = require('imagemagick');
+var gm = require('gm');
 var rimraf = require('rimraf');
 
 var md5 = require('blueimp-md5').md5;
@@ -819,7 +820,7 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
     10,
     self.createScreenshotForMemento,            // Create a screenshot
     function doneCreatingScreenshots(err) {      // When finished, check for errors
-      if (err) {
+      if (err) {web
         console.log('Error creating screenshot');
         console.log(err);
       }
@@ -870,17 +871,16 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       callback('Screenshot failed!');
     }else {
       fs.chmodSync('./screenshots/' + filename, '755');
-      im.convert(['./screenshots/' + filename, '-thumbnail', '200',
-            './screenshots/' + (filename.replace('.png', '_200.png'))],
-        function(err, stdout) {
-          if (err) {
-            console.log('We could not downscale ./screenshots/' + filename + ' :(');
-          }
-
-          console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.', stdout);
+      gm('./screenshots/' + filename)
+      .resize(200, 150)
+      .write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
+        if (!err) {
+          console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
           deleteFile('./screenshots/' + filename);
-        });
-
+        } else {
+          console.log('We could not downscale ./screenshots/' + filename + ' :(');
+        }
+      });
       console.log(' - CREATED screenshot ' + uri);
       callback();
     }
