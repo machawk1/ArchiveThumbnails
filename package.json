@@ -33,7 +33,8 @@
     "line-reader": "*",
     "sync-request": "*",
     "memwatch": "*",
-    "gm": "*"
+    "gm": "*",
+    "phridge": "*"
   },
   "main": "index",
   "engines": {

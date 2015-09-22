@@ -31,13 +31,15 @@ var ProgressBar = require('progress');
 var memwatch = require('memwatch');
 
 var phantom = require('node-phantom');
+var webshot = require('webshot'); // PhantomJS wrapper
+var pjs = require('phantom');
+var phridge = require('phridge');
 
 var fs = require('fs');
 var path = require('path');
 var validator = require('validator');
 var underscore = require('underscore');
 
-var webshot = require('webshot'); // PhantomJS wrapper
 
 var argv = require('minimist')(process.argv.slice(2));
 var prompt = require('sync-prompt').prompt;
@@ -817,7 +819,7 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
   console.log('Creating screenshots for ' + self.mementos.filter(criteria).length + ' mementos...');
   async.eachLimit(
     shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
-    10,
+    5,
     self.createScreenshotForMemento,            // Create a screenshot
     function doneCreatingScreenshots(err) {      // When finished, check for errors
       if (err) {
@@ -849,7 +851,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   }catch (e) { //(new Date()).getTime()
     console.log(' - ' + memento.screenshotURI + ' does not exist...generating');
   }
-
+/*
   var options = {
     'phantomConfig': {
       'ignore-ssl-errors': true,
@@ -861,8 +863,85 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       document.getElementById('wm-ipp').style.display = 'none';
     },
     'timeout': 120000
-
   };
+  */
+  phridge.spawn({
+     '--ignore-ssl-errors': true,
+     '--local-to-remote-url-access': true
+   })
+   .then(function(phantom) {
+     return phantom.openPage(uri);
+    })
+   .then(function(page) {
+    page.run(uri, filename, function(uri, filename, resolve, reject) {
+      this.open(uri, function(status) {
+        this.render('./screenshots/' + filename);
+        resolve(filename);
+      });
+    }).then( function createThumbnailsFromFullScaleImage(filename) {
+        var fullPath = './screenshots/' + filename;
+		fs.chmodSync(fullPath, '755');
+		gm(fullPath)
+		.resize(200, 150)
+		.write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
+			if (!err) {
+				console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
+				deleteFile('./screenshots/' + filename);
+			} else {
+				console.log('We could not downscale ./screenshots/' + filename + ' :(');
+			}
+		});
+	 });
+  })
+  .finally(phantom.dispose)
+  .done(function(text) {
+    callback();
+  });
+ 
+
+  
+   /* 
+  pjs.create('--ignore-ssl-errors=true', '--local-to-remote-url-access=true', function (ph) {
+    var tooLong = function() {
+        console.log('Page timed out, taking screenshot anyway'); 
+        ph.exit();
+        page = pg;
+    };
+
+    ph.createPage(function (page) {
+      page.set('resourceTimeout',10000);
+      page.set('onResourceTimeout', tooLong);
+    
+	  page.open(uri, function (status) {
+		console.log('Opened ' + uri + '?', status);
+		  page.evaluate(function () {
+			document.getElementById('wm-ipp').style.display = 'none';
+			ph.exit();
+		  });
+		  page.render('screenshots/' + filename, function (err) {
+            
+		    if (err) {
+		      console.log('Error creating a screenshot for ' + uri);
+		    } else {
+		    	fs.chmodSync('./screenshots/' + filename, '755');
+      			gm('./screenshots/' + filename)
+      			.resize(200, 150)
+      			.write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
+        			if (!err) {
+          				console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
+          				deleteFile('./screenshots/' + filename);
+        			} else {
+          				console.log('We could not downscale ./screenshots/' + filename + ' :(');
+        			}
+      			});
+		    }
+		    ph.exit();
+		    callback();
+		  });
+		});
+    });
+  });
+      
 
   webshot(uri, 'screenshots/' + filename, options, function(err) {
     if (err) {
@@ -885,6 +964,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       callback();
     }
   });
+  */
 };
 
 function deleteFile(path) {
