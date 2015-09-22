@@ -333,15 +333,12 @@ function PublicEndpoint() {
       var cacheFile = new SimhashCacheFile(uriR);
       cacheFile.path += '.json';
       console.log('Checking if a cache file exists for ' + query['URI-R'] + '...');
-      cacheFile.readFileContents(
-        function success(data) { // A cache file has been previously generated using the alSummarization strategy
-          processWithFileContents(data, response);
-        },
-        function failed() {
-          getTimemapGodFunctionForAlSummarization(query['URI-R'], response);
-        }
-
-      );
+      var contents = cacheFile.readFileContentsSync();
+      if (contents) {
+        processWithFileContents(data, response);
+      } else {
+        getTimemapGodFunctionForAlSummarization(query['URI-R'], response);
+      }
     }else if (strategy === 'random') {
       t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
