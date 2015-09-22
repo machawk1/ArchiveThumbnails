@@ -31,7 +31,8 @@
     "faye": "*",
     "blueimp-md5": "*",
     "line-reader": "*",
-    "sync-request": "*"
+    "sync-request": "*",
+    "memwatch": "*"
   },
   "main": "index",
   "engines": {
