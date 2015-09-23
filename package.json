@@ -32,14 +32,13 @@
     "blueimp-md5": "*",
     "line-reader": "*",
     "sync-request": "*",
-    "memwatch": "*",
     "gm": "*",
     "phridge": "*",
     "phantom": "*"
   },
   "main": "index",
   "engines": {
-    "node": ">= 0.4.x < 0.7.0"
+    "node": ">= 0.10.0 <= 0.10.40"
   },
   "scripts": {
     "test": "make test"
