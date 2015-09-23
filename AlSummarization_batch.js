@@ -28,7 +28,6 @@ var simhash = require('simhash')('md5');
 var moment = require('moment');
 
 var ProgressBar = require('progress');
-var memwatch = require('memwatch');
 
 var phantom = require('node-phantom');
 var webshot = require('webshot'); // PhantomJS wrapper
@@ -387,7 +386,6 @@ Memento.prototype.setSimhash = function() {
         'path': mOptions.path,
         'headers': {'Accept-Datetime': 'Thu, 31 May 2007 20:35:00 GMT'}
     }, function(res) {
-      // var hd = new memwatch.HeapDiff();
       res.setEncoding('utf8');
       res.on('data', function(data) {
         buffer2 += data.toString();
