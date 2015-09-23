@@ -769,36 +769,6 @@ TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function(callbac
 };
 
 /**
-* // Select mementos based on interval
-* @param callback The next procedure to execution when this process concludes
-* @param skipFactor Number of Mementos to skip, n=1 ==> 1,3,5,7
-* @param initialIndex The basis for the count. 0 if not supplied
-* @param numberOfMementosToChoose Artificial restriction on the count
-*/
-TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipFactor, initialIndex, numberOfMementosToChoose) {
-  var _this = this;
-  if (numberOfMementosToChoose > this.mementos.length) {
-    console.log('Number to choose is greater than number existing.');
-    return;
-  }
-
-  var numberOfMementosLeftToChoose = numberOfMementosToChoose;
-
-  // TODO: add further checks for parameter integrity (e.g. in case strings are passed)
-  if (!initialIndex) {initialIndex = 0; }
-
-  if (skipFactor < 0) {skipFactor = 0; }
-
-  for (var i = initialIndex; i < this.mementos.length; i = i + skipFactor + 1) {
-    this.mementos[i].selected = true;
-  }
-
-  callback('');
-};
-
-
-
-/**
 * Generate a screenshot with all mementos that pass the passed-in criteria test
 * @param callback The next procedure to execution when this process concludes
 * @param withCriteria Function to inclusively filter mementos, i.e. returned from criteria
@@ -1007,78 +977,6 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
   if (callback) {callback(''); }
 };
 
-
-function formatStringsToHighlightDifferences(strs) { // This does not do what we expect due to the concatenation subsequently overwriting the color formatting
-  return strs;
-
-  for(var i = 0; i < strs.length; i++){
-    if (strs[0].substr(i,1) != strs[1].substr(i,1)) {
-	  strs[0] = strs[0].substr(0,i) + strs[0].substr(i,1).red + (i + 1 < strs[0].length ? strs[0].substr(i+1) : '');
-	  strs[1] = strs[1].substr(0,i) + strs[1].substr(i,1).red + (i + 1 < strs[1].length ? strs[1].substr(i+1) : '');
-    }
-  }
-  return strs;
-}
-
-/**
-* Goes to URI-T(?), grabs contents, parses, and associates mementos
-* @param callback The next procedure to execution when this process concludes
-*/
-TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
-  var timemapHost = 'web.archive.org';
-  var timemapPath = '/web/timemap/link/' + uriR;
-  var options = {
-    'host': timemapHost,
-    'path': timemapPath,
-    'port': 80,
-    'method': 'GET'
-  };
-
-  var buffer = '';
-  var retStr = '';
-  console.log('Starting many asynchronous operationsX...');
-  console.log('Timemap output here');
-  var tmInstance = this;
-
-  var req = http.request(options, function(res) {
-    res.setEncoding('utf8');
-
-    res.on('data', function(data) {
-      buffer += data.toString();
-    });
-
-    res.on('end', function() {
-      if (buffer.length > 100) {
-        console.log('X Timemap acquired for ' + uriR + ' from ' + timemapHost + timemapPath);
-        tmInstance.str = buffer;
-        tmInstance.originalURI = uriR; // Need this for a filename for caching
-        tmInstance.createMementos();
-
-        if (tmInstance.mementos.length === 0) {
-          console.log('YThere were no mementos for ' + uriR);
-          //return;
-          callback();
-        }
-
-        callback();
-      }
-    });
-  });
-
-  req.on('error', function(e) { // Houston...
-    console.log('problem with request: ' + e.message);
-    console.log(e);
-    if (e.message === 'connect ETIMEDOUT') { // Error experienced when IA went down on 20141211
-      response.write('Hmm, the connection timed out. Internet Archive might be down.');
-      response.end();
-    }
-
-  });
-
-  req.end();
-};
-
-
 /**********************************
         RELEVANT yet ABSTRACTED generic functions
    ********************************* */
@@ -1140,48 +1038,8 @@ function checkBin(n) {
   return /^[01]{1,64}$/.test(n);
 }
 
-function checkDec(n) {
-  return /^[0-9]{1,64}$/.test(n);
-}
-
 function checkHex(n) {
   return /^[0-9A-Fa-f]{1,64}$/.test(n);
-}
-
-function pad(s,z) {
-  s = '' + s;
-  return s.length < z ? pad('0' + s,z):s;
-}
-
-function unpad(s) {
-  s = '' + s;
-  return s.replace(/^0+/, '');
-}
-
-// Decimal operations
-function Dec2Bin(n) {
-  if (!checkDec(n) || n < 0) {
-    return 0;
-  }
-
-  return n.toString(2);
-}
-
-function Dec2Hex(n) {
-  if (!checkDec(n) || n < 0) {
-    return 0;
-  }
-
-  return n.toString(16);
-}
-
-// Binary Operations
-function Bin2Dec(n) {
-  if (!checkBin(n)) {
-    return 0;
-  }
-
-  return parseInt(n,2).toString(10);
 }
 
 function Bin2Hex(n) {
@@ -1192,16 +1050,8 @@ function Bin2Hex(n) {
   return parseInt(n,2).toString(16);
 }
 
-// Hexadecimal Operations
-function Hex2Bin(n) {
-  if (!checkHex(n)) {
-    return 0;
-  }
-
-  return parseInt(n,16).toString(2);
-}
-
-function Hex2BinWithPadding(n) { // Turns (e.g.) 4e to 01001110 instead of 1001110
+// Turns (e.g.) 4e to 01001110 instead of 1001110
+function Hex2BinWithPadding(n) {
   if (!checkHex(n)) {
     return 0;
   }
