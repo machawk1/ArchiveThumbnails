@@ -210,7 +210,7 @@ function performStrategy_random(uri, cb) {
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
   var indexes = getRandomSubsetOfMementosArray(mementos, alSumCount);
   console.log('Indexes chosen by random ' + indexes.join(' '));
-  createThumbnailsForMementos(mementos, 'interval');
+  createThumbnailsForMementos(mementos, 'random');
     
   return cb();
 }
@@ -508,7 +508,7 @@ function performStrategy_alsum(uri, cb) {
 } 
 
 // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
-function getRandomSubsetOfMementosArray(arr,siz) {
+function getRandomSubsetOfMementosArray(arr, size) {
   var shuffled = arr.slice(0);
   var i = arr.length;
   var temp;
