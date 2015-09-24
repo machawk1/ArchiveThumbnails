@@ -440,23 +440,6 @@ Memento.prototype.setSimhash = function() {
   }));
 }
 
-function fetchTimemap(uri) {
-  console.log('Fetching TimeMap for ' + uri);
-  var res = request('GET', uri);
-  var tmData = res.body.toString('utf-8');
-
-  var t = new TimeMap(tmData);
-  t.originalURI = uri; // Need this for a filename for caching
-  t.createMementos();
-
-  if (t.mementos.length === 0) {
-    console.log('XThere were no mementos for ' + uri + ' :(');
-    return;
-  }
-  
-  return t;
-}
-
 function nextURI(uris, cb, nextStrategyCallback) {
   uris.shift();
   
@@ -482,28 +465,33 @@ function performStrategy_alsum(uri, cb) {
   var timemapPath = '/web/timemap/link/' + uri;
 
   console.log('Starting many asynchronous operations...');
-  var tm = fetchTimemap('http://' + timemapHost + timemapPath);
-  if (!tm) {console.log("ERROR: TimeMap could not be created in memory."); return cb();}
-    
-  async.series([
-  	  function(callback){callback('');},
-	  function(callback) {tm.calculateSimhashes(callback);},
-	  function(callback) {tm.saveSimhashesToCache(callback);},
-	  function(callback) {tm.calculateHammingDistancesWithOnlineFiltering(callback);},
-	  function(callback) {tm.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
-	  function(callback) {tm.writeJSONToCache(callback);},
-	  function(callback) {tm.createScreenshotsForMementos(callback);}],
-    function(err, result) {
-		if (err) {
-		  console.log('ERROR with http://' + timemapHost + timemapPath + ' : ' +err);
-		}else {
-		  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');  
-		}
-        
-        return cb();
-		//nextURI(uris, performStrategy_alsum, cb);
-	  }
-  );
+  var tm = new TimeMap();
+  
+  try {
+	  async.series([
+		  function(callback) {tm.fetchTimemap('http://' + timemapHost + timemapPath, callback);},
+		  function(callback) {tm.calculateSimhashes(callback);},
+		  function(callback) {tm.saveSimhashesToCache(callback);},
+		  function(callback) {tm.calculateHammingDistancesWithOnlineFiltering(callback);},
+		  function(callback) {tm.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+		  function(callback) {tm.writeJSONToCache(callback);},
+		  function(callback) {tm.createScreenshotsForMementos(callback);}],
+		function(err, result) {
+			if (err) {
+			  console.log('ERROR with http://' + timemapHost + timemapPath + ' : ' +err);
+			}else {
+			  console.log('Processing of ' + 'http://' + timemapHost + timemapPath + ' complete.');  
+			}
+		
+			return cb();
+			//nextURI(uris, performStrategy_alsum, cb);
+		  }
+	  );
+  
+  } catch(err) {
+    console.log('Exception: ' + err + ' ' + uri);
+    return cb();
+  }
 } 
 
 // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
@@ -547,6 +535,36 @@ function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI) {
 /*****************************************
    // SUPPLEMENTAL TIMEMAP FUNCTIONALITY
 ***************************************** */
+
+TimeMap.prototype.fetchTimemap = function(uri, callback) {
+  console.log('Fetching TimeMap for ' + uri);
+  var opt = url.parse(uri);
+  var tm = this;
+  opt['headers'] = {'Accept-Datetime': 'Thu, 31 May 2007 20:35:00 GMT'}
+  
+  
+  http.get(opt, function (res) {
+    var buffer = '';
+    res.setEncoding('utf8');
+    res.on('data', function(data) {
+        buffer += data.toString();
+    });
+    
+    res.on('end', function(d) {
+      tm.str = buffer;
+      tm.originalURI = uri;
+      tm.createMementos();
+
+      if (tm.mementos.length === 0) {
+        console.log('There were no mementos for ' + uri + ' :(');
+        throw "NoMementosForURI";
+      }
+      callback();
+    });
+  }).on('error', function(err) {
+  
+  });
+}
 
 
 TimeMap.prototype.calculateSimhashes = function(callback) {
@@ -806,20 +824,21 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   var uri = memento.uri;
 
   var filename = memento.screenshotURI;
-
+  var fileDescriptor;
   try {
-    fs.openSync(
-      path.join(__dirname + '/screenshots/' + memento.screenshotURI),
-      'r', function(e, r) {
-        console.log(e);
-        console.log(r);
-      });
+    var fileExists = fs.statSync(path.join(__dirname + '/screenshots/' + memento.screenshotURI));
+    if (fileExists) {
+      throw 'nofile';
+    }
 
     console.log(memento.screenshotURI + ' already exists...continuing');
     callback();
     return;
   }catch (e) { //(new Date()).getTime()
     console.log(' - ' + memento.screenshotURI + ' does not exist...generating');
+  }
+  if (fileDescriptor) {
+    fs.closeSync(fileDescriptor);
   }
 
 
@@ -916,7 +935,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     'onLoadFinished': function() {
       document.getElementById('wm-ipp').style.display = 'none';
     },
-    'timeout': 120000
+    'timeout': 60000
   };
   
 
@@ -932,7 +951,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       .write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
         if (!err) {
           console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
-          deleteFile('./screenshots/' + filename);
+          //deleteFile('./screenshots/' + filename);
         } else {
           console.log('We could not downscale ./screenshots/' + filename + ' :(');
         }
