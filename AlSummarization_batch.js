@@ -826,7 +826,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   /* ***********************
      GENERATE SCREENSHOT USING PHRIDGE
      *********************** */
-  phridge.spawn({'--ignore-ssl-errors': true, '--local-to-remote-url-access': true})
+  /*phridge.spawn({'--ignore-ssl-errors': true, '--local-to-remote-url-access': true, '--ssl-protocol': 'any'})
    .then(function(phantom) {
      return phantom.openPage(uri);
     })
@@ -851,6 +851,10 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
 		});
 	 });
   })
+  .catch(function (err) {
+      console.log('PhantomJS failed to create screenshot');
+	  console.log(err); // 'An unknown error occured'
+	})
   .finally(phantom.dispose)
   .done(function(text) {
     if(callback) {callback();}
@@ -858,7 +862,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
  
 
   
-   /* 
+   
   pjs.create('--ignore-ssl-errors=true', '--local-to-remote-url-access=true', function (ph) {
     var tooLong = function() {
         console.log('Page timed out, taking screenshot anyway'); 
@@ -899,7 +903,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
 		});
     });
   });
-      
+      */
 
 
   var options = {
@@ -937,7 +941,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       callback();
     }
   });
-  */
+  
 };
 
 function deleteFile(path) {
