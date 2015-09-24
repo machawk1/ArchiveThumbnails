@@ -96,7 +96,8 @@ function performAllStrategiesWithURIRs(uriRs) {
   async.series([
     function(callback){performStrategy_alsum(uri, callback);},
     function(callback){performStrategy_interval(uri, callback);},
-    function(callback){performStrategy_temporalInterval(uri, callback);}
+    function(callback){performStrategy_temporalInterval(uri, callback);},
+    function(callback){performStrategy_random(uri, callback);}
     ], function(err, results) {
       console.log('done with URI. Call next one here (todo).');
       uriRs.shift();
@@ -147,23 +148,14 @@ function performStrategy_interval(uri, cb) {
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
   var mementos = [];
-  for(var c = 0; c < cacheFiles.length; c++){
-   if(cacheFiles[c].indexOf('.') !== 0 && cacheFiles[c].substr(-5) === '.json') {
-     filteredCacheFiles.push(cacheFiles[c]);
-   }
-  }
-  
-  for(var cFile = 0; cFile < filteredCacheFiles.length; cFile++) {
-    // Do interval strategy for a URI
-    mementos = JSON.parse(fs.readFileSync('cache/' + filteredCacheFiles[cFile]).toString());
-    
-    var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
-    console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-    var indexes = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
-    console.log('Indexes chosen by interval ' + indexes.join(' '));
-    createThumbnailsForMementos(mementos, 'interval');
-  }
 
+  mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
+  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+  var indexes = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
+  console.log('Indexes chosen by interval ' + indexes.join(' '));
+  createThumbnailsForMementos(mementos, 'interval');
+  
   return cb();
 }
 
@@ -184,25 +176,46 @@ function performStrategy_temporalInterval(uri, cb) {
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
   var mementos = [];
-  for(var c = 0; c < cacheFiles.length; c++){
-   if(cacheFiles[c].indexOf('.') !== 0 && cacheFiles[c].substr(-5) === '.json') {
-     filteredCacheFiles.push(cacheFiles[c]);
-   }
-  }
+
+  mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
+  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+  var indexes = selectMementosForTemporalInterval(mementos, alSumCount);
+  console.log('Indexes chosen by interval ' + indexes.join(' '));
+  createThumbnailsForMementos(mementos, 'temporalInterval');
   
-  for(var cFile = 0; cFile < filteredCacheFiles.length; cFile++) {
-    // Do interval strategy for a URI
-    mementos = JSON.parse(fs.readFileSync('cache/' + filteredCacheFiles[cFile]).toString());
-    
-    var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
-    console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-    mementos = selectMementosForTemporalInterval(mementos, alSumCount);
-    //console.log('Indexes chosen by interval ' + indexes.join(' '));
-    createThumbnailsForMementos(mementos, 'temporalInterval');
-  }
 
   return cb();
 }
+
+function performStrategy_random(uri, cb) {
+  var timemapHost = 'web.archive.org';
+  var timemapPath = '/web/timemap/link/' + uri;
+  var tmURI = 'http' + timemapHost + timemapPath;
+
+  var cacheFile = new SimhashCacheFile(tmURI);
+  cacheFile.path += '.json';
+  if (!cacheFile.exists()) {
+    console.log(('ERROR: Cache file at ' + cacheFile.path + ' does not exist. Not performing random').red);
+    return cb();
+  }
+
+  console.log('*************************RANDOM STRATEGY*************************');
+  var cacheFiles = fs.readdirSync('./cache/');
+  var filteredCacheFiles = [];
+  var mementos = [];
+
+  mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
+  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+  var indexes = getRandomSubsetOfMementosArray(mementos, alSumCount);
+  console.log('Indexes chosen by random ' + indexes.join(' '));
+  createThumbnailsForMementos(mementos, 'interval');
+    
+  return cb();
+}
+
+
 function createThumbnailsForMementos(mementos, strategy) {
   for(var i = 0; i < mementos.length; i++) { // Generate filename of to-be thumbnail
     mementos[i].screenshotURI = strategy + '_' + mementos[i].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png';  
