@@ -499,6 +499,17 @@ Memento.prototype.setSimhash = function() {
       });
     });
 
+	req.on('timeout', function () {
+	  console.log('timeout');
+	  req.abort();
+	  resolve('isA302DeleteMe');
+	});
+	req.on('error', function (e) {
+	  console.log('timeout');
+	  req.abort();
+	  resolve('isA302DeleteMe');
+	});	
+	req.setTimeout(60000);
     req.end();
   }));
 }
