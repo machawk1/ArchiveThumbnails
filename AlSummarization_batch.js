@@ -99,7 +99,7 @@ function performAllStrategiesWithURIRs(uriRs) {
     function(callback){performStrategy_temporalInterval(uri, callback);},
     function(callback){performStrategy_random(uri, callback);}
     ], function(err, results) {
-      console.log('done with URI. Call next one here (todo).');
+      console.log('Done processing ' + uri);
       uriRs.shift();
       
       if (!uriRs || uriRs[0] === '') {console.log('Done with all URIs'); return;}
@@ -154,7 +154,7 @@ function performStrategy_interval(uri, cb) {
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
   mementos = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
   console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
-  createThumbnailsForMementos(mementos, 'interval');
+  createThumbnailsForMementosWithAScreenshotURI(mementos, 'interval');
   
   return cb();
 }
@@ -181,8 +181,15 @@ function performStrategy_temporalInterval(uri, cb) {
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
   mementos = selectMementosForTemporalInterval(mementos, alSumCount);
+  var myCount = 0;
+  for(var mm=0; mm<mementos.length; mm++){
+    if(mementos[mm].screenshotURI) {
+     myCount++;
+    }
+  }
+  
   console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
-  createThumbnailsForMementos(mementos, 'temporalInterval');
+  createThumbnailsForMementosWithAScreenshotURI(mementos, 'temporalInterval');
 
   return cb();
 }
@@ -207,9 +214,12 @@ function performStrategy_random(uri, cb) {
   mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  var mementos = getRandomSubsetOfMementosArray(mementos, alSumCount);
+  mementos = getRandomSubsetOfMementosArray(mementos, alSumCount);
+  for(var mm = 0; mm < mementos.length; mm++) {
+    mementos[mm].screenshotURI = 'toFill';
+  }
   console.log(alSumCount + ' Mementos have been selected selected for random.');
-  createThumbnailsForMementos(mementos, 'random');
+  createThumbnailsForMementosWithAScreenshotURI(mementos, 'random');
     
   return cb();
 }
@@ -218,6 +228,18 @@ function performStrategy_random(uri, cb) {
 function createThumbnailsForMementos(mementos, strategy) {
   for(var i = 0; i < mementos.length; i++) { // Generate filename of to-be thumbnail
     mementos[i].screenshotURI = strategy + '_' + mementos[i].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png';  
+  }
+  
+  var t = new TimeMap();
+  t.mementos = mementos;
+  t.createScreenshotsForMementos();
+}
+
+function createThumbnailsForMementosWithAScreenshotURI(mementos, strategy) {
+  for(var i = 0; i < mementos.length; i++) { // Generate filename of to-be thumbnail
+    if (mementos[i].screenshotURI) {
+      mementos[i].screenshotURI = strategy + '_' + mementos[i].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png';  
+    }
   }
   
   var t = new TimeMap();
@@ -235,12 +257,26 @@ function countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos) {
   return screenshotCount;
 }
 
-function getIndexesForMementosNeededToBuildInterval(mementos, iterationFactor) {
-  for(var i = 0; i < mementos.length; i = i + iterationFactor) {
+function getIndexesForMementosNeededToBuildInterval(mementos, alSumCount) {
+  console.log("AlSUM:" + alSumCount);
+  var selectedMementos = 0;
+  var iterationFactor = Math.floor(mementos.length / alSumCount);
+  for(var i = 0; i < mementos.length && selectedMementos < alSumCount; i++) {
     if (i % iterationFactor === 0) {
       mementos[i].screenshotURI = 'toFill';
+      selectedMementos++;
     } else {
-      mementos[i].screenshotURI = nill;
+      mementos[i].screenshotURI = null;
+    }
+  }
+  console.log("Selected Mementos: "+selectedMementos);
+  
+  // Correction for floor
+  if (selectedMementos < alSumCount) {
+    if(!mementos[mementos.length-1].screenshotURI) {
+      mementos[mementos.length-1].screenshotURI = 'toFill';
+    } else {
+      mementos[mementos.length-2].screenshotURI = 'toFill';
     }
   }
   return mementos;
@@ -297,6 +333,13 @@ function selectMementosForTemporalInterval(mementos, alSumCount) {
  
      if(whitelistedMementoCount > alSumCount) { // Done filtering by month, still too many
        console.log('Still too many mementos. Reduce by another means.');
+       while (whitelistedMementoCount > alSumCount) {
+         var randomIndex = getRandomInt(0, mementos.length - 1);
+         if (mementos[randomIndex].screenshotURI) {
+           mementos[randomIndex].screenshotURI = null;
+           whitelistedMementoCount--;
+         }
+       }
      }
      
      console.log('REDUCED whitelist to ' + whitelistedMementoCount + ' mementos');
@@ -304,7 +347,7 @@ function selectMementosForTemporalInterval(mementos, alSumCount) {
      for(var mm=0, i=0; mm<mementos.length; mm++){
        if(mementos[mm].screenshotURI) {
          i++;
-         console.log('#' + i + ' (' + mm + '/' + mementos.length + '): ' + mementos[mm].datetime + ' ' + mementos[mm].screenshotURI);
+         //console.log('#' + i + ' (' + mm + '/' + mementos.length + '): ' + mementos[mm].datetime + ' ' + mementos[mm].screenshotURI);
        }
      }
   } else {
@@ -312,6 +355,11 @@ function selectMementosForTemporalInterval(mementos, alSumCount) {
   }
   
   return mementos;
+}
+
+//TODO: move this to util functions
+function getRandomInt(minimum, maximum) {
+  return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 }
 
 function convertRFC1123toUnixTimesStamp(inputString) {
