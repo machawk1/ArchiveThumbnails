@@ -152,8 +152,8 @@ function performStrategy_interval(uri, cb) {
   mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  var indexes = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
-  console.log('Indexes chosen by interval ' + indexes.join(' '));
+  mementos = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
+  console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
   createThumbnailsForMementos(mementos, 'interval');
   
   return cb();
@@ -180,10 +180,9 @@ function performStrategy_temporalInterval(uri, cb) {
   mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  var indexes = selectMementosForTemporalInterval(mementos, alSumCount);
-  console.log('Indexes chosen by interval ' + indexes.join(' '));
+  mementos = selectMementosForTemporalInterval(mementos, alSumCount);
+  console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
   createThumbnailsForMementos(mementos, 'temporalInterval');
-  
 
   return cb();
 }
@@ -209,7 +208,7 @@ function performStrategy_random(uri, cb) {
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
   var mementos = getRandomSubsetOfMementosArray(mementos, alSumCount);
-  console.log('Indexes chosen by random ' + indexes.join(' '));
+  console.log(alSumCount + ' Mementos have been selected selected for random.');
   createThumbnailsForMementos(mementos, 'random');
     
   return cb();
@@ -237,11 +236,14 @@ function countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos) {
 }
 
 function getIndexesForMementosNeededToBuildInterval(mementos, iterationFactor) {
-  var indexes = [];
   for(var i = 0; i < mementos.length; i = i + iterationFactor) {
-    indexes.push(i);
+    if (i % iterationFactor === 0) {
+      mementos[i].screenshotURI = 'toFill';
+    } else {
+      mementos[i].screenshotURI = nill;
+    }
   }
-  return indexes;
+  return mementos;
 }
 
 function selectMementosForTemporalInterval(mementos, alSumCount) {
@@ -1007,7 +1009,7 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
         lastSignificantMementoIndexBasedOnHamming = m;
       }
     }
-    console.log(' - memento[' + m + '] hamming: ' + this.mementos[m].hammingDistance);
+    //console.log(' - memento[' + m + '] hamming: ' + this.mementos[m].hammingDistance);
   }
 
   if (callback) {callback(''); }
