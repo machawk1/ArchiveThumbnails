@@ -208,7 +208,7 @@ function performStrategy_random(uri, cb) {
   mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  var indexes = getRandomSubsetOfMementosArray(mementos, alSumCount);
+  var mementos = getRandomSubsetOfMementosArray(mementos, alSumCount);
   console.log('Indexes chosen by random ' + indexes.join(' '));
   createThumbnailsForMementos(mementos, 'random');
     
