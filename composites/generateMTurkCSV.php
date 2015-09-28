@@ -59,12 +59,58 @@ echo "Randomizing each strategy";
 $progressCount = count($vsInterval);
 while($progressCount >= 0) {
   $testsFromEachStrategy = array();
-  array_push($testsFromEachStrategy,array_pop($vsInterval));
-  array_push($testsFromEachStrategy,array_pop($vsTemporalInterval));
-  array_push($testsFromEachStrategy,array_pop($vsRandom));
-  array_push($testsFromEachStrategy,array_pop($vsAllTheSame));
+
+  // Guarantee four different strategies with four different URIs
+  // 1. Obtain a basis URI
+  $vsIntervalSelection = array_shift($vsInterval);
+  $vsTemporalIntervalSelection = null;
+  $vsRandomSelection = null;
+  $vsAllTheSameSelection = null;
+
+  array_push($testsFromEachStrategy,$vsIntervalSelection);
+
+  while(true) {
+   $vsTemporalIntervalSelection = array_shift($vsTemporalInterval);
+   if($vsTemporalIntervalSelection[0].substr(-20,20) != $vsIntervalSelection[0].substr(-20,20)) { // We have a unique URI and strategy
+     array_push($testsFromEachStrategy,$vsTemporalIntervalSelection);
+     break;
+   }else {
+     echo "Encountered a duplicate for temporalInterval, retrying.";
+     array_push($vsTemporalInteval,$vsTemporalIntervalSelection);
+     continue;
+   }
+  }
+
+  while(true) {
+   $vsRandomSelection = array_shift($vsRandom);
+   if($vsRandomSelection[0].substr(-20,20) != $vsIntervalSelection[0].substr(-20,20) &&
+      $vsRandomSelection[0].substr(-20,20) != $vsTemporalIntervalSelection[0].substr(-20,20)) { // We have a unique URI and strategy
+     array_push($testsFromEachStrategy,$vsRandomSelection);
+     break;
+   }else {
+     echo "Encountered a duplicate for random, retrying.";
+     array_push($vsRandom,$vsRandomSelection);
+     continue;
+   }
+  }
+
+  while(true) {
+   $vsAllTheSameSelection = array_shift($vsAllTheSame);
+   if($vsAllTheSameSelection[0].substr(-20,20) != $vsIntervalSelection[0].substr(-20,20) &&
+      $vsAllTheSameSelection[0].substr(-20,20) != $vsTemporalIntervalSelection[0].substr(-20,20) &&
+      $vsAllTheSameSelection[0].substr(-20,20) != $vsRandomSelection[0].substr(-20,20) ) { // We have a unique URI and strategy
+     array_push($testsFromEachStrategy,$vsAllTheSameSelection);
+     break;
+   }else {
+     echo "Encountered a duplicate for allTheSame, retrying.";
+     array_push($vsAllTheSame,$vsAllTheSameSelection);
+     continue;
+   }
+  }
+
   shuffle($testsFromEachStrategy);
   $newLine = "";
+
   // Image URIs
   $newLine .= $testsFromEachStrategy[0][0].",".$testsFromEachStrategy[0][1].",".$testsFromEachStrategy[1][0].",".$testsFromEachStrategy[1][1].",";
   $newLine .= $testsFromEachStrategy[2][0].",".$testsFromEachStrategy[2][1].",".$testsFromEachStrategy[3][0].",".$testsFromEachStrategy[3][1].",";
