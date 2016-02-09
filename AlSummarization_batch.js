@@ -54,7 +54,8 @@ var im = require('imagemagick');
 var gm = require('gm').subClass({ imageMagick: true });;
 var rimraf = require('rimraf');
 
-var md5 = require('blueimp-md5').md5;
+var md5 = require('blueimp-md5');
+console.log(md5);
 
 var app = express();
 
@@ -438,12 +439,12 @@ Memento.prototype.setSimhash = function() {
   // Retain the URI-R for reference in the promise (this context lost with async)
   var thaturi = this.uri;
   var thatmemento = this;
+
   return (new Promise(function(resolve, reject) {
     var buffer2 = '';
     var memento = this; // Potentially unused? The 'this' reference will be relative to the promise here
     var mOptions = url.parse(thaturi);
     //console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
-    
     var req = http.request({
         'host': mOptions.host, 
         'path': mOptions.path,
