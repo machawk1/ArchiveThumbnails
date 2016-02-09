@@ -103,10 +103,33 @@ function performAllStrategiesWithURIRs(uriRs) {
       console.log('Done processing ' + uri);
       uriRs.shift();
       
-      if (!uriRs || uriRs[0] === '') {console.log('Done with all URIs'); return;}
-      performAllStrategiesWithURIRs(uriRs);
+      
+      
+      checkAndProcessNextURI(uriRs);
+      
+      //performAllStrategiesWithURIRs(uriRs);
     }
   );
+}
+
+function checkAndProcessNextURI(uriRs) {
+  var remainingScreenshotsToGenerate = Object.keys(screenshotsToGenerate).length;
+  if(remainingScreenshotsToGenerate != 0) {
+    console.log(remainingScreenshotsToGenerate + ' screenshots still need to be generated');
+    if(uriRs.length > 0) {
+      setTimeout(function(){checkAndProcessNextURI(uriRs);}, 2000);
+      return;
+    }else {
+      console.log('Remaining URIs');
+      for(var uri in screenshotsToGenerate) {
+        console.log(uri);
+      }
+    }
+  } else {
+    if (!uriRs || uriRs[0] === '' || uriRs.length == 0) {console.log('Done with all URIs'); return;}
+    
+    performAllStrategiesWithURIRs(uriRs);
+  }
 }
 
 /**
@@ -118,7 +141,7 @@ function main() {
                '************************************').blue);
   
 
-  var lines = fs.readFileSync('uris_lulwah_refined.txt').toString().split("\n");
+  var lines = fs.readFileSync('mkdc.txt').toString().split("\n");
   batchProcessWithAllStrategies(lines);
 }
 
@@ -154,7 +177,7 @@ function performStrategy_interval(uri, cb) {
   var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
   console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
   mementos = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
-  console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
+  console.log(alSumCount + ' Mementos have been selected selected for interval');
   createThumbnailsForMementosWithAScreenshotURI(mementos, 'interval');
   
   return cb();
@@ -280,6 +303,7 @@ function getIndexesForMementosNeededToBuildInterval(mementos, alSumCount) {
       mementos[mementos.length-2].screenshotURI = 'toFill';
     }
   }
+  
   return mementos;
 }
 
@@ -879,14 +903,19 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
   
   console.log('Creating screenshots for ' + self.mementos.filter(criteria).length + ' mementos...');
   
-  
+  var doneCount = 0;
+  var totalCount = self.mementos.filter(criteria).length;
   async.eachLimit(
     shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
     1,
-    self.createScreenshotForMemento,            // Create a screenshot
+    function(memento, cb) {
+      self.createScreenshotForMemento(memento, cb);            // Create a screenshot
+      doneCount++;
+    },
     function doneCreatingScreenshots(err) {      // When finished, check for errors
       if (err) {
         console.log('Error creating screenshot');
+        console.log(doneCount + '/' + self.mementos.length + ' complete');
         console.log(err);
       }
       phridge.disposeAll();
@@ -916,90 +945,6 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     fs.closeSync(fileDescriptor);
   }
 
-
-  /* ***********************
-     GENERATE SCREENSHOT USING PHRIDGE
-     *********************** */
-  /*phridge.spawn({'--ignore-ssl-errors': true, '--local-to-remote-url-access': true, '--ssl-protocol': 'any'})
-   .then(function(phantom) {
-     return phantom.openPage(uri);
-    })
-   .then(function(page) {
-    page.run(uri, filename, function(uri, filename, resolve, reject) {
-      this.open(uri, function(status) {
-        this.render('./screenshots/' + filename);
-        resolve(filename);
-      });
-    }).then( function createThumbnailsFromFullScaleImage(filename) {
-        var fullPath = './screenshots/' + filename;
-		fs.chmodSync(fullPath, '755');
-		gm(fullPath)
-		.resize(200, 150)
-		.write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
-			if (!err) {
-				console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
-				deleteFile('./screenshots/' + filename);
-			} else {
-				console.log('We could not downscale ./screenshots/' + filename + ' :(');
-			}
-		});
-	 });
-  })
-  .catch(function (err) {
-      console.log('PhantomJS failed to create screenshot');
-	  console.log(err); // 'An unknown error occured'
-	})
-  .finally(phantom.dispose)
-  .done(function(text) {
-    if(callback) {callback();}
-  });
- 
-
-  
-   
-  pjs.create('--ignore-ssl-errors=true', '--local-to-remote-url-access=true', function (ph) {
-    var tooLong = function() {
-        console.log('Page timed out, taking screenshot anyway'); 
-        ph.exit();
-        page = pg;
-    };
-
-    ph.createPage(function (page) {
-      page.set('resourceTimeout',10000);
-      page.set('onResourceTimeout', tooLong);
-    
-	  page.open(uri, function (status) {
-		console.log('Opened ' + uri + '?', status);
-		  page.evaluate(function () {
-			document.getElementById('wm-ipp').style.display = 'none';
-			ph.exit();
-		  });
-		  page.render('screenshots/' + filename, function (err) {
-            
-		    if (err) {
-		      console.log('Error creating a screenshot for ' + uri);
-		    } else {
-		    	fs.chmodSync('./screenshots/' + filename, '755');
-      			gm('./screenshots/' + filename)
-      			.resize(200, 150)
-      			.write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
-        			if (!err) {
-          				console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
-          				deleteFile('./screenshots/' + filename);
-        			} else {
-          				console.log('We could not downscale ./screenshots/' + filename + ' :(');
-        			}
-      			});
-		    }
-		    ph.exit();
-		    callback();
-		  });
-		});
-    });
-  });
-      */
-
-
   var options = {
     'phantomConfig': {
       'ignore-ssl-errors': true,
@@ -1014,11 +959,15 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   };
   
 
+  addToScreenshotsToGenerateQueue(filename);
   webshot(uri, 'screenshots/' + filename, options, function(err) {
     if (err) {
       console.log('Error creating a screenshot for ' + uri);
+      console.log(filename);
       console.log(err);
-      callback('Screenshot failed!');
+      //callback('Screenshot failed!');
+      addToErrorQueue(uri);
+      callback();
     }else {
       fs.chmodSync('./screenshots/' + filename, '755');
       gm('./screenshots/' + filename)
@@ -1026,17 +975,36 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       .write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
         if (!err) {
           console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
-          //deleteFile('./screenshots/' + filename);
+          deleteFile('./screenshots/' + filename);
         } else {
           console.log('We could not downscale ./screenshots/' + filename + ' :(');
         }
       });
       console.log(' - CREATED screenshot ' + uri);
+      removeFromScreenshotsToGenerateQueue(filename);
       callback();
     }
   });
   
 };
+
+
+var screenshotsToGenerate = {};
+
+function addToScreenshotsToGenerateQueue(filename) {
+  console.log('ADDING to queue '+ filename + ', new length: '+ Object.keys(screenshotsToGenerate).length);
+  screenshotsToGenerate[filename] = 'TODO';
+}
+
+function removeFromScreenshotsToGenerateQueue(filename) {
+  
+  delete screenshotsToGenerate[filename];
+  console.log('REMOVING from queue '+ filename + ', new length: ' + Object.keys(screenshotsToGenerate).length);
+}
+
+function addToErrorQueue(uri) { //TODO:
+  console.log('Added to error queue: ' + uri);
+}
 
 function deleteFile(path) {
   fs.unlink(path, function(err) {
@@ -1069,7 +1037,7 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
         lastSignificantMementoIndexBasedOnHamming = m;
       }
     }
-    //console.log(' - memento[' + m + '] hamming: ' + this.mementos[m].hammingDistance);
+    console.log(' - memento[' + m + '] hamming: ' + this.mementos[m].hammingDistance + ' ' + this.mementos[m]['simhash']);
   }
 
   if (callback) {callback(''); }
