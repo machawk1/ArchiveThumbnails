@@ -112,12 +112,36 @@ function performAllStrategiesWithURIRs(uriRs) {
   );
 }
 
+var repeatCount = 0; //prevent infinite loops in a hacky method that gets the data generated
+var prevRepeatCount = 0;
+
 function checkAndProcessNextURI(uriRs) {
   var remainingScreenshotsToGenerate = Object.keys(screenshotsToGenerate).length;
   if(remainingScreenshotsToGenerate != 0) {
     console.log(remainingScreenshotsToGenerate + ' screenshots still need to be generated');
+    
+    if(repeatCount < 5) {
+      prevRepeatCount = repeatCount;
+    }else {
+      console.log('Too many repeats, we are done with this URI');
+      fs.writeFile("./badURIs.txt", Object.keys(screenshotsToGenerate).join('\n'), function(err) {
+			if(err) {
+			  console.log('Could not save bad URIs file. :(');
+			  return console.log(err);
+			}
+
+			console.log('Saved bad URIs to ./badURIs.txt');
+	  }); 
+      
+      if(uriRs.length > 0) {
+        performAllStrategiesWithURIRs(uriRs);
+      }
+      return;
+    }
+    
     if(uriRs.length > 0) {
-      setTimeout(function(){checkAndProcessNextURI(uriRs);}, 2000);
+      repeatCount++;
+      setTimeout(function(){checkAndProcessNextURI(uriRs);}, 5000);
       return;
     }else {
       console.log('Remaining URIs');
@@ -141,7 +165,7 @@ function main() {
                '************************************').blue);
   
 
-  var lines = fs.readFileSync('mkdc.txt').toString().split("\n");
+  var lines = fs.readFileSync('lulwah_ijdl.txt').toString().split("\n");
   batchProcessWithAllStrategies(lines);
 }
 
@@ -994,12 +1018,13 @@ var screenshotsToGenerate = {};
 function addToScreenshotsToGenerateQueue(filename) {
   console.log('ADDING to queue '+ filename + ', new length: '+ Object.keys(screenshotsToGenerate).length);
   screenshotsToGenerate[filename] = 'TODO';
+  repeatCount = 0;
 }
 
 function removeFromScreenshotsToGenerateQueue(filename) {
-  
   delete screenshotsToGenerate[filename];
   console.log('REMOVING from queue '+ filename + ', new length: ' + Object.keys(screenshotsToGenerate).length);
+  repeatCount = 0;
 }
 
 function addToErrorQueue(uri) { //TODO:
