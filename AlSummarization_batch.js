@@ -589,6 +589,7 @@ function performStrategy_alsum(uri, cb) {
 
   console.log('Starting many asynchronous operations...');
   var tm = new TimeMap();
+  tm.original = uri;
   
   try {
 	  async.series([
@@ -950,11 +951,12 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
 
 TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   var uri = memento.uri;
+  var uriDir = md5(this.original);
 
   var filename = memento.screenshotURI;
   var fileDescriptor;
   try {
-    var fileExists = fs.statSync(path.join(__dirname + '/screenshots/' + memento.screenshotURI));
+    var fileExists = fs.statSync(path.join(__dirname + '/screenshots/' + uriDir + '/' + memento.screenshotURI));
     if (fileExists) {
       throw 'nofile';
     }
@@ -984,7 +986,8 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
   
 
   addToScreenshotsToGenerateQueue(filename);
-  webshot(uri, 'screenshots/' + filename, options, function(err) {
+  
+  webshot(uri, 'screenshots/' + uriDir + '/' + filename, options, function(err) {
     if (err) {
       console.log('Error creating a screenshot for ' + uri);
       console.log(filename);
@@ -993,15 +996,15 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       addToErrorQueue(uri);
       callback();
     }else {
-      fs.chmodSync('./screenshots/' + filename, '755');
-      gm('./screenshots/' + filename)
+      fs.chmodSync('./screenshots/' + uriDir + '/' + filename, '755');
+      gm('./screenshots/' + uriDir + '/' + filename)
       .resize(200, 150)
-      .write('./screenshots/' + (filename.replace('.png', '_200.png')), function(err) {
+      .write('./screenshots/' + uriDir + '/' + (filename.replace('.png', '_200.png')), function(err) {
         if (!err) {
           console.log(' - SCALED ' + filename + ' to 200 pixels, deleting original asynchronously.');
-          deleteFile('./screenshots/' + filename);
+          deleteFile('./screenshots/' + uriDir + '/' + filename);
         } else {
-          console.log('We could not downscale ./screenshots/' + filename + ' :(');
+          console.log('We could not downscale ./screenshots/' + uriDir + '/' + filename + ' :(');
         }
       });
       console.log(' - CREATED screenshot ' + uri);
