@@ -1,4 +1,4 @@
-'use strict';
+//'use strict';
 /*********************************
 *  AlSummarization (batch version)
 *  An implementation for Ahmed AlSum's ECIR 2014 paper:
@@ -41,7 +41,7 @@ var underscore = require('underscore');
 
 
 var argv = require('minimist')(process.argv.slice(2));
-var prompt = require('sync-prompt').prompt;
+//var prompt = require('sync-prompt').prompt;
 var request = require('sync-request');
 
 var mementoFramework = require('./_js/mementoFramework.js');
@@ -52,7 +52,8 @@ var SimhashCacheFile = require('./_js/simhashCache.js').SimhashCacheFile;
 var colors = require('colors');
 var im = require('imagemagick');
 var gm = require('gm').subClass({ imageMagick: true });;
-var rimraf = require('rimraf');
+
+const Pageres = require('pageres');
 
 var md5 = require('blueimp-md5');
 console.log(md5);
@@ -61,8 +62,6 @@ var app = express();
 
 var host = 'http://' + (process.env.SERVER_HOST || 'localhost'); // Format: scheme://hostname
 
-// Fresh system for testing (NOT IMPLEMENTED)
-var nukeSystemData = argv.clean ? argv.clean : false;
 var uriR = '';
 
 var validStrategyParameters = ['alSummarization', 'random', 'temporalInterval', 'interval'];
@@ -74,6 +73,7 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
 var HAMMING_DISTANCE_THRESHOLD_INIT = 4;
 
 function batchProcessWithAllStrategies(uriRs) {
+  console.log('Creating cache file for '+ uriRs[0]);
   var cacheFile = new SimhashCacheFile(uriRs[0]);
   cacheFile.path += '.json';
 
@@ -82,14 +82,14 @@ function batchProcessWithAllStrategies(uriRs) {
   // **********************************
   var fileContents = cacheFile.readFileContentsSync();
   
-  if (fileContents) {
-    console.log('Found cache file at ' + cacheFile.path);
-    processWithFileContents(data);
-  } else {
+  //if (fileContents) {
+  //  console.log('Found cache file at ' + cacheFile.path);
+  //  processWithFileContents(data);
+  //} else {
     console.log('GENERATING cache file at ' + cacheFile.path + ', one does not currently exist.');
     
     performAllStrategiesWithURIRs(uriRs);
-  }
+  //}
 }
 
 function performAllStrategiesWithURIRs(uriRs) {
@@ -185,7 +185,7 @@ function performStrategy_interval(uri, cb) {
   var timemapPath = '/web/timemap/link/' + uri;
   var tmURI = 'http' + timemapHost + timemapPath;
 
-  var cacheFile = new SimhashCacheFile(tmURI);
+  var cacheFile = new SimhashCacheFile(uri);
   cacheFile.path += '.json';
   if (!cacheFile.exists()) {
     console.log(('ERROR: Cache file at ' + cacheFile.path + ' does not exist. Not performing interval').red);
@@ -196,23 +196,27 @@ function performStrategy_interval(uri, cb) {
   var cacheFiles = fs.readdirSync('./cache/');
   var filteredCacheFiles = [];
   var mementos = [];
-
-  mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
-  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
-  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  mementos = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
-  console.log(alSumCount + ' Mementos have been selected selected for interval');
-  createThumbnailsForMementosWithAScreenshotURI(mementos, 'interval');
   
-  return cb();
-}
+  
+  console.log('Trying to read cache file at ' + __dirname + cacheFile.path.replace('./','/'));
+  fs.readFile(__dirname + cacheFile.path.replace('./','/'), 'utf8', function(err, data) {
+    mementos = JSON.parse(data);
+    var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+    console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+    mementos = getIndexesForMementosNeededToBuildInterval(mementos, alSumCount);
+    console.log(alSumCount + ' Mementos have been selected selected for interval');
+    createThumbnailsForMementosWithAScreenshotURI(mementos, 'interval');
+  
+    return cb();
+  });
+}  
 
 function performStrategy_temporalInterval(uri, cb) {
   var timemapHost = 'web.archive.org';
   var timemapPath = '/web/timemap/link/' + uri;
   var tmURI = 'http' + timemapHost + timemapPath;
   
-  var cacheFile = new SimhashCacheFile(tmURI);
+  var cacheFile = new SimhashCacheFile(uri);
   cacheFile.path += '.json';
   if (!cacheFile.exists()) {
     console.log(('ERROR: Cache file at ' + cacheFile.path + ' does not exist. Not performing temporal interval').red);
@@ -225,21 +229,24 @@ function performStrategy_temporalInterval(uri, cb) {
   var filteredCacheFiles = [];
   var mementos = [];
 
-  mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
-  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
-  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  mementos = selectMementosForTemporalInterval(mementos, alSumCount);
-  var myCount = 0;
-  for(var mm=0; mm<mementos.length; mm++){
-    if(mementos[mm].screenshotURI) {
-     myCount++;
-    }
-  }
-  
-  console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
-  createThumbnailsForMementosWithAScreenshotURI(mementos, 'temporalInterval');
 
-  return cb();
+  fs.readFile(__dirname + cacheFile.path.replace('./','/'), 'utf8', function(err, data) {
+	  mementos = JSON.parse(data);
+	  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+	  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+	  mementos = selectMementosForTemporalInterval(mementos, alSumCount);
+	  var myCount = 0;
+	  for(var mm=0; mm<mementos.length; mm++){
+		if(mementos[mm].screenshotURI) {
+		 myCount++;
+		}
+	  }
+  
+	  console.log(alSumCount + ' Mementos have been selected selected for temporal interval');
+	  createThumbnailsForMementosWithAScreenshotURI(mementos, 'temporalInterval');
+
+	  return cb();
+	});
 }
 
 function performStrategy_random(uri, cb) {
@@ -247,7 +254,7 @@ function performStrategy_random(uri, cb) {
   var timemapPath = '/web/timemap/link/' + uri;
   var tmURI = 'http' + timemapHost + timemapPath;
 
-  var cacheFile = new SimhashCacheFile(tmURI);
+  var cacheFile = new SimhashCacheFile(uri);
   cacheFile.path += '.json';
   if (!cacheFile.exists()) {
     console.log(('ERROR: Cache file at ' + cacheFile.path + ' does not exist. Not performing random').red);
@@ -259,17 +266,19 @@ function performStrategy_random(uri, cb) {
   var filteredCacheFiles = [];
   var mementos = [];
 
-  mementos = JSON.parse(fs.readFileSync(cacheFile.path).toString());
-  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
-  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
-  mementos = getRandomSubsetOfMementosArray(mementos, alSumCount);
-  for(var mm = 0; mm < mementos.length; mm++) {
-    mementos[mm].screenshotURI = 'toFill';
-  }
-  console.log(alSumCount + ' Mementos have been selected selected for random.');
-  createThumbnailsForMementosWithAScreenshotURI(mementos, 'random');
-    
-  return cb();
+  fs.readFile(__dirname + cacheFile.path.replace('./','/'), 'utf8', function(err, data) {
+	  mementos = JSON.parse(data);
+	  var alSumCount = countNumberOfScreenshotsCreatedByAlSumBasedOnCache(mementos);
+	  console.log('There were ' + mementos.length + ' mementos. AlSum chose ' + alSumCount);
+	  mementos = getRandomSubsetOfMementosArray(mementos, alSumCount);
+	  for(var mm = 0; mm < mementos.length; mm++) {
+		mementos[mm].screenshotURI = 'toFill';
+	  }
+	  console.log(alSumCount + ' Mementos have been selected selected for random.');
+	  createThumbnailsForMementosWithAScreenshotURI(mementos, 'random');
+	
+	  return cb();
+	});
 }
 
 
@@ -280,6 +289,7 @@ function createThumbnailsForMementos(mementos, strategy) {
   
   var t = new TimeMap();
   t.mementos = mementos;
+  t.strategy = strategy;
   t.createScreenshotsForMementos();
 }
 
@@ -292,6 +302,7 @@ function createThumbnailsForMementosWithAScreenshotURI(mementos, strategy) {
   
   var t = new TimeMap();
   t.mementos = mementos;
+  t.strategy = strategy;
   t.createScreenshotsForMementos();
 }
 
@@ -416,25 +427,6 @@ function convertRFC1123toUnixTimesStamp(inputString) {
 }  
 
 /**
-* Delete all derived data including caching and screenshot - namely for testing
-* @param cb Callback to execute upon completion
-*/
-function cleanSystemData(cb) {
-  // Delete all files in ./screenshots/ and ./cache/
-  var dirs = ['screenshots', 'cache'];
-  dirs.forEach(function(e, i) {
-    rimraf(__dirname + '/' + e + '/*', function(err) {
-      if (err) {throw err; }
-      console.log('Deleted contents of ./' + e + '/');
-    });
-
-    console.log(e);
-  });
-
-  if (cb) {return cb();}
-}
-
-/**
 * Display thumbnail interface based on passed in JSON
 * @param fileContents JSON string consistenting of an array of mementos
 * @param response handler to client's browser interface
@@ -510,7 +502,6 @@ Memento.prototype.setSimhash = function() {
       res.on('end', function(d) {
         var md5hash = md5(thatmemento.originalURI); // URI-R cannot be passed in the raw
 
-
         if (buffer2.indexOf('Got an HTTP 302 response at crawl time') === -1 && thatmemento.simhash != '00000000') {
 
           var sh = simhash((buffer2).split('')).join('');
@@ -549,12 +540,13 @@ Memento.prototype.setSimhash = function() {
     });
 
 	req.on('timeout', function () {
-	  console.log('timeout');
+	  console.log('timeout for ' + thaturi);
 	  req.abort();
 	  resolve('isA302DeleteMe');
 	});
 	req.on('error', function (e) {
 	  console.log('timeout');
+	  console.log(e);
 	  req.abort();
 	  resolve('isA302DeleteMe');
 	});	
@@ -590,6 +582,7 @@ function performStrategy_alsum(uri, cb) {
   console.log('Starting many asynchronous operations...');
   var tm = new TimeMap();
   tm.original = uri;
+  tm.strategy = 'alSum';
   
   try {
 	  async.series([
@@ -706,7 +699,7 @@ TimeMap.prototype.calculateSimhashes = function(callback) {
     console.log(' - ' + simhashesCreated + '/' + totalNumberOfMementos + ' simhashes generated for ' + uri);
   }
   simhashesCreated = 0;
-  var reportSimhashStatus = setInterval(echoNumberOfMementosComplete,2000,this.originalURI,this.mementos.length);
+  var reportSimhashStatus = setInterval(echoNumberOfMementosComplete, 2000, this.originalURI, this.mementos.length);
 
   // console.time('simhashing');
   var theTimemap = this;
@@ -744,14 +737,14 @@ TimeMap.prototype.saveSimhashesToCache = function(callback,format) {
     }
   }
 
-  var cacheFile = new SimhashCacheFile(this.originalURI);
+  var cacheFile = new SimhashCacheFile(this.original);
   cacheFile.replaceContentWith(strToWrite);
 
   if (callback) {callback('');}
 }
 
 TimeMap.prototype.writeJSONToCache = function(callback) {
-  var cacheFile = new SimhashCacheFile(this.originalURI);
+  var cacheFile = new SimhashCacheFile(this.original);
   cacheFile.writeFileContentsAsJSON(JSON.stringify(this.mementos));
   if (callback) {callback('');}
 }
@@ -927,16 +920,14 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
   if (withCriteria) {criteria = withCriteria; }
   
   console.log('Creating screenshots for ' + self.mementos.filter(criteria).length + ' mementos...');
-  
-  var doneCount = 0;
+    
   var totalCount = self.mementos.filter(criteria).length;
   async.eachLimit(
     shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
     1,
-    function(memento, cb) {
-      self.createScreenshotForMemento(memento, cb);            // Create a screenshot
-      doneCount++;
-    },
+    function(item, callback) {
+      self.createScreenshotForMemento(item, self.strategy, callback)
+    },           // Create a screenshot
     function doneCreatingScreenshots(err) {      // When finished, check for errors
       if (err) {
         console.log('Error creating screenshot');
@@ -949,11 +940,30 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
   );
 };
 
-TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
+function sanitizeURIForPathname(uriR) {
+ var sanitizedURI = uriR.replace('httpwebarchiveorgweb','').replace('http','_').replace('www','');
+  //console.warn('sanitizing ' + uriR + ' to ' + sanitizedURI);
+  return sanitizedURI;
+}
+
+TimeMap.prototype.createScreenshotForMemento = function(memento, strategy, callback) {
+  addURIMToLog(memento.uri, strategy);
+  callback();
+  return;
+
+
   var uri = memento.uri;
   var uriDir = md5(this.original);
+  uriDir = this.original ? this.original : this.original_uri; // Change screenshots dir to URIM instead of hash
+  //sanitizeURIForPathname(this.original);
 
-  var filename = memento.screenshotURI;
+  memento.screenshotURI = sanitizeURIForPathname(memento.screenshotURI);
+
+  var filename = memento.uri;
+  console.log(filename);
+  callback();
+  
+  return;
   var fileDescriptor;
   try {
     var fileExists = fs.statSync(path.join(__dirname + '/screenshots/' + uriDir + '/' + memento.screenshotURI));
@@ -983,10 +993,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     },
     'timeout': 60000
   };
-  
 
-  addToScreenshotsToGenerateQueue(filename);
-  
   webshot(uri, 'screenshots/' + uriDir + '/' + filename, options, function(err) {
     if (err) {
       console.log('Error creating a screenshot for ' + uri);
@@ -996,6 +1003,7 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       addToErrorQueue(uri);
       callback();
     }else {
+      /*
       fs.chmodSync('./screenshots/' + uriDir + '/' + filename, '755');
       gm('./screenshots/' + uriDir + '/' + filename)
       .resize(200, 150)
@@ -1010,8 +1018,12 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
       console.log(' - CREATED screenshot ' + uri);
       removeFromScreenshotsToGenerateQueue(filename);
       callback();
+      */
     }
+    callback();
   });
+
+
   
 };
 
@@ -1159,6 +1171,18 @@ function Hex2BinWithPadding(n) {
   }
   
   return binStr;
+}
+
+function addURIMToLog(urim, strategy) {
+  console.log('adding to log: '+urim);
+  //console.log(__dirname + '/urisToGenerateScreenshots.log');
+	fs.appendFileSync(__dirname + '/urisToGenerateScreenshots.log', strategy + ' ' + urim + '\n',encoding='utf8', function(err) {
+	  if(err) {
+	  console.log('error!');
+	  console.log(err);
+		throw error;
+	  }
+	});
 }
 
 function Hex2Dec(n) {
