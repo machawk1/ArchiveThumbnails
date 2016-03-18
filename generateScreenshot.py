@@ -31,8 +31,8 @@ def main():
 
 
 def createThumbnail(strategy, urir, urim, datetime):
-  if not os.path.exists(os.getcwd()+"/"+urir):
-    os.makedirs(os.getcwd()+"/"+urir)
+  if not os.path.exists(os.getcwd()+"/screenshots/"+urir):
+    os.makedirs(os.getcwd()+"/screenshots/"+urir)
 
   fnStrat = ''
   if strategy == "Interval":
@@ -54,14 +54,14 @@ def createThumbnail(strategy, urir, urim, datetime):
     driver.execute_script("document.getElementById('wm-ipp').style.display = 'none';")
   except: # Sometimes the Wayback interface does not display
     ''' '''
-  driver.save_screenshot(os.getcwd()+"/"+fn) # save a screenshot to disk
+  driver.save_screenshot(os.getcwd()+"/screenshots/"+fn) # save a screenshot to disk
   
   #Scale and crop
-  with Image(filename=os.getcwd()+"/"+fn) as img:
+  with Image(filename=os.getcwd()+"/screenshots/"+fn) as img:
     #img.crop(0,0,img.width,img.width)
     img.resize(img.width, img.width)
     img.resize(200,200)
-    img.save(filename=os.getcwd()+"/"+fn)
+    img.save(filename=os.getcwd()+"/screenshots/"+fn)
   
 
 if __name__ == "__main__":
