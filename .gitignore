@@ -13,7 +13,7 @@
 
 # Produced images start with this
 http*
-screenshots/*.png
+screenshots/*/*.png
 cache/simhash_*
 cache/simhashes_*
 composites/*.png

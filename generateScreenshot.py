@@ -7,7 +7,7 @@ def getDatetimeFromURI(uri):
   return re.findall('[0-9]{14}', uri)[0]
 
 def main():
-  lines = tuple(open('3strategies_20160318.txt','r'))
+  lines = tuple(open('3strategies_20160320.txt','r'))
 
   strategy = ''
   urim = ''
@@ -49,20 +49,30 @@ def createThumbnail(strategy, urir, urim, datetime):
   print str(int(time.time())) + " Fetching " + urim
   driver = webdriver.PhantomJS() # or add to your PATH
   driver.set_window_size(1024, 768) # optional
-  driver.get(urim)
+  try:
+    driver.get(urim)
+  except BadStatusLine:
+    print "Bad Status Line"
+    return
+
+   
   try:
     driver.execute_script("document.getElementById('wm-ipp').style.display = 'none';")
   except: # Sometimes the Wayback interface does not display
     ''' '''
   driver.save_screenshot(os.getcwd()+"/screenshots/"+fn) # save a screenshot to disk
-  
+  try:
+    driver.quit()  
+  except AttributeError:
+    pass
+
   #Scale and crop
   with Image(filename=os.getcwd()+"/screenshots/"+fn) as img:
-    #img.crop(0,0,img.width,img.width)
+  #  #img.crop(0,0,img.width,img.width)
     img.resize(img.width, img.width)
     img.resize(200,200)
     img.save(filename=os.getcwd()+"/screenshots/"+fn)
-  
+    #img.close()  
 
 if __name__ == "__main__":
     main()
