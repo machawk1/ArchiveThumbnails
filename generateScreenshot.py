@@ -2,12 +2,18 @@ from selenium import webdriver
 import sys, re, os, time
 from wand.image import Image
 from wand.display import display
+driver = None
+
 
 def getDatetimeFromURI(uri):
   return re.findall('[0-9]{14}', uri)[0]
 
 def main():
+  global driver
   lines = tuple(open('3strategies_20160320.txt','r'))
+
+  driver = webdriver.PhantomJS() # or add to your PATH
+  driver.set_window_size(1024, 768) # optional
 
   strategy = ''
   urim = ''
@@ -27,10 +33,14 @@ def main():
     else: # Strategy
       strategy = ln
 
-
+  try:
+    driver.quit()
+  except AttributeError:
+    pass
 
 
 def createThumbnail(strategy, urir, urim, datetime):
+  global driver
   if not os.path.exists(os.getcwd()+"/screenshots/"+urir):
     os.makedirs(os.getcwd()+"/screenshots/"+urir)
 
@@ -47,8 +57,8 @@ def createThumbnail(strategy, urir, urim, datetime):
   
   fn = urir+"/"+fnStrat+datetime+'.png'
   print str(int(time.time())) + " Fetching " + urim
-  driver = webdriver.PhantomJS() # or add to your PATH
-  driver.set_window_size(1024, 768) # optional
+ # driver = webdriver.PhantomJS() # or add to your PATH
+ # driver.set_window_size(1024, 768) # optional
   try:
     driver.get(urim)
   except BadStatusLine:
@@ -61,10 +71,10 @@ def createThumbnail(strategy, urir, urim, datetime):
   except: # Sometimes the Wayback interface does not display
     ''' '''
   driver.save_screenshot(os.getcwd()+"/screenshots/"+fn) # save a screenshot to disk
-  try:
-    driver.quit()  
-  except AttributeError:
-    pass
+  #try:
+  #  driver.quit()  
+  #except AttributeError:
+  #  pass
 
   #Scale and crop
   with Image(filename=os.getcwd()+"/screenshots/"+fn) as img:
