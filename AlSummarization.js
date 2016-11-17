@@ -28,7 +28,7 @@ var simhash = require('simhash')('md5');
 var moment = require('moment');
 
 var ProgressBar = require('progress');
-var memwatch = require('memwatch');
+//var memwatch = require('memwatch');
 
 var phantom = require('node-phantom');
 
@@ -40,7 +40,7 @@ var underscore = require('underscore');
 var webshot = require('webshot'); // PhantomJS wrapper
 
 var argv = require('minimist')(process.argv.slice(2));
-var prompt = require('sync-prompt').prompt;
+//var prompt = require('sync-prompt').prompt;
 
 var mementoFramework = require('./_js/mementoFramework.js');
 var Memento = mementoFramework.Memento;
@@ -54,7 +54,7 @@ var rimraf = require('rimraf');
 var faye = require('faye'); // For status-based notifications to client
 
 // Faye's will not allow a URI-* as the channel name, hash it for Faye
-var md5 = require('blueimp-md5').md5;
+var md5 = require('blueimp-md5');
 
 var app = express();
 
@@ -84,11 +84,11 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
 * Start the application by initializing server instances
 */
 function main() {
-  memwatch.on('leak', function(info) {
+  /* memwatch.on('leak', function(info) {
     console.log('You\'re leaking!');
     console.error(info);
   });
-  /* memwatch.on('stats', function(stats) {
+  memwatch.on('stats', function(stats) {
     console.log("Garbage collection!");
     console.log(stats);
   });*/
@@ -97,7 +97,7 @@ function main() {
                'THUMBNAIL SUMMARIZATION SERVICE\r\n' +
                '*******************************').blue);
   if (nukeSystemData) {
-    var resp = prompt('Delete all derived data (y/N)? ');
+    var resp//TODO: replace sync-prompt module = prompt('Delete all derived data (y/N)? ');
     if (resp === 'y') {
       console.log('Deleting all dervived data.');
       nukeSystemData = false;
@@ -564,7 +564,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
   var t;
   var retStr = '';
   var metadata = '';
-  console.log('Starting many asynchronous operations...');
+  console.log('Starting many asynchronous operationsX...');
   async.series([
     // TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
     // TODO: abstract this method to its callback form. Currently, this is reaching and populating the timemap out of scope and can't be simply isolated (I tried)

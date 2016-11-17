@@ -17,7 +17,6 @@
     "simhash": "*",
     "moment": "*",
     "progress": "*",
-    "memwatch": "*",
     "node-phantom": "*",
     "validator": "*",
     "underscore": "*",
@@ -26,15 +25,11 @@
     "imagemagick": "*",
     "async": "*",
     "minimist": "*",
-    "sync-prompt": "*",
     "rimraf": "*",
     "faye": "*",
     "blueimp-md5": "*"
   },
   "main": "index",
-  "engines": {
-    "node": ">= 0.4.x < 0.7.0"
-  },
   "scripts": {
     "test": "make test"
   },
