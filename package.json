@@ -31,13 +31,14 @@
   },
   "main": "index",
   "scripts": {
-    "test": "make test"
+    "test": "standard"
   },
   "devDependencies": {
     "chai": "^3.2.0",
     "jscs": "^1.13.1",
     "mocha": "0.3.x",
     "mocha-jscs": "^1.2.0",
-    "should": "^7.0.2"
+    "should": "^7.0.2",
+    "standard" :"*"
   }
 }

@@ -1,5 +1,5 @@
-'use strict';
-/*********************************
+'use strict'
+/* ********************************
 *  AlSummarization
 *  An implementation for Ahmed AlSum's ECIR 2014 paper:
 *   "Thumbnail Summarization Techniques for Web Archives"
@@ -14,67 +14,67 @@
 *   summarization returned.
 */
 
-var http = require('http');
-var express = require('express');
-var url = require('url');
-var connect = require('connect');
-var serveStatic = require('serve-static');
-var Step = require('step');
-var async = require('async');
-var Futures = require('futures');
-var Promise = require('es6-promise').Promise;
-var Async = require('async');
-var simhash = require('simhash')('md5');
-var moment = require('moment');
+var http = require('http')
+var express = require('express')
+var url = require('url')
+var connect = require('connect')
+var serveStatic = require('serve-static')
+// var Step = require('step')
+var async = require('async')
+// var Futures = require('futures')
+var Promise = require('es6-promise').Promise
+var Async = require('async')
+var simhash = require('simhash')('md5')
+var moment = require('moment')
 
-var ProgressBar = require('progress');
-//var memwatch = require('memwatch');
+var ProgressBar = require('progress')
+//var memwatch = require('memwatch')
 
-var phantom = require('node-phantom');
+var phantom = require('node-phantom')
 
-var fs = require('fs');
-var path = require('path');
-var validator = require('validator');
-var underscore = require('underscore');
+var fs = require('fs')
+var path = require('path')
+var validator = require('validator')
+var underscore = require('underscore')
 
 var webshot = require('webshot'); // PhantomJS wrapper
 
-var argv = require('minimist')(process.argv.slice(2));
-//var prompt = require('sync-prompt').prompt;
+var argv = require('minimist')(process.argv.slice(2))
+//var prompt = require('sync-prompt').prompt
 
-var mementoFramework = require('./_js/mementoFramework.js');
-var Memento = mementoFramework.Memento;
-var TimeMap = mementoFramework.TimeMap;
-var SimhashCacheFile = require('./_js/simhashCache.js').SimhashCacheFile;
+var mementoFramework = require('./_js/mementoFramework.js')
+var Memento = mementoFramework.Memento
+var TimeMap = mementoFramework.TimeMap
+var SimhashCacheFile = require('./_js/simhashCache.js').SimhashCacheFile
 
-var colors = require('colors');
-var im = require('imagemagick');
-var rimraf = require('rimraf');
+var colors = require('colors')
+var im = require('imagemagick')
+var rimraf = require('rimraf')
 
 var faye = require('faye'); // For status-based notifications to client
 
 // Faye's will not allow a URI-* as the channel name, hash it for Faye
-var md5 = require('blueimp-md5');
+var md5 = require('blueimp-md5')
 
-var app = express();
+var app = express()
 
 var host = 'http://localhost'; // Format: scheme://hostname
 
 /* Custom ports if specified on command-line */
-var thumbnailServicePort = argv.p ? argv.p : 15421;
-var localAssetServerPort = argv.ap ? argv.a : 1338;
-var notificationServerPort = argv.ap ? argv.n : 15422;
+var thumbnailServicePort = argv.p ? argv.p : 15421
+var localAssetServerPort = argv.ap ? argv.a : 1338
+var notificationServerPort = argv.ap ? argv.n : 15422
 
 /* Derived host access points */
-var localAssetServer = host + ':' + localAssetServerPort + '/';
-var thumbnailServer = host + ':' + thumbnailServicePort + '/';
-var notificationServer = host + ':' + notificationServerPort + '/';
+var localAssetServer = host + ':' + localAssetServerPort + '/'
+var thumbnailServer = host + ':' + thumbnailServicePort + '/'
+var notificationServer = host + ':' + notificationServerPort + '/'
 
 // Fresh system for testing (NOT IMPLEMENTED)
-var nukeSystemData = argv.clean ? argv.clean : false;
-var uriR = '';
+var nukeSystemData = argv.clean ? argv.clean : false
+var uriR = ''
 
-var HAMMING_DISTANCE_THRESHOLD = 4;
+var HAMMING_DISTANCE_THRESHOLD = 4
 
 /********************************
    TODO: reorder functions (main first) to be more maintainable 20141205
@@ -85,68 +85,68 @@ var HAMMING_DISTANCE_THRESHOLD = 4;
 */
 function main() {
   /* memwatch.on('leak', function(info) {
-    console.log('You\'re leaking!');
-    console.error(info);
-  });
+    console.log('You\'re leaking!')
+    console.error(info)
+  })
   memwatch.on('stats', function(stats) {
-    console.log("Garbage collection!");
-    console.log(stats);
+    console.log("Garbage collection!")
+    console.log(stats)
   });*/
 
   console.log(('*******************************\r\n' +
                'THUMBNAIL SUMMARIZATION SERVICE\r\n' +
-               '*******************************').blue);
+               '*******************************').blue)
   if (nukeSystemData) {
-    var resp//TODO: replace sync-prompt module = prompt('Delete all derived data (y/N)? ');
+    var resp//TODO: replace sync-prompt module = prompt('Delete all derived data (y/N)? ')
     if (resp === 'y') {
-      console.log('Deleting all dervived data.');
-      nukeSystemData = false;
+      console.log('Deleting all dervived data.')
+      nukeSystemData = false
       // TODO: figure out why the flow does not continue after the
       //       nukeSystemData conditional
-      cleanSystemData(main);
-      console.log('Derived data deleted.');
+      cleanSystemData(main)
+      console.log('Derived data deleted.')
     }else {
-      console.log('No derived data modified.');
+      console.log('No derived data modified.')
     }
   }
 
-  startLocalAssetServer();
+  startLocalAssetServer()
 
-  var endpoint = new PublicEndpoint();
+  var endpoint = new PublicEndpoint()
 
   // Initialize the server based and perform the "respond" call back when a client attempts to interact with the script
-  // http.createServer(respond).listen(thumbnailServicePort);
-  app.get('/*', endpoint.respondToClient);
-  app.listen(thumbnailServicePort);
+  // http.createServer(respond).listen(thumbnailServicePort)
+  app.get('/*', endpoint.respondToClient)
+  app.listen(thumbnailServicePort)
 
   /* Notification server for status updates of long-running processes */
-  var notificationServerInstance =   http.createServer();
-  var  bayeux = new faye.NodeAdapter({'mount': '/', 'timeout': 45});
+  var notificationServerInstance =   http.createServer()
+  var  bayeux = new faye.NodeAdapter({'mount': '/', 'timeout': 45})
 
   // TODO: send an initial notification by the server to faye to state that
   //       processing has not started
 
   bayeux.on('handshake', function(clientId) {
-    console.log('FAYE - handshake initiated ' + clientId);
-  });
+    console.log('FAYE - handshake initiated ' + clientId)
+  })
 
   bayeux.on('subscribe', function(clientId, channelId) {
-    console.log('FAYE - client subscribed - ' + clientId + ' ' + channelId);
-  });
+    console.log('FAYE - client subscribed - ' + clientId + ' ' + channelId)
+  })
 
   bayeux.on('publish', function(clientId, channelId, data) {
-    console.log('FAYE - client published - ' + clientId + ' ' + channelId + ' ' + data);
-  });
+    console.log('FAYE - client published - ' + clientId + ' ' + channelId + ' ' + data)
+  })
 
-  bayeux.attach(notificationServerInstance);
-  notificationServerInstance.listen(notificationServerPort);
+  bayeux.attach(notificationServerInstance)
+  notificationServerInstance.listen(notificationServerPort)
 
-  // console.log("FAYE - server started");
+  // console.log("FAYE - server started")
 
   // TODO: react accordingly if port listening failed, don't simply assume the service was started.
-  console.log('* ' + ('Thumbnails service started on Port ' + thumbnailServicePort).red);
-  console.log('* ' + ('Notification service started on Port ' + notificationServerPort).red);
-  console.log('> Try ' + thumbnailServer + '?URI-R=http://matkelly.com in your web browser for sample execution.');
+  console.log('* ' + ('Thumbnails service started on Port ' + thumbnailServicePort).red)
+  console.log('* ' + ('Notification service started on Port ' + notificationServerPort).red)
+  console.log('> Try ' + thumbnailServer + '?URI-R=http://matkelly.com in your web browser for sample execution.')
 }
 
 
@@ -159,12 +159,12 @@ function startLocalAssetServer() {
     serveStatic(
       __dirname,
       {'setHeaders': function(res,path) {
-          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Origin', '*')
         }
       }
     )
-  ).listen(localAssetServerPort);
-  console.log('* ' + ('Local resource (css, js, etc.) server listening on Port ' + localAssetServerPort + '...').red);
+  ).listen(localAssetServerPort)
+  console.log('* ' + ('Local resource (css, js, etc.) server listening on Port ' + localAssetServerPort + '...').red)
 }
 
 
@@ -172,28 +172,28 @@ function startLocalAssetServer() {
 * Setup the public-facing attributes of the service
 */
 function PublicEndpoint() {
-  var theEndPoint = this;
+  var theEndPoint = this
   /**
   * Default form to enter URI-R if one is not supplied in the query string
   */
   this.getHTMLSubmissionForm = function() {
-    var baseInterfaceHTML = fs.readFileSync(__dirname + '/base.html');
-    return baseInterfaceHTML;
-  };
+    var baseInterfaceHTML = fs.readFileSync(__dirname + '/base.html')
+    return baseInterfaceHTML
+  }
 
   // Parameters supplied for means of access:
-  this.validAccessParameters = ['interface', 'wayback', 'embed'];
+  this.validAccessParameters = ['interface', 'wayback', 'embed']
 
   // Parameter supplied for summarization strategy:
-  this.validStrategyParameters = ['alSummarization', 'random', 'temporalInterval', 'interval'];
+  this.validStrategyParameters = ['alSummarization', 'random', 'temporalInterval', 'interval']
 
   this.isAValidAccessParameter = function(accessParameter) {
-    return theEndPoint.validAccessParameters.indexOf(accessParameter) > -1;
-  };
+    return theEndPoint.validAccessParameters.indexOf(accessParameter) > -1
+  }
 
   this.isAValidStrategyParameter = function(strategyParameter) {
-    return theEndPoint.validStrategyParameters.indexOf(strategyParameter) > -1;
-  };
+    return theEndPoint.validStrategyParameters.indexOf(strategyParameter) > -1
+  }
 
 
   /**
@@ -204,37 +204,37 @@ function PublicEndpoint() {
   this.respondToClient = function(request, response) {
     response.clientId = Math.random() * 101 | 0; // associate a simple random integer to the user for logging (this is not scalable with the implemented method)
 
-    var headers = {};
+    var headers = {}
 
     // IE8 does not allow domains to be specified, just the *
-    // headers['Access-Control-Allow-Origin'] = req.headers.origin;
-    headers['Access-Control-Allow-Origin'] = '*';
-    headers['Access-Control-Allow-Methods'] = 'GET';
-    headers['Access-Control-Allow-Credentials'] = false;
+    // headers['Access-Control-Allow-Origin'] = req.headers.origin
+    headers['Access-Control-Allow-Origin'] = '*'
+    headers['Access-Control-Allow-Methods'] = 'GET'
+    headers['Access-Control-Allow-Credentials'] = false
     headers['Access-Control-Max-Age'] = '86400'; // 24 hours
-    headers['Access-Control-Allow-Headers'] = 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime';
+    headers['Access-Control-Allow-Headers'] = 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Accept-Datetime'
 
     if (request.method !== 'GET') {
-      console.log('Bad method ' + request.method + ' sent from client. Try HTTP GET');
-      response.writeHead(405, headers);
-      response.end();
-      return;
+      console.log('Bad method ' + request.method + ' sent from client. Try HTTP GET')
+      response.writeHead(405, headers)
+      response.end()
+      return
     }
 
-    var query = url.parse(request.url, true).query;
+    var query = url.parse(request.url, true).query
     /******************************
        IMAGE PARAMETER - allows binary image data to be returned from service
     **************************** */
     if (query.img) {
       // Return image data here
       var fileExtension = query.img.substr('-3'); // Is this correct to use a string and not an int!?
-      console.log('fetching ' + query.img + ' content');
+      console.log('fetching ' + query.img + ' content')
 
-      var img = fs.readFileSync(__dirname + '/' + query.img);
-      response.writeHead(200, {'Content-Type': 'image/' + fileExtension });
-      response.end(img, 'binary');
+      var img = fs.readFileSync(__dirname + '/' + query.img)
+      response.writeHead(200, {'Content-Type': 'image/' + fileExtension })
+      response.end(img, 'binary')
 
-      return;
+      return
     }
 
     /******************************
@@ -242,143 +242,143 @@ function PublicEndpoint() {
     **************************** */
 
     function isARESTStyleURI(uri) {
-      return (uri.substr(0, 5) === '/http');
+      return (uri.substr(0, 5) === '/http')
     }
 
     if (!query['URI-R'] && // a URI-R was not passed via the query string...
         request._parsedUrl && !isARESTStyleURI(request._parsedUrl.pathname.substr(0, 5))) { // ...or the REST-style specification
-      console.log('No URI-R sent with request. ' + request.url + ' was sent. Try ' + thumbnailServer + '/?URI-R=http://matkelly.com');
-      response.writeHead(400, headers);
-      response.write(theEndPoint.getHTMLSubmissionForm());
-      response.end();
-      return;
+      console.log('No URI-R sent with request. ' + request.url + ' was sent. Try ' + thumbnailServer + '/?URI-R=http://matkelly.com')
+      response.writeHead(400, headers)
+      response.write(theEndPoint.getHTMLSubmissionForm())
+      response.end()
+      return
     }else if (request._parsedUrl && !query['URI-R']) {
       // Populate query['URI-R'] with REST-style URI and proceed like nothing happened
-      query['URI-R'] = request._parsedUrl.pathname.substr(1);
+      query['URI-R'] = request._parsedUrl.pathname.substr(1)
     }else if (query['URI-R']) { // URI-R is specied as a query parameter
-      console.log('URI-R valid, using query parameter.');
+      console.log('URI-R valid, using query parameter.')
     }
 
-    uriR = query['URI-R'];
+    uriR = query['URI-R']
 
     var access = theEndPoint.validAccessParameters[0]; // Not specified? access=interface
     // Override the default access parameter if the user has supplied a value
     //  via query parameters
     if (query.access) {
-      access = query.access;
+      access = query.access
     }
 
     if (!theEndPoint.isAValidAccessParameter(access)) { // A bad access parameter was passed in
-      console.log('Bad access query parameter: ' + access);
-      response.writeHead(501, headers);
-      response.write('The access parameter was incorrect. Try one of ' + theEndPoint.validAccessParameters.join(',') + ' or omit it entirely from the query string\r\n');
-      response.end();
-      return;
+      console.log('Bad access query parameter: ' + access)
+      response.writeHead(501, headers)
+      response.write('The access parameter was incorrect. Try one of ' + theEndPoint.validAccessParameters.join(',') + ' or omit it entirely from the query string\r\n')
+      response.end()
+      return
     }
 
-    headers['X-Means-Of-Access'] = access;
+    headers['X-Means-Of-Access'] = access
 
     var strategy = theEndPoint.validStrategyParameters[0]; // Not specified? access=interface
     var strategyHeuristic = true; // If no strategy is expicitly specified, test-and-guess
 
     if (query.strategy) {
-      strategy = query.strategy;
-      strategyHeuristic = false;
+      strategy = query.strategy
+      strategyHeuristic = false
     }
 
     if (!theEndPoint.isAValidStrategyParameter(strategy)) { // A bad strategy parameter was passed in
-      console.log('Bad strategy query parameter: ' + strategy);
-      response.writeHead(501, headers);
-      response.write('The strategy parameter was incorrect. Try one of ' + theEndPoint.validStrategyParameters.join(',') + ' or omit it entirely from the query string\r\n');
-      response.end();
-      return;
+      console.log('Bad strategy query parameter: ' + strategy)
+      response.writeHead(501, headers)
+      response.write('The strategy parameter was incorrect. Try one of ' + theEndPoint.validStrategyParameters.join(',') + ' or omit it entirely from the query string\r\n')
+      response.end()
+      return
     }
 
-    headers['X-Summarization-Strategy'] = strategy;
+    headers['X-Summarization-Strategy'] = strategy
 
     if (!uriR.match(/^[a-zA-Z]+:\/\//)) {uriR = 'http://' + uriR; }// Prepend scheme if missing
 
 
     headers['Content-Type'] = 'text/html'; // application/json
 
-    response.writeHead(200, headers);
-    console.log(query);
-    console.log('New client request (' + response.clientId + ')\r\n> URI-R: ' + query['URI-R'] + '\r\n> Access: ' + access + '\r\n> Strategy: ' + strategy);
+    response.writeHead(200, headers)
+    console.log(query)
+    console.log('New client request (' + response.clientId + ')\r\n> URI-R: ' + query['URI-R'] + '\r\n> Access: ' + access + '\r\n> Strategy: ' + strategy)
 
     if (!validator.isURL(uriR)) { // Return "invalid URL"
-      returnJSONError('Invalid URI');
-      return;
+      returnJSONError('Invalid URI')
+      return
     }
 
     function returnJSONError(str) {
-      response.write('{"Error": "' + str + '"}');
-      response.end();
+      response.write('{"Error": "' + str + '"}')
+      response.end()
     }
 
     response.thumbnails = []; // Carry the original query parameters over to the eventual response
-    response.thumbnails['access'] = access;
-    response.thumbnails['strategy'] = strategy;
+    response.thumbnails['access'] = access
+    response.thumbnails['strategy'] = strategy
 
     /*TODO: include consideration for strategy parameter supplied here
             If we consider the strategy, we can simply use the TimeMap instead of the cache file
             Either way, the 'response' should be passed to the function representing the chosen strategy
             so the function still can return HTML to the client
     */
-    var t = new TimeMap();
+    var t = new TimeMap()
 
-    t.originalURI = query['URI-R'];
+    t.originalURI = query['URI-R']
 
     // TODO: optimize this out of the conditional so the functions needed for each strategy are self-contained (and possibly OOP-ified)
     if (strategy === 'alSummarization') {
-      var cacheFile = new SimhashCacheFile(uriR);
-      cacheFile.path += '.json';
-      console.log('Checking if a cache file exists for ' + query['URI-R'] + '...');
+      var cacheFile = new SimhashCacheFile(uriR)
+      cacheFile.path += '.json'
+      console.log('Checking if a cache file exists for ' + query['URI-R'] + '...')
       cacheFile.readFileContents(
         function success(data) { // A cache file has been previously generated using the alSummarization strategy
-          processWithFileContents(data, response);
+          processWithFileContents(data, response)
         },
         function failed() {
-          getTimemapGodFunctionForAlSummarization(query['URI-R'], response);
+          getTimemapGodFunctionForAlSummarization(query['URI-R'], response)
         }
 
-      );
+      )
     }else if (strategy === 'random') {
       t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
-        t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect);
+        t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect)
         setTimeout(function() {
-          var client = new faye.Client(notificationServer);
+          var client = new faye.Client(notificationServer)
 
           client.publish('/' + md5(t.originalURI), {
             'uriM': 'done'
-          });
-        }, 2000);
-      });
+          })
+        }, 2000)
+      })
 
     }else if (strategy === 'temporalInterval') {
       t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
         setTimeout(function() {
-          var client = new faye.Client(notificationServer);
+          var client = new faye.Client(notificationServer)
 
           client.publish('/' + md5(t.originalURI), {
             'uriM': 'done'
-          });
-        }, 2000);
+          })
+        }, 2000)
 
-      });
+      })
     }else if (strategy === 'interval') {
       t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
-      });
+      })
 
       setTimeout(function() {
-        var client = new faye.Client(notificationServer);
+        var client = new faye.Client(notificationServer)
 
         client.publish('/' + md5(t.originalURI), {
           'uriM': 'done'
-        });
-      }, 2000);
+        })
+      }, 2000)
     }
 
     // TODO: break apart callback hell
@@ -389,11 +389,11 @@ function PublicEndpoint() {
         t.printMementoInformation(response, function() {
           t.createScreenshotsForMementos(
             function() {
-              console.log('Done creating screenshots');
+              console.log('Done creating screenshots')
             }
-          );
-        });
-      });
+          )
+        })
+      })
     }
   }
 }
@@ -404,15 +404,15 @@ function PublicEndpoint() {
 */
 function cleanSystemData(cb) {
   // Delete all files in ./screenshots/ and ./cache/
-  var dirs = ['screenshots', 'cache'];
+  var dirs = ['screenshots', 'cache']
   dirs.forEach(function(e, i) {
     rimraf(__dirname + '/' + e + '/*', function(err) {
       if (err) {throw err; }
-      console.log('Deleted contents of ./' + e + '/');
-    });
+      console.log('Deleted contents of ./' + e + '/')
+    })
 
-    console.log(e);
-  });
+    console.log(e)
+  })
 
   if (cb) {cb();}
 }
@@ -423,22 +423,22 @@ function cleanSystemData(cb) {
 * @param response handler to client's browser interface
 */
 function processWithFileContents(fileContents, response) {
-  var t = createMementosFromJSONFile(fileContents);
-  t.printMementoInformation(response, null, false);
-  console.log('There were ' + t.mementos.length + ' mementos');
-  t.calculateHammingDistancesWithOnlineFiltering();
-  t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI();
-  t.createScreenshotsForMementos(function() {console.log('Done creating screenshots'); });
+  var t = createMementosFromJSONFile(fileContents)
+  t.printMementoInformation(response, null, false)
+  console.log('There were ' + t.mementos.length + ' mementos')
+  t.calculateHammingDistancesWithOnlineFiltering()
+  t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI()
+  t.createScreenshotsForMementos(function() {console.log('Done creating screenshots'); })
 
   // Currently a race condition in that the below code will publish before the
   //  client side code in the above t.printMementoInformation subscribes.
   //  Fake latency fixes this but is suboptimal
   setTimeout(function() {
-    var client = new faye.Client(notificationServer);
+    var client = new faye.Client(notificationServer)
     client.publish('/' + md5(t.mementos[0].originalURI), {
       'uriM': 'done'
-    });
-  }, 2000);
+    })
+  }, 2000)
 }
 
 /**
@@ -446,9 +446,9 @@ function processWithFileContents(fileContents, response) {
 * @param fileContents JSON string consistenting of an array of mementos
 */
 function createMementosFromJSONFile(fileContents) {
-  var t = new TimeMap();
-  t.mementos = JSON.parse(fileContents);
-  return t;
+  var t = new TimeMap()
+  t.mementos = JSON.parse(fileContents)
+  return t
 }
 
 TimeMap.prototype.toString = function() {
@@ -456,45 +456,45 @@ TimeMap.prototype.toString = function() {
     '"timemaps":[' + this.timemaps.join(',') + '],' +
     '"timegates":[' + this.timegates.join(',') + '],' +
     '"mementos":[' + this.mementos.join(',') + ']' +
-  '}';
-};
+  '}'
+}
 
 
 /**
 * Extend Memento object to be more command-line friendly without soiling core
 */
 Memento.prototype.toString = function() {
-  return JSON.stringify(this);
-};
+  return JSON.stringify(this)
+}
 
 // Add Thumbnail Summarization attributes to Memento Class without soiling core
-Memento.prototype.simhash = null;
-Memento.prototype.captureTimeDelta = -1;
-Memento.prototype.hammingDistance = -1;
-Memento.prototype.simhashIndicatorForHTTP302 = '00000000';
+Memento.prototype.simhash = null
+Memento.prototype.captureTimeDelta = -1
+Memento.prototype.hammingDistance = -1
+Memento.prototype.simhashIndicatorForHTTP302 = '00000000'
 
 /**
 * Fetch URI-M HTML contents and generate a Simhash
 */
 Memento.prototype.setSimhash = function() {
   // Retain the URI-R for reference in the promise (this context lost with async)
-  var thaturi = this.uri;
-  var thatmemento = this;
+  var thaturi = this.uri
+  var thatmemento = this
   return (new Promise(function(resolve, reject) {
-    var buffer2 = '';
+    var buffer2 = ''
     var memento = this; // Potentially unused? The 'this' reference will be relative to the promise here
-    var mOptions = url.parse(thaturi);
-    // console.log("Starting a simhash: "+ mOptions.host+ mOptions.path);
+    var mOptions = url.parse(thaturi)
+    // console.log("Starting a simhash: "+ mOptions.host+ mOptions.path)
 
     var req = http.request({'host': mOptions.host, 'path': mOptions.path}, function(res) {
-      // var hd = new memwatch.HeapDiff();
-      res.setEncoding('utf8');
+      // var hd = new memwatch.HeapDiff()
+      res.setEncoding('utf8')
       res.on('data', function(data) {
-        buffer2 += data.toString();
-      });
+        buffer2 += data.toString()
+      })
 
       if (res.statusCode !== 200) {
-        thatmemento.simhash = Memento.prototype.simhashIndicatorForHTTP302;
+        thatmemento.simhash = Memento.prototype.simhashIndicatorForHTTP302
       }
 
       res.on('end', function(d) {
@@ -502,44 +502,44 @@ Memento.prototype.setSimhash = function() {
 
         thatmemento.fayeClient.publish('/' + md5hash, {
           'uriM': thatmemento.uri
-        });
+        })
 
         if (buffer2.indexOf('Got an HTTP 302 response at crawl time') === -1 && thatmemento.simhash != '00000000') {
 
-          var sh = simhash((buffer2).split('')).join('');
-          var retStr = getHexString(sh);
+          var sh = simhash((buffer2).split('')).join('')
+          var retStr = getHexString(sh)
 
           if (!retStr || retStr === Memento.prototype.simhashIndicatorForHTTP302) {
             // Normalize so not undefined
-            retStr = Memento.prototype.simhashIndicatorForHTTP302;
+            retStr = Memento.prototype.simhashIndicatorForHTTP302
 
             // Gateway timeout from the archives, remove from consideration
-            resolve('isA302DeleteMe');
+            resolve('isA302DeleteMe')
           }
 
-          buffer2 = '';
-          buffer2 = null;
+          buffer2 = ''
+          buffer2 = null
 
-          console.log(retStr + ' - ' + mOptions.host + mOptions.path);
+          console.log(retStr + ' - ' + mOptions.host + mOptions.path)
 
-          thatmemento.simhash = retStr;
+          thatmemento.simhash = retStr
 
-          resolve(retStr);
+          resolve(retStr)
         }else {
           // We need to delete this memento, it's a duplicate and a "soft 302" from archive.org
-          resolve('isA302DeleteMe');
+          resolve('isA302DeleteMe')
         }
-      });
+      })
 
       res.on('error', function(err) {
-        console.log('REJECT!');
-        reject(Error('Network Error'));
-        console.log('Simhash rejected');
-      });
-    });
+        console.log('REJECT!')
+        reject(Error('Network Error'))
+        console.log('Simhash rejected')
+      })
+    })
 
-    req.end();
-  }));
+    req.end()
+  }))
 }
 
 /**
@@ -549,80 +549,80 @@ Memento.prototype.setSimhash = function() {
 */
 function getTimemapGodFunctionForAlSummarization(uri, response) {
   // TODO: remove TM host and path references, they reside in the TM obj
-  var timemapHost = 'web.archive.org';
-  var timemapPath = '/web/timemap/link/' + uri;
+  var timemapHost = 'web.archive.org'
+  var timemapPath = '/web/timemap/link/' + uri
   var options = {
     'host': timemapHost,
     'path': timemapPath,
     'port': 80,
     'method': 'GET'
-  };
+  }
 
-  console.log('Path: ' + options.host + '/' + options.path);
+  console.log('Path: ' + options.host + '/' + options.path)
   var buffer = ''; // An out-of-scope string to save the Timemap string, TODO: better documentation
 
-  var t;
-  var retStr = '';
-  var metadata = '';
-  console.log('Starting many asynchronous operationsX...');
+  var t
+  var retStr = ''
+  var metadata = ''
+  console.log('Starting many asynchronous operationsX...')
   async.series([
     // TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
     // TODO: abstract this method to its callback form. Currently, this is reaching and populating the timemap out of scope and can't be simply isolated (I tried)
     function fetchTimemap(callback) {
       var req = http.request(options, function(res) {
-        res.setEncoding('utf8');
+        res.setEncoding('utf8')
 
         res.on('data', function(data) {
-          buffer += data.toString();
-        });
+          buffer += data.toString()
+        })
 
         res.on('end', function(d) {
 
           if (buffer.length > 100) {  // Magic number = arbitrary
-            console.log('Timemap acquired for ' + uri + ' from ' + timemapHost + timemapPath);
-            t = new TimeMap(buffer);
+            console.log('Timemap acquired for ' + uri + ' from ' + timemapHost + timemapPath)
+            t = new TimeMap(buffer)
             t.originalURI = uri; // Need this for a filename for caching
-            t.createMementos();
+            t.createMementos()
 
             if (t.mementos.length === 0) {
-              response.write('There were no mementos for ' + uri + ' :(');
-              response.end();
-              return;
+              response.write('There were no mementos for ' + uri + ' :(')
+              response.end()
+              return
             }
 
-            console.log('Fetching HTML for ' + t.mementos.length + ' mementos.');
+            console.log('Fetching HTML for ' + t.mementos.length + ' mementos.')
 
-            var m1 = url.parse(t.mementos[0].uri);
-            var m2 = url.parse(t.mementos[1].uri);
+            var m1 = url.parse(t.mementos[0].uri)
+            var m2 = url.parse(t.mementos[1].uri)
             var endpoints = [
               {'host': m1.host, 'path': m1.path},
               {'host': m2.host, 'path': m2.path}
-            ];
+            ]
 
-            callback('');
+            callback('')
           }
-        });
-      });
+        })
+      })
 
       req.on('error', function(e) { // Houston...
-        console.log('problem with request: ' + e.message);
-        console.log(e);
+        console.log('problem with request: ' + e.message)
+        console.log(e)
         if (e.message === 'connect ETIMEDOUT') { // Error experienced when IA went down on 20141211
-          response.write('Hmm, the connection timed out. Internet Archive might be down.');
-          response.end();
+          response.write('Hmm, the connection timed out. Internet Archive might be down.')
+          response.end()
         }
-      });
+      })
 
       req.on('socket', function(socket) { // Slow connection is slow
         /*
-        socket.setTimeout(3000);
+        socket.setTimeout(3000)
         socket.on('timeout', function() {
-          console.log("The server took too long to respond and we're only getting older so we aborted.");
-          req.abort();
+          console.log("The server took too long to respond and we're only getting older so we aborted.")
+          req.abort()
         }); */
-      });
+      })
 
-      req.end();
+      req.end()
     },
    // TODO: remove this function from callback hell
   function(callback) {t.printMementoInformation(response, callback, false);}, // Return blank UI ASAP
@@ -637,28 +637,28 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
   function(callback) {t.createScreenshotsForMementos(callback);}],
   function(err, result) {
     if (err) {
-      console.log('ERROR!');
-      console.log(err);
+      console.log('ERROR!')
+      console.log(err)
     }else {
-      console.log('There were no errors executing the callback chain');
+      console.log('There were no errors executing the callback chain')
     }
-  });
+  })
 
 
   // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
   function getRandomSubsetOfMementosArray(arr,siz) {
-    var shuffled = arr.slice(0);
-    var i = arr.length;
-    var temp;
-    var index;
+    var shuffled = arr.slice(0)
+    var i = arr.length
+    var temp
+    var index
     while (i--) {
-      index = Math.floor((i + 1) * Math.random());
-      temp = shuffled[index];
-      shuffled[index] = shuffled[i];
-      shuffled[i] = temp;
+      index = Math.floor((i + 1) * Math.random())
+      temp = shuffled[index]
+      shuffled[index] = shuffled[i]
+      shuffled[i] = temp
     }
 
-    return shuffled.slice(0, size);
+    return shuffled.slice(0, size)
   }
 
   function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI) {
@@ -667,13 +667,13 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
 
     if (newerDate && olderDate) {
       try {
-        var diff = (parseInt(newerDate) - parseInt(olderDate));
-        return diff;
+        var diff = (parseInt(newerDate) - parseInt(olderDate))
+        return diff
       }catch (e) {
-        console.log(e.message);
+        console.log(e.message)
       }
     }else {
-      throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri);
+      throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri)
     }
   }
 } /* End God Function */
@@ -695,22 +695,22 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
  * @param callback The function to call once this function has completed executed, invoked by caller
  */
 TimeMap.prototype.printMementoInformation = function(response, callback, dataReady) {
-  console.log('About to print memento information');
-  var CRLF = '\r\n'; var TAB = '\t';
-  var stateInformationString = '';
+  console.log('About to print memento information')
+  var CRLF = '\r\n'; var TAB = '\t'
+  var stateInformationString = ''
 
 
   if (dataReady === false) { // Indicative of the data still loading. Yes, I know it's an abuse of CBs
-    stateInformationString = 'Processing data. This could take a while.';
+    stateInformationString = 'Processing data. This could take a while.'
   }
 
 
-  var cacheFilePathWithoutDotSlash = (new SimhashCacheFile(uriR)).path.substr(2);
+  var cacheFilePathWithoutDotSlash = (new SimhashCacheFile(uriR)).path.substr(2)
 
   var metadata = {
     'url': uriR,
     'simhashCacheURI': localAssetServer + cacheFilePathWithoutDotSlash
-  };
+  }
 
 
   // Boo! Node doesn't support ES6 template strings. Have to build the old fashion way
@@ -771,91 +771,91 @@ TimeMap.prototype.printMementoInformation = function(response, callback, dataRea
     TAB + '</form>' + CRLF +
     TAB + '<p id="dataState">' + stateInformationString + '</p>' + CRLF +
     '</body>' + CRLF +
-  '</html>';
-  response.write(respString);
-  response.end();
+  '</html>'
+  response.write(respString)
+  response.end()
 
   if (callback) {callback('');}
 }
 
 TimeMap.prototype.calculateSimhashes = function(callback) {
-  var theTimeMap = this;
-  var arrayOfSetSimhashFunctions = [];
+  var theTimeMap = this
+  var arrayOfSetSimhashFunctions = []
   var bar = new ProgressBar('  Simhashing [:bar] :percent :etas', {
     'complete': '=',
     'incomplete': ' ',
     'width': 20,
     'total': this.mementos.length
-  });
+  })
 
-  var client = new faye.Client(notificationServer);
+  var client = new faye.Client(notificationServer)
 
   for (var m = 0; m < this.mementos.length; m++) {
     // Allow the Promise async access to browser-based client communication
-    this.mementos[m].fayeClient = client;
+    this.mementos[m].fayeClient = client
     this.mementos[m].originalURI = this.originalURI; // The Promise needs the original URI for Faye publication. Scope creep!
 
-    arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash());
-    bar.tick(1);
+    arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash())
+    bar.tick(1)
   }
 
-  // console.time('simhashing');
-  var theTimemap = this;
+  // console.time('simhashing')
+  var theTimemap = this
   return Promise.all(
     arrayOfSetSimhashFunctions
   ).catch(function(err) {
-    console.log('OMFG, an error!');
-    console.log(err);
+    console.log('OMFG, an error!')
+    console.log(err)
   }).then(function() {
     client.publish('/' + md5(theTimeMap.originalURI), {
       'uriM': 'done'
-    });
+    })
 
     // Remove fayeClients from all mementos so they can be converted to JSON
     for (var m = 0; m < theTimeMap.mementos.length; m++) {
-      delete theTimeMap.mementos[m].fayeClient;
-      // Delete theTimeMap.mementos[m].originalURI;
+      delete theTimeMap.mementos[m].fayeClient
+      // Delete theTimeMap.mementos[m].originalURI
     }
 
-    console.log('Checking if there are mementos to remove');
-    var mementosRemoved = 0;
-    console.log('About to go into loop of ## mementos: ' + (theTimemap.mementos.length - 1));
+    console.log('Checking if there are mementos to remove')
+    var mementosRemoved = 0
+    console.log('About to go into loop of ## mementos: ' + (theTimemap.mementos.length - 1))
 
     // Remove all mementos whose payload body was a Wayback soft 302
     for (var i = theTimemap.mementos.length - 1; i >= 0; i--) {
       if (theTimemap.mementos[i].simhash === 'isA302DeleteMe') {
-        theTimemap.mementos.splice(i, 1);
-        mementosRemoved++;
+        theTimemap.mementos.splice(i, 1)
+        mementosRemoved++
       }
     }
 
-    // console.timeEnd('simhashing');
-    console.log(mementosRemoved + ' mementos removed due to Wayback "soft 3xxs"');
+    // console.timeEnd('simhashing')
+    console.log(mementosRemoved + ' mementos removed due to Wayback "soft 3xxs"')
     if (callback) {callback('');}
-  });
+  })
 }
 
 TimeMap.prototype.saveSimhashesToCache = function(callback,format) {
   // TODO: remove dependency on global timemap t
 
-  var strToWrite = '';
+  var strToWrite = ''
   for (var m = 0; m < this.mementos.length; m++) {
     if (this.mementos[m].simhash != Memento.prototype.simhashIndicatorForHTTP302) {
-      strToWrite += this.mementos[m].simhash + ' ' + this.mementos[m].uri + ' ' + this.mementos[m].datetime + '\r\n';
+      strToWrite += this.mementos[m].simhash + ' ' + this.mementos[m].uri + ' ' + this.mementos[m].datetime + '\r\n'
     }
   }
 
-  console.log('Done getting simhashes from array');
-  var cacheFile = new SimhashCacheFile(this.originalURI);
-  cacheFile.replaceContentWith(strToWrite);
+  console.log('Done getting simhashes from array')
+  var cacheFile = new SimhashCacheFile(this.originalURI)
+  cacheFile.replaceContentWith(strToWrite)
 
 
   if (callback) {callback('');}
 }
 
 TimeMap.prototype.writeJSONToCache = function(callback) {
-  var cacheFile = new SimhashCacheFile(this.originalURI);
-  cacheFile.writeFileContentsAsJSON(JSON.stringify(this.mementos));
+  var cacheFile = new SimhashCacheFile(this.originalURI)
+  cacheFile.writeFileContentsAsJSON(JSON.stringify(this.mementos))
   if (callback) {callback('');}
 }
 
@@ -867,18 +867,18 @@ TimeMap.prototype.writeJSONToCache = function(callback) {
 TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = function(callback) {
   // Assuming foreach is faster than for-i, this can be executed out-of-order
   this.mementos.forEach(function(memento,m) {
-    var uri = memento.uri;
-    // console.log("Hamming distance = "+memento.hammingDistance);
+    var uri = memento.uri
+    // console.log("Hamming distance = "+memento.hammingDistance)
     if (memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD  && memento.hammingDistance >= 0) {
-      // console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD);
-      memento.screenshotURI = null;
+      // console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD)
+      memento.screenshotURI = null
     }else {
       var filename = 'alSum_' + uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png'; // Sanitize URI->filename
-      memento.screenshotURI = filename;
+      memento.screenshotURI = filename
     }
-  });
+  })
 
-  console.log('done with supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back');
+  console.log('done with supplyChosenMementosBasedOnHammingDistanceAScreenshotURI, calling back')
   if (callback) {callback('');}
 }
 
@@ -889,16 +889,16 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
 * @param callback The next procedure to execution when this process concludes
 */
 TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callback) {
-  var ii = 0;
+  var ii = 0
   for (var m in this.mementos) {
     if (this.mementos[m].selected) {
-      var filename = strategy + '_' + this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png';
-      this.mementos[m].screenshotURI = filename;
-      ii++;
+      var filename = strategy + '_' + this.mementos[m].uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png'
+      this.mementos[m].screenshotURI = filename
+      ii++
     }
   }
 
-  console.log('Done creating filenames for ' + ii + ' mementos');
+  console.log('Done creating filenames for ' + ii + ' mementos')
 
   if (callback) {callback('');}
 }
@@ -909,30 +909,30 @@ TimeMap.prototype.supplySelectedMementosAScreenshotURI = function(strategy,callb
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
 TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callback, numberOfMementosToChoose) {
-  var _this = this;
+  var _this = this
   if (numberOfMementosToChoose > this.mementos.length) {
-    console.log('Number to choose is greater than number existing.');
-    return;
+    console.log('Number to choose is greater than number existing.')
+    return
   }
 
-  var numberOfMementosLeftToChoose = numberOfMementosToChoose;
+  var numberOfMementosLeftToChoose = numberOfMementosToChoose
   while (numberOfMementosLeftToChoose > 0) {
-    var randomI = Math.floor(Math.random() * this.mementos.length);
+    var randomI = Math.floor(Math.random() * this.mementos.length)
     if (!this.mementos[randomI].selected) {
-      this.mementos[randomI].selected = true;
-      numberOfMementosLeftToChoose--;
+      this.mementos[randomI].selected = true
+      numberOfMementosLeftToChoose--
     } // Duplicately selected would take an else, so it's unnecessary
 
   }
 
   setTimeout(function() {
-    var client = new faye.Client(notificationServer);
+    var client = new faye.Client(notificationServer)
     client.publish('/' + md5(_this.originalURI), {
       'uriM': 'done'
-    });
-  }, 2000);
+    })
+  }, 2000)
 
-  callback();
+  callback()
 }
 
 /**
@@ -941,60 +941,60 @@ TimeMap.prototype.supplyChosenMementosBasedOnUniformRandomness = function(callba
 * @param numberOfMementosToChoose The count threshold before the selection strategy has been satisfied
 */
 TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function(callback, numberOfMementosToChoose) {
-  var _this = this;
-  console.log('OriginalURI is ' + _this.originalURI);
+  var _this = this
+  console.log('OriginalURI is ' + _this.originalURI)
   if (numberOfMementosToChoose > this.mementos.length) {
-    console.log('Number to choose is greater than number existing.');
-    return;
+    console.log('Number to choose is greater than number existing.')
+    return
   }
 
-  var lastMonthRecorded = -1;
+  var lastMonthRecorded = -1
 
   var selectedIndexes = []; // Maintaining memento indexes to prune
   for (var i = 0; i < this.mementos.length; i++) {
-    var datetimeAsDate = new Date(this.mementos[i].datetime);
-    var thisYYYYMM = datetimeAsDate.getFullYear() + '' + datetimeAsDate.getMonth();
+    var datetimeAsDate = new Date(this.mementos[i].datetime)
+    var thisYYYYMM = datetimeAsDate.getFullYear() + '' + datetimeAsDate.getMonth()
 
     if (thisYYYYMM !== lastMonthRecorded) {
-      this.mementos[i].selected = true;
-      lastMonthRecorded = thisYYYYMM;
-      console.log(this.mementos[i].datetime + ' accepted');
-      selectedIndexes.push(i);
+      this.mementos[i].selected = true
+      lastMonthRecorded = thisYYYYMM
+      console.log(this.mementos[i].datetime + ' accepted')
+      selectedIndexes.push(i)
     }else {
-      console.log(this.mementos[i].datetime + ' rejected (same month as previous selected)');
+      console.log(this.mementos[i].datetime + ' rejected (same month as previous selected)')
     }
   }
 
   var beforeOK = this.mementos.filter(function(el) {
-    return el.selected !== null;
-  });
+    return el.selected !== null
+  })
 
-  console.log('We are going to choose ' + numberOfMementosToChoose + ' --- ' + selectedIndexes);
+  console.log('We are going to choose ' + numberOfMementosToChoose + ' --- ' + selectedIndexes)
   // Prune based on numberOfMementosToChoose
   while (selectedIndexes.length > numberOfMementosToChoose) {
-    var mementoIToRemove = Math.floor(Math.random() * selectedIndexes.length);
-    console.log(selectedIndexes.length + ' is too many mementos, removing index ' + mementoIToRemove);
-    console.log(this.mementos[mementoIToRemove].datetime + ' was ' + this.mementos[mementoIToRemove].selected);
-    delete this.mementos[selectedIndexes[mementoIToRemove]].selected;
-    console.log('Now it is ' + this.mementos[mementoIToRemove].selected);
-    selectedIndexes.splice(mementoIToRemove, 1);
+    var mementoIToRemove = Math.floor(Math.random() * selectedIndexes.length)
+    console.log(selectedIndexes.length + ' is too many mementos, removing index ' + mementoIToRemove)
+    console.log(this.mementos[mementoIToRemove].datetime + ' was ' + this.mementos[mementoIToRemove].selected)
+    delete this.mementos[selectedIndexes[mementoIToRemove]].selected
+    console.log('Now it is ' + this.mementos[mementoIToRemove].selected)
+    selectedIndexes.splice(mementoIToRemove, 1)
   }
 
   var monthlyOK = this.mementos.filter(function(el) {
-    return el.selected;
-  });
+    return el.selected
+  })
 
-  console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test');
+  console.log(beforeOK.length + ' --> ' + monthlyOK.length + ' passed the monthly test')
 
   setTimeout(function() {
-    var client = new faye.Client(notificationServer);
+    var client = new faye.Client(notificationServer)
     client.publish('/' + md5(_this.originalURI), {
       'uriM': 'done'
-    });
-  }, 2000);
+    })
+  }, 2000)
 
-  callback();
-};
+  callback()
+}
 
 /**
 * // Select mementos based on interval
@@ -1004,13 +1004,13 @@ TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function(callbac
 * @param numberOfMementosToChoose Artificial restriction on the count
 */
 TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipFactor, initialIndex, numberOfMementosToChoose) {
-  var _this = this;
+  var _this = this
   if (numberOfMementosToChoose > this.mementos.length) {
-    console.log('Number to choose is greater than number existing.');
-    return;
+    console.log('Number to choose is greater than number existing.')
+    return
   }
 
-  var numberOfMementosLeftToChoose = numberOfMementosToChoose;
+  var numberOfMementosLeftToChoose = numberOfMementosToChoose
 
   // TODO: add further checks for parameter integrity (e.g. in case strings are passed)
   if (!initialIndex) {initialIndex = 0; }
@@ -1018,18 +1018,18 @@ TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipF
   if (skipFactor < 0) {skipFactor = 0; }
 
   for (var i = initialIndex; i < this.mementos.length; i = i + skipFactor + 1) {
-    this.mementos[i].selected = true;
+    this.mementos[i].selected = true
   }
 
   setTimeout(function() {
-    var client = new faye.Client(notificationServer);
+    var client = new faye.Client(notificationServer)
     client.publish('/' + md5(_this.originalURI), {
       'uriM': 'done'
-    });
-  }, 2000);
+    })
+  }, 2000)
 
-  callback('');
-};
+  callback('')
+}
 
 
 
@@ -1040,15 +1040,15 @@ TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipF
 *                     function means a screenshot should be generated for it.
 */
 TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria) {
-  console.log('Creating screenshots...');
+  console.log('Creating screenshots...')
 
   function hasScreenshot(e) {
-    return e.screenshotURI !== null;
+    return e.screenshotURI !== null
   }
 
-  var self = this;
+  var self = this
 
-  var criteria = hasScreenshot;
+  var criteria = hasScreenshot
   if (withCriteria) {criteria = withCriteria; }
 
   async.eachLimit(
@@ -1057,33 +1057,33 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
     self.createScreenshotForMemento,            // Create a screenshot
     function doneCreatingScreenshots(err) {      // When finished, check for errors
       if (err) {
-        console.log('Error creating screenshot');
-        console.log(err);
+        console.log('Error creating screenshot')
+        console.log(err)
       }
 
-      callback('');
+      callback('')
     }
-  );
-};
+  )
+}
 
 TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
-  var uri = memento.uri;
+  var uri = memento.uri
 
-  var filename = memento.screenshotURI;
+  var filename = memento.screenshotURI
 
   try {
     fs.openSync(
       path.join(__dirname + '/screenshots/' + memento.screenshotURI),
       'r', function(e, r) {
-        console.log(e);
-        console.log(r);
-      });
+        console.log(e)
+        console.log(r)
+      })
 
-    console.log(memento.screenshotURI + ' already exists...continuing');
-    callback();
-    return;
+    console.log(memento.screenshotURI + ' already exists...continuing')
+    callback()
+    return
   }catch (e) {
-    console.log((new Date()).getTime() + ' ' + memento.screenshotURI + ' does not exist...generating');
+    console.log((new Date()).getTime() + ' ' + memento.screenshotURI + ' does not exist...generating')
   }
 
   var options = {
@@ -1094,72 +1094,72 @@ TimeMap.prototype.createScreenshotForMemento = function(memento, callback) {
     },
     // Remove the Wayback UI
     'onLoadFinished': function() {
-      document.getElementById('wm-ipp').style.display = 'none';
+      document.getElementById('wm-ipp').style.display = 'none'
     }
 
-  };
+  }
 
-  console.log('About to start screenshot generation process for ' + uri);
+  console.log('About to start screenshot generation process for ' + uri)
   webshot(uri, 'screenshots/' + filename, options, function(err) {
     if (err) {
-      console.log('Error creating a screenshot for ' + uri);
-      console.log(err);
-      callback('Screenshot failed!');
+      console.log('Error creating a screenshot for ' + uri)
+      console.log(err)
+      callback('Screenshot failed!')
     }else {
-      fs.chmodSync('./screenshots/' + filename, '755');
+      fs.chmodSync('./screenshots/' + filename, '755')
       im.convert(['./screenshots/' + filename, '-thumbnail', '200',
             './screenshots/' + (filename.replace('.png', '_200.png'))],
         function(err, stdout) {
           if (err) {
-            console.log('We could not downscale ./screenshots/' + filename + ' :(');
+            console.log('We could not downscale ./screenshots/' + filename + ' :(')
           }
 
-          console.log('Successfully scaled ' + filename + ' to 200 pixels', stdout);
-        });
+          console.log('Successfully scaled ' + filename + ' to 200 pixels', stdout)
+        })
 
-      console.log('t=' + (new Date()).getTime() + ' ' + 'Screenshot created for ' + uri);
-      callback();
+      console.log('t=' + (new Date()).getTime() + ' ' + 'Screenshot created for ' + uri)
+      callback()
     }
-  });
+  })
 
-};
+}
 
 TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callback) {
-  console.time('Hamming And Filtering, a synchronous operation');
+  console.time('Hamming And Filtering, a synchronous operation')
 
-  var lastSignificantMementoIndexBasedOnHamming = 0;
-  var copyOfMementos = [this.mementos[0]];
+  var lastSignificantMementoIndexBasedOnHamming = 0
+  var copyOfMementos = [this.mementos[0]]
 
-  console.log('Calculate hamming distance of ' + this.mementos.length + ' mementos');
+  console.log('Calculate hamming distance of ' + this.mementos.length + ' mementos')
   for (var m = 0; m < this.mementos.length; m++) {
-    // console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri);
-    // console.log("...with SimHash: "+this.mementos[m].simhash);
+    // console.log("Analyzing memento "+m+"/"+this.mementos.length+": "+this.mementos[m].uri)
+    // console.log("...with SimHash: "+this.mementos[m].simhash)
     if (m > 0) {
       if ((this.mementos[m].simhash.match(/0/g) || []).length === 32) {console.log('0s, returning'); continue;}
-      // console.log("Calculating hamming distance");
-      this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash);
-      // console.log("Getting hamming basis");
-      this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime;
+      // console.log("Calculating hamming distance")
+      this.mementos[m].hammingDistance = getHamming(this.mementos[m].simhash, this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash)
+      // console.log("Getting hamming basis")
+      this.mementos[m].hammingBasis = this.mementos[lastSignificantMementoIndexBasedOnHamming].datetime
 
       console.log('Comparing hamming distances (simhash,uri) = ' + this.mementos[m].hammingDistance + '\n' +
         ' > testing: ' + this.mementos[m].simhash + ' ' + this.mementos[m].uri + '\n' +
-        ' > pivot:   ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri);
+        ' > pivot:   ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].simhash + ' ' + this.mementos[lastSignificantMementoIndexBasedOnHamming].uri)
 
       if (this.mementos[m].hammingDistance >= HAMMING_DISTANCE_THRESHOLD) { // Filter the mementos if hamming distance is too small
-        lastSignificantMementoIndexBasedOnHamming = m;
+        lastSignificantMementoIndexBasedOnHamming = m
 
         // copyOfMementos.push(t.mementos[m]); // Only push mementos that pass threshold requirements
       }
 
-      // console.log(t.mementos[m].uri+" hammed!");
+      // console.log(t.mementos[m].uri+" hammed!")
     }else if (m === 0) {console.log('m==0, continuing'); }
   }
 
-  console.log((this.mementos.length - copyOfMementos.length) + ' mementos trimmed due to insufficient hamming, ' + this.mementos.length + ' remain.');
-  copyOfMementos = null;
+  console.log((this.mementos.length - copyOfMementos.length) + ' mementos trimmed due to insufficient hamming, ' + this.mementos.length + ' remain.')
+  copyOfMementos = null
 
   if (callback) {callback(''); }
-};
+}
 
 
 /**
@@ -1167,58 +1167,58 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function(callba
 * @param callback The next procedure to execution when this process concludes
 */
 TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
-  var timemapHost = 'web.archive.org';
-  var timemapPath = '/web/timemap/link/' + uriR;
+  var timemapHost = 'web.archive.org'
+  var timemapPath = '/web/timemap/link/' + uriR
   var options = {
     'host': timemapHost,
     'path': timemapPath,
     'port': 80,
     'method': 'GET'
-  };
+  }
 
-  var buffer = '';
-  var retStr = '';
-  console.log('Starting many asynchronous operations...');
-  console.log('Timemap output here');
-  var tmInstance = this;
+  var buffer = ''
+  var retStr = ''
+  console.log('Starting many asynchronous operations...')
+  console.log('Timemap output here')
+  var tmInstance = this
 
   var req = http.request(options, function(res) {
-    res.setEncoding('utf8');
+    res.setEncoding('utf8')
 
     res.on('data', function(data) {
-      buffer += data.toString();
-    });
+      buffer += data.toString()
+    })
 
     res.on('end', function() {
       if (buffer.length > 100) {
-        console.log('X Timemap acquired for ' + uriR + ' from ' + timemapHost + timemapPath);
-        tmInstance.str = buffer;
+        console.log('X Timemap acquired for ' + uriR + ' from ' + timemapHost + timemapPath)
+        tmInstance.str = buffer
         tmInstance.originalURI = uriR; // Need this for a filename for caching
-        tmInstance.createMementos();
+        tmInstance.createMementos()
 
         if (tmInstance.mementos.length === 0) {
-          response.write('There were no mementos for ' + uriR);
-          response.end();
-          return;
+          response.write('There were no mementos for ' + uriR)
+          response.end()
+          return
         }
 
-        callback();
+        callback()
       }
-    });
-  });
+    })
+  })
 
   req.on('error', function(e) { // Houston...
-    console.log('problem with request: ' + e.message);
-    console.log(e);
+    console.log('problem with request: ' + e.message)
+    console.log(e)
     if (e.message === 'connect ETIMEDOUT') { // Error experienced when IA went down on 20141211
-      response.write('Hmm, the connection timed out. Internet Archive might be down.');
-      response.end();
+      response.write('Hmm, the connection timed out. Internet Archive might be down.')
+      response.end()
     }
 
-  });
+  })
 
-  req.end();
-};
+  req.end()
+}
 
 
 /**********************************
@@ -1227,37 +1227,37 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
 
 function getHamming(str1, str2) {
   if (str1.length !== str2.length) {
-    console.log('Oh noes! Hamming went awry! The lengths are not equal!');
-    console.log(str1 + ' ' + str2 + ' ' + str1.length + ' ' + str2.length);
+    console.log('Oh noes! Hamming went awry! The lengths are not equal!')
+    console.log(str1 + ' ' + str2 + ' ' + str1.length + ' ' + str2.length)
 
-    // ^Throw "Unequal lengths when both strings must be equal to calculate hamming distance.";
+    // ^Throw "Unequal lengths when both strings must be equal to calculate hamming distance."
 
     // Resilience instead of crashing
-    console.log('Unequal lengths when both strings must be equal to calculate hamming distance.');
-    return 0;
+    console.log('Unequal lengths when both strings must be equal to calculate hamming distance.')
+    return 0
   }else if (str1 === str2) {
-    return 0;
+    return 0
   }
 
-  var d = 0;
+  var d = 0
   for (var ii = 0; ii < str1.length; ii++) {
     if (str1[ii] !== str2[ii]) {d++; }
   }
 
-  return d;
+  return d
 }
 
 // Fischer-Yates shuffle so we don't fetch the memento in-order but preserve
 // them as objects and associated attributes
 function shuffleArray(array) {
   for (var i = array.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var temp = array[i];
-    array[i] = array[j];
-    array[j] = temp;
+    var j = Math.floor(Math.random() * (i + 1))
+    var temp = array[i]
+    array[i] = array[j]
+    array[j] = temp
   }
 
-  return array;
+  return array
 }
 
 /**********************************
@@ -1268,96 +1268,96 @@ TODO: break these out into a separate file
 
 // Graceful exit
 process.on('SIGINT', function() {
-  console.log('\nGracefully shutting down from SIGINT (Ctrl-C)');
-  process.exit();
-});
+  console.log('\nGracefully shutting down from SIGINT (Ctrl-C)')
+  process.exit()
+})
 
 // Useful Functions
 function checkBin(n) {
-  return /^[01]{1,64}$/.test(n);
+  return /^[01]{1, 64}$/.test(n)
 }
 
 function checkDec(n) {
-  return /^[0-9]{1,64}$/.test(n);
+  return /^[0-9]{1, 64}$/.test(n)
 }
 
 function checkHex(n) {
-  return /^[0-9A-Fa-f]{1,64}$/.test(n);
+  return /^[0-9A-Fa-f]{1,64}$/.test(n)
 }
 
-function pad(s,z) {
-  s = '' + s;
-  return s.length < z ? pad('0' + s,z):s;
+function pad(s, z) {
+  s = '' + s
+  return s.length < z ? pad('0' + s,z):s
 }
 
 function unpad(s) {
-  s = '' + s;
-  return s.replace(/^0+/, '');
+  s = '' + s
+  return s.replace(/^0+/, '')
 }
 
 // Decimal operations
 function Dec2Bin(n) {
   if (!checkDec(n) || n < 0) {
-    return 0;
+    return 0
   }
 
-  return n.toString(2);
+  return n.toString(2)
 }
 
 function Dec2Hex(n) {
   if (!checkDec(n) || n < 0) {
-    return 0;
+    return 0
   }
 
-  return n.toString(16);
+  return n.toString(16)
 }
 
 // Binary Operations
 function Bin2Dec(n) {
   if (!checkBin(n)) {
-    return 0;
+    return 0
   }
 
-  return parseInt(n,2).toString(10);
+  return parseInt(n, 2).toString(10)
 }
 
 function Bin2Hex(n) {
   if (!checkBin(n)) {
-    return 0;
+    return 0
   }
 
-  return parseInt(n,2).toString(16);
+  return parseInt(n,2).toString(16)
 }
 
 // Hexadecimal Operations
 function Hex2Bin(n) {
   if (!checkHex(n)) {
-    return 0;
+    return 0
   }
 
-  return parseInt(n,16).toString(2);
+  return parseInt(n, 16).toString(2)
 }
 
 function Hex2Dec(n) {
   if (!checkHex(n)) {
-    return 0;
+    return 0
   }
 
-  return parseInt(n,16).toString(10);
+  return parseInt(n, 16).toString(10)
 }
 
 function getHexString(onesAndZeros) {
-  var str = '';
+  var str = ''
   for (var i = 0; i < onesAndZeros.length; i = i + 4) {
-    str += Bin2Hex(onesAndZeros.substr(i,4));
+    str += Bin2Hex(onesAndZeros.substr(i, 4))
   }
 
-  return str;
+  return str
 }
 
 /* *********************************
     end UTILITY FUNCTIONS
 ********************************* */
 
-exports.main = main;
-main();
+exports.main = main
+main()
