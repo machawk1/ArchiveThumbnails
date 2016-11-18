@@ -83,7 +83,7 @@ var HAMMING_DISTANCE_THRESHOLD = 4
 /**
 * Start the application by initializing server instances
 */
-function main() {
+function main () {
   /* memwatch.on('leak', function(info) {
     console.log('You\'re leaking!')
     console.error(info)
@@ -154,7 +154,7 @@ function main() {
 * Create access point for resources local to the interface to be queried. This differs
 *  from handling requests from clients.
 */
-function startLocalAssetServer() {
+function startLocalAssetServer () {
   connect().use(
     serveStatic(
       __dirname,
@@ -171,7 +171,7 @@ function startLocalAssetServer() {
 /**
 * Setup the public-facing attributes of the service
 */
-function PublicEndpoint() {
+function PublicEndpoint () {
   var theEndPoint = this
   /**
   * Default form to enter URI-R if one is not supplied in the query string
@@ -241,7 +241,7 @@ function PublicEndpoint() {
        URI-R PARAMETER - required if not img, supplies basis for archive query
     **************************** */
 
-    function isARESTStyleURI(uri) {
+    function isARESTStyleURI (uri) {
       return (uri.substr(0, 5) === '/http')
     }
 
@@ -310,7 +310,7 @@ function PublicEndpoint() {
       return
     }
 
-    function returnJSONError(str) {
+    function returnJSONError (str) {
       response.write('{"Error": "' + str + '"}')
       response.end()
     }
@@ -334,16 +334,16 @@ function PublicEndpoint() {
       cacheFile.path += '.json'
       console.log('Checking if a cache file exists for ' + query['URI-R'] + '...')
       cacheFile.readFileContents(
-        function success(data) { // A cache file has been previously generated using the alSummarization strategy
+        function success (data) { // A cache file has been previously generated using the alSummarization strategy
           processWithFileContents(data, response)
         },
-        function failed() {
+        function failed () {
           getTimemapGodFunctionForAlSummarization(query['URI-R'], response)
         }
 
       )
     }else if (strategy === 'random') {
-      t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap() {
+      t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap () {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect)
         setTimeout(function() {
@@ -356,7 +356,7 @@ function PublicEndpoint() {
       })
 
     }else if (strategy === 'temporalInterval') {
-      t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
+      t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent () { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
         setTimeout(function() {
           var client = new faye.Client(notificationServer)
@@ -368,7 +368,7 @@ function PublicEndpoint() {
 
       })
     }else if (strategy === 'interval') {
-      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval() { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
+      t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval () { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
       })
 
@@ -382,7 +382,7 @@ function PublicEndpoint() {
     }
 
     // TODO: break apart callback hell
-    function generateThumbnailsWithSelectedMementos() {
+    function generateThumbnailsWithSelectedMementos () {
       // suboptimal route but reference to t must be preserved
       // TODO: move this to TimeMap prototype
       t.supplySelectedMementosAScreenshotURI(strategy, function(callback) {
@@ -402,7 +402,7 @@ function PublicEndpoint() {
 * Delete all derived data including caching and screenshot - namely for testing
 * @param cb Callback to execute upon completion
 */
-function cleanSystemData(cb) {
+function cleanSystemData (cb) {
   // Delete all files in ./screenshots/ and ./cache/
   var dirs = ['screenshots', 'cache']
   dirs.forEach(function(e, i) {
@@ -422,13 +422,13 @@ function cleanSystemData(cb) {
 * @param fileContents JSON string consistenting of an array of mementos
 * @param response handler to client's browser interface
 */
-function processWithFileContents(fileContents, response) {
+function processWithFileContents (fileContents, response) {
   var t = createMementosFromJSONFile(fileContents)
   t.printMementoInformation(response, null, false)
   console.log('There were ' + t.mementos.length + ' mementos')
   t.calculateHammingDistancesWithOnlineFiltering()
   t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI()
-  t.createScreenshotsForMementos(function() {console.log('Done creating screenshots'); })
+  t.createScreenshotsForMementos(function () {console.log('Done creating screenshots'); })
 
   // Currently a race condition in that the below code will publish before the
   //  client side code in the above t.printMementoInformation subscribes.
@@ -445,7 +445,7 @@ function processWithFileContents(fileContents, response) {
 * Convert a string from the JSON cache file to Memento objects
 * @param fileContents JSON string consistenting of an array of mementos
 */
-function createMementosFromJSONFile(fileContents) {
+function createMementosFromJSONFile (fileContents) {
   var t = new TimeMap()
   t.mementos = JSON.parse(fileContents)
   return t
@@ -547,7 +547,7 @@ Memento.prototype.setSimhash = function() {
 * TODO: God function that does WAY more than simply getting a timemap
 * @param uri The URI-R in-question
 */
-function getTimemapGodFunctionForAlSummarization(uri, response) {
+function getTimemapGodFunctionForAlSummarization (uri, response) {
   // TODO: remove TM host and path references, they reside in the TM obj
   var timemapHost = 'web.archive.org'
   var timemapPath = '/web/timemap/link/' + uri
@@ -568,7 +568,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
   async.series([
     // TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
     // TODO: abstract this method to its callback form. Currently, this is reaching and populating the timemap out of scope and can't be simply isolated (I tried)
-    function fetchTimemap(callback) {
+    function fetchTimemap (callback) {
       var req = http.request(options, function(res) {
         res.setEncoding('utf8')
 
@@ -625,16 +625,16 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
       req.end()
     },
    // TODO: remove this function from callback hell
-  function(callback) {t.printMementoInformation(response, callback, false);}, // Return blank UI ASAP
-  function(callback) {t.calculateSimhashes(callback);},
-  function(callback) {t.saveSimhashesToCache(callback);},
-  function(callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
+  function (callback) {t.printMementoInformation(response, callback, false);}, // Return blank UI ASAP
+  function (callback) {t.calculateSimhashes(callback);},
+  function (callback) {t.saveSimhashesToCache(callback);},
+  function (callback) {t.calculateHammingDistancesWithOnlineFiltering(callback);},
   // function(callback) {calculateCaptureTimeDeltas(callback);},// CURRENTLY UNUSED, this can be combine with previous call to turn 2n-->1n
   // function(callback) {applyKMedoids(callback);}, // No functionality herein, no reason to call yet
-  function(callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
-  function(callback) {t.writeJSONToCache(callback);},
-  function(callback) {t.printMementoInformation(response, callback);},
-  function(callback) {t.createScreenshotsForMementos(callback);}],
+  function (callback) {t.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI(callback);},
+  function (callback) {t.writeJSONToCache(callback);},
+  function (callback) {t.printMementoInformation(response, callback);},
+  function (callback) {t.createScreenshotsForMementos(callback);}],
   function(err, result) {
     if (err) {
       console.log('ERROR!')
@@ -646,7 +646,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
 
 
   // Fisher-Yates shuffle per http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
-  function getRandomSubsetOfMementosArray(arr,siz) {
+  function getRandomSubsetOfMementosArray (arr,siz) {
     var shuffled = arr.slice(0)
     var i = arr.length
     var temp
@@ -661,7 +661,7 @@ function getTimemapGodFunctionForAlSummarization(uri, response) {
     return shuffled.slice(0, size)
   }
 
-  function getTimeDiffBetweenTwoMementoURIs(newerMementoURI, olderMementoURI) {
+  function getTimeDiffBetweenTwoMementoURIs (newerMementoURI, olderMementoURI) {
     var newerDate = newerMementoURI.match(/[0-9]{14}/g)[0];  // Newer
     var olderDate = olderMementoURI.match(/[0-9]{14}/g)[0];  // Older
 
@@ -1042,7 +1042,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnInterval = function(callback, skipF
 TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria) {
   console.log('Creating screenshots...')
 
-  function hasScreenshot(e) {
+  function hasScreenshot (e) {
     return e.screenshotURI !== null
   }
 
@@ -1055,7 +1055,7 @@ TimeMap.prototype.createScreenshotsForMementos = function(callback, withCriteria
     shuffleArray(self.mementos.filter(criteria)), // Array of mementos to randomly // shuffleArray(self.mementos.filter(hasScreenshot))
     10,
     self.createScreenshotForMemento,            // Create a screenshot
-    function doneCreatingScreenshots(err) {      // When finished, check for errors
+    function doneCreatingScreenshots (err) {      // When finished, check for errors
       if (err) {
         console.log('Error creating screenshot')
         console.log(err)
@@ -1225,7 +1225,7 @@ TimeMap.prototype.setupWithURIR = function(response, uriR, callback) {
         RELEVANT yet ABSTRACTED generic functions
    ********************************* */
 
-function getHamming(str1, str2) {
+function getHamming (str1, str2) {
   if (str1.length !== str2.length) {
     console.log('Oh noes! Hamming went awry! The lengths are not equal!')
     console.log(str1 + ' ' + str2 + ' ' + str1.length + ' ' + str2.length)
@@ -1249,7 +1249,7 @@ function getHamming(str1, str2) {
 
 // Fischer-Yates shuffle so we don't fetch the memento in-order but preserve
 // them as objects and associated attributes
-function shuffleArray(array) {
+function shuffleArray (array) {
   for (var i = array.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1))
     var temp = array[i]
@@ -1273,30 +1273,30 @@ process.on('SIGINT', function() {
 })
 
 // Useful Functions
-function checkBin(n) {
+function checkBin (n) {
   return /^[01]{1, 64}$/.test(n)
 }
 
-function checkDec(n) {
+function checkDec (n) {
   return /^[0-9]{1, 64}$/.test(n)
 }
 
-function checkHex(n) {
+function checkHex (n) {
   return /^[0-9A-Fa-f]{1,64}$/.test(n)
 }
 
-function pad(s, z) {
+function pad (s, z) {
   s = '' + s
   return s.length < z ? pad('0' + s,z):s
 }
 
-function unpad(s) {
+function unpad (s) {
   s = '' + s
   return s.replace(/^0+/, '')
 }
 
 // Decimal operations
-function Dec2Bin(n) {
+function Dec2Bin (n) {
   if (!checkDec(n) || n < 0) {
     return 0
   }
@@ -1304,7 +1304,7 @@ function Dec2Bin(n) {
   return n.toString(2)
 }
 
-function Dec2Hex(n) {
+function Dec2Hex (n) {
   if (!checkDec(n) || n < 0) {
     return 0
   }
@@ -1313,7 +1313,7 @@ function Dec2Hex(n) {
 }
 
 // Binary Operations
-function Bin2Dec(n) {
+function Bin2Dec (n) {
   if (!checkBin(n)) {
     return 0
   }
@@ -1321,7 +1321,7 @@ function Bin2Dec(n) {
   return parseInt(n, 2).toString(10)
 }
 
-function Bin2Hex(n) {
+function Bin2Hex (n) {
   if (!checkBin(n)) {
     return 0
   }
@@ -1330,7 +1330,7 @@ function Bin2Hex(n) {
 }
 
 // Hexadecimal Operations
-function Hex2Bin(n) {
+function Hex2Bin (n) {
   if (!checkHex(n)) {
     return 0
   }
@@ -1338,7 +1338,7 @@ function Hex2Bin(n) {
   return parseInt(n, 16).toString(2)
 }
 
-function Hex2Dec(n) {
+function Hex2Dec (n) {
   if (!checkHex(n)) {
     return 0
   }
@@ -1346,7 +1346,7 @@ function Hex2Dec(n) {
   return parseInt(n, 16).toString(10)
 }
 
-function getHexString(onesAndZeros) {
+function getHexString (onesAndZeros) {
   var str = ''
   for (var i = 0; i < onesAndZeros.length; i = i + 4) {
     str += Bin2Hex(onesAndZeros.substr(i, 4))
