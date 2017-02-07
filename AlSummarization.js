@@ -38,7 +38,7 @@ var underscore = require('underscore')
 var webshot = require('webshot') // PhantomJS wrapper
 
 var argv = require('minimist')(process.argv.slice(2))
-// var prompt = require('sync-prompt').prompt
+var prompt = require('syncprompt')
 
 var mementoFramework = require('./_js/mementoFramework.js')
 var Memento = mementoFramework.Memento
@@ -52,7 +52,7 @@ var rimraf = require('rimraf')
 var faye = require('faye') // For status-based notifications to client
 
 // Faye's will not allow a URI-* as the channel name, hash it for Faye
-var md5 = require('blueimp-md5')
+var md5 = require('md5')
 
 var app = express()
 
@@ -86,7 +86,7 @@ function main () {
                'THUMBNAIL SUMMARIZATION SERVICE\r\n' +
                '*******************************').blue)
   if (nukeSystemData) {
-    var resp // TODO: replace sync-prompt module = prompt('Delete all derived data (y/N)? ')
+    var resp = prompt('Delete all derived data (y/N)? ')
     if (resp === 'y') {
       console.log('Deleting all dervived data.')
       nukeSystemData = false

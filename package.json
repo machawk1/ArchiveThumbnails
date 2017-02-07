@@ -14,6 +14,7 @@
     "step": "*",
     "futures": "*",
     "es6-promise": "*",
+    "syncprompt": "*",
     "simhash": "*",
     "moment": "*",
     "progress": "*",
@@ -27,7 +28,7 @@
     "minimist": "*",
     "rimraf": "*",
     "faye": "*",
-    "blueimp-md5": "*"
+    "md5": "*"
   },
   "main": "index",
   "scripts": {
