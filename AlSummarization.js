@@ -481,10 +481,15 @@ Memento.prototype.setSimhash = function () {
     var buffer2 = ''
     var memento = this // Potentially unused? The 'this' reference will be relative to the promise here
     var mOptions = url.parse(thaturi)
-    // console.log("Starting a simhash: "+ mOptions.host+ mOptions.path)
+    console.log('Starting a simhash: ' + mOptions.host + mOptions.path)
 
-    var req = http.request({'host': mOptions.host, 'path': mOptions.path}, function (res) {
+    var req = http.request({
+        'host': mOptions.host,
+        'path': mOptions.path,
+        'headers': {'User-Agent': 'ArchiveThumbnails instance - Contact @machawk1'} 
+    }, function (res) {
       // var hd = new memwatch.HeapDiff()
+      
       res.setEncoding('utf8')
       res.on('data', function (data) {
         buffer2 += data.toString()
@@ -529,12 +534,17 @@ Memento.prototype.setSimhash = function () {
       })
 
       res.on('error', function (err) {
-        console.log('REJECT!')
+        console.log('Error generating Simhash in Response')
         reject(Error('Network Error'))
-        console.log('Simhash rejected')
       })
     })
-
+    
+    req.on('error', function (err) {
+      console.log('Error generating Simhash in Request')
+      console.log(err)
+      reject(Error('Network Error'))
+    })
+      
     req.end()
   }))
 }
@@ -801,7 +811,7 @@ TimeMap.prototype.calculateSimhashes = function (callback) {
   return Promise.all(
     arrayOfSetSimhashFunctions
   ).catch(function (err) {
-    console.log('OMFG, an error!')
+    console.log('An error occurred in generating the SimHash for a URI-M')
     console.log(err)
   }).then(function () {
     client.publish('/' + md5(theTimeMap.originalURI), {
