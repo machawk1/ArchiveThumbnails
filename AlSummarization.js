@@ -241,10 +241,10 @@ function PublicEndpoint () {
       response.write(theEndPoint.getHTMLSubmissionForm())
       response.end()
       return
-    }else if (request._parsedUrl && !query['URI-R']) {
+    } else if (request._parsedUrl && !query['URI-R']) {
       // Populate query['URI-R'] with REST-style URI and proceed like nothing happened
       query['URI-R'] = request._parsedUrl.pathname.substr(1)
-    }else if (query['URI-R']) { // URI-R is specied as a query parameter
+    } else if (query['URI-R']) { // URI-R is specied as a query parameter
       console.log('URI-R valid, using query parameter.')
     }
 
@@ -331,7 +331,7 @@ function PublicEndpoint () {
         }
 
       )
-    }else if (strategy === 'random') {
+    } else if (strategy === 'random') {
       t.setupWithURIR(response, query['URI-R'], function selectRandomMementosFromTheTimeMap () {
         var numberOfMementosToSelect = 16; // TODO: remove magic number
         t.supplyChosenMementosBasedOnUniformRandomness(generateThumbnailsWithSelectedMementos, numberOfMementosToSelect)
@@ -344,7 +344,7 @@ function PublicEndpoint () {
         }, 2000)
       })
 
-    }else if (strategy === 'temporalInterval') {
+    } else if (strategy === 'temporalInterval') {
       t.setupWithURIR(response, query['URI-R'], function selectOneMementoForEachMonthPresent () { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnTemporalInterval(generateThumbnailsWithSelectedMementos, 16); // TODO: remove magic number, current scope issues with associating with callback
         setTimeout(function () {
@@ -356,7 +356,7 @@ function PublicEndpoint () {
         }, 2000)
 
       })
-    }else if (strategy === 'interval') {
+    } else if (strategy === 'interval') {
       t.setupWithURIR(response, query['URI-R'], function selectMementosBasedOnInterval () { // TODO: refactor to have fewer verbose callback but not succumb to callback hell
         t.supplyChosenMementosBasedOnInterval(generateThumbnailsWithSelectedMementos, Math.floor(t.mementos.length / 16)); // TODO: remove magic number, current scope issues with associating with callback
       })
@@ -514,7 +514,7 @@ Memento.prototype.setSimhash = function () {
           thatmemento.simhash = retStr
 
           resolve(retStr)
-        }else {
+        } else {
           // We need to delete this memento, it's a duplicate and a "soft 302" from archive.org
           resolve('isA302DeleteMe')
         }
@@ -628,7 +628,7 @@ function getTimemapGodFunctionForAlSummarization (uri, response) {
     if (err) {
       console.log('ERROR!')
       console.log(err)
-    }else {
+    } else {
       console.log('There were no errors executing the callback chain')
     }
   })
@@ -661,7 +661,7 @@ function getTimemapGodFunctionForAlSummarization (uri, response) {
       }catch (e) {
         console.log(e.message)
       }
-    }else {
+    } else {
       throw new Exception('Both mementos in comparison do not have encoded datetimes in the URIs:\r\n\t' + newerMemento.uri + '\r\n\t' + olderMemento.uri)
     }
   }
@@ -703,68 +703,68 @@ TimeMap.prototype.printMementoInformation = function (response, callback, dataRe
 
 
   // Boo! Node doesn't support ES6 template strings. Have to build the old fashion way
-  var respString = '<!DOCTYPE html>' + CRLF +
-    '<html>' + CRLF +
-    '<head>' + CRLF +
-    TAB + '<base href="' + localAssetServer + '" />' + CRLF +
-    TAB + '<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>' + CRLF +
-    TAB + '<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>' + CRLF +
-    TAB + '<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>' + CRLF +
-    TAB + '<script src="md5.min.js"></script>' + CRLF +
-    TAB + '<!--<script src="gridder/js/jquery.gridder.min.js"></script>-->' + CRLF +
-    TAB + '<script src="_js/moment-with-langs.min.js"></script>' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="_css/coverflow.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="_css/alSummarization.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="_css/reflection.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="vis/vis.min.css" />' + CRLF +
-    TAB + '<link rel="stylesheet" type="text/css" href="_css/flip.css" />' + CRLF +
-    TAB + '<script src="_js/coverflow.min.js"></script>' + CRLF +
-    TAB + '<script src="vis/vis.min.js"></script>"' + CRLF +
-    TAB + '<script src="support/faye/faye-browser-min.js"></script>' + CRLF +
-    TAB + '<script>' + CRLF +
-    TAB + '//echo the ports and other endpoint facets for use in util.js' + CRLF +
-    TAB + 'var thumbnailServicePort = ' + thumbnailServicePort + ';' + CRLF +
-    TAB + 'var thumbnailServer = "' + thumbnailServer + '";' + CRLF +
-    TAB + 'var localAssetServerPort = ' + localAssetServerPort + ';' + CRLF +
-    TAB + 'var localAssetServer = "' + localAssetServer + '";' + CRLF +
-    // TAB + 'var uriMs = '+uriMs + ';' + CRLF +
-    TAB + 'var returnedJSON =' + CRLF +
-    TAB + TAB + JSON.stringify(this.mementos) + ';' + CRLF +
-    TAB + 'var metadata = ' + JSON.stringify(metadata) + ';' + CRLF +
-    TAB + 'var client = new Faye.Client("' + notificationServer + '");' + CRLF +
-    TAB + 'var strategy;' + CRLF +
-    TAB + '$(document).ready(function () {' + CRLF +
-    TAB + '  strategy = $($("body")[0]).data("strategy");' + CRLF +
-    TAB + '  setStrategyAndAccessInUI();' + CRLF +
-    TAB + '  client.subscribe("/' + md5(uriR) + '", function (message) {' + CRLF +
-    TAB + '   $("#dataState").html(message.uriM);' + CRLF +
-    TAB + '   if (strategy == "alSummarization" && message.uriM === "done") {' + CRLF +
-    TAB + '    conditionallyLoadInterface();' + CRLF +
-    TAB + '   }else if (message.uriM === "done") {' + CRLF +
-    TAB + '     displayVisualization();' + CRLF +
-    TAB + '     $("#dataState").html("");' + CRLF +
-    TAB + '   }' + CRLF +
-    TAB + '  });' + CRLF +
-    TAB + '});' + CRLF +
-    TAB + '</script>' + CRLF +
-    TAB + '<script src="' + localAssetServer + 'util.js"></script>' + CRLF +
-    '</head>' + CRLF +
-    '<body data-access="' + response.thumbnails.access + '" data-strategy="' + response.thumbnails.strategy + '">' + CRLF +
-    TAB + '<h1 class="interface">' + uriR + '</h1>' + CRLF +
-    TAB + '<section id="subnav">' + CRLF +
-    TAB + '<form method="get" action="/">' + CRLF +
-    TAB + ' <span><label for="strategy">Strategy:</label><select id="form_strategy" name="strategy"><option value="alSummarization">AlSummarization</option><option value="random">Random</option><option value="interval">Interval</option><option value="temporalInterval">Temporal Interval</option></select></span>' + CRLF +
-    // TAB + ' <span><label for="access">Access:</label><select name="access" id="form_access"><option value="interface">Interface</option><option value="wayback">Wayback</option><option value="embed">Embed</option></select></span>' + CRLF +
-    TAB + ' <input type="hidden" name="URI-R" id="form_urir" value="' + decodeURIComponent(uriR) + '" />' + CRLF +
-    TAB + ' <input type="button" value="Go" onclick="buildQuerystringAndGo()"  />' + CRLF +
-    TAB + '</form>' + CRLF +
-    TAB + '<p id="dataState">' + stateInformationString + '</p>' + CRLF +
-    '</body>' + CRLF +
-  '</html>'
+  var respString = 
+`<!DOCTYPE html>
+<html>
+<head>
+<base href="${localAssetServer}" />
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+<script src="md5.min.js"></script>
+<!--<script src="gridder/js/jquery.gridder.min.js"></script>-->
+<script src="_js/moment-with-langs.min.js"></script>
+<link rel="stylesheet" type="text/css" href="_css/coverflow.css" />
+<link rel="stylesheet" type="text/css" href="_css/alSummarization.css" />
+<link rel="stylesheet" type="text/css" href="_css/reflection.css" />
+<link rel="stylesheet" type="text/css" href="vis/vis.min.css" />
+<link rel="stylesheet" type="text/css" href="_css/flip.css" />
+<script src="_js/coverflow.min.js"></script>
+<script src="vis/vis.min.js"></script>"
+<script src="support/faye/faye-browser-min.js"></script>
+<script>
+//echo the ports and other endpoint facets for use in util.js
+var thumbnailServicePort = ${thumbnailServicePort}
+var thumbnailServer = '${thumbnailServer}'
+var localAssetServerPort = '${localAssetServerPort}'
+var localAssetServer = '${localAssetServer}'
+var returnedJSON = ${JSON.stringify(this.mementos)}
+var metadata = ${JSON.stringify(metadata)}
+var client = new Faye.Client('${notificationServer}')
+var strategy
+$(document).ready(function () {
+  strategy = $($('body')[0]).data('strategy')
+  setStrategyAndAccessInUI()
+  client.subscribe('/${md5(uriR)}', function (message) {
+   $('#dataState').html(message.uriM)
+   if (strategy == 'alSummarization' && message.uriM === 'done') {
+       conditionallyLoadInterface()
+   } else if (message.uriM === 'done') {
+       displayVisualization()
+       $('#dataState').html('')
+   }
+  })
+})
+</script>
+<script src="${localAssetServer}util.js"></script>
+</head>
+<body data-access="${response.thumbnails.access}" data-strategy="${response.thumbnails.strategy}">
+<h1 class="interface">${uriR}</h1>
+<section id="subnav">
+<form method="get" action="/">
+ <span><label for="strategy">Strategy:</label><select id="form_strategy" name="strategy"><option value="alSummarization">AlSummarization</option><option value="random">Random</option><option value="interval">Interval</option><option value="temporalInterval">Temporal Interval</option></select></span>
+ <input type="hidden" name="URI-R" id="form_urir" value="${decodeURIComponent(uriR)}" />
+ <input type="button" value="Go" onclick="buildQuerystringAndGo()"  />
+</form>
+<p id="dataState">${stateInformationString}</p>
+</body>
+</html>`
   response.write(respString)
   response.end()
 
-  if (callback) {callback('');}
+  if (callback) {
+    callback('')
+  }
 }
 
 TimeMap.prototype.calculateSimhashes = function (callback) {
@@ -777,19 +777,18 @@ TimeMap.prototype.calculateSimhashes = function (callback) {
     'total': this.mementos.length
   })
 
-  var client = new faye.Client(notificationServer)
 
+  var client = new faye.Client(notificationServer)
   for (var m = 0; m < this.mementos.length; m++) {
     // Allow the Promise async access to browser-based client communication
     this.mementos[m].fayeClient = client
-    this.mementos[m].originalURI = this.originalURI; // The Promise needs the original URI for Faye publication. Scope creep!
+    this.mementos[m].originalURI = this.originalURI  // The Promise needs the original URI for Faye publication. Scope creep!
 
     arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash())
     bar.tick(1)
   }
-
-  // console.time('simhashing')
   var theTimemap = this
+
   return Promise.all(
     arrayOfSetSimhashFunctions
   ).catch(function (err) {
@@ -839,7 +838,9 @@ TimeMap.prototype.saveSimhashesToCache = function (callback,format) {
   cacheFile.replaceContentWith(strToWrite)
 
 
-  if (callback) {callback('');}
+  if (callback) {
+      callback('')
+  }
 }
 
 TimeMap.prototype.writeJSONToCache = function (callback) {
@@ -861,7 +862,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnHammingDistanceAScreenshotURI = fun
     if (memento.hammingDistance < HAMMING_DISTANCE_THRESHOLD  && memento.hammingDistance >= 0) {
       // console.log(memento.uri+" is below the hamming distance threshold of "+HAMMING_DISTANCE_THRESHOLD)
       memento.screenshotURI = null
-    }else {
+    } else {
       var filename = 'alSum_' + uri.replace(/[^a-z0-9]/gi, '').toLowerCase() + '.png'; // Sanitize URI->filename
       memento.screenshotURI = filename
     }
@@ -949,7 +950,7 @@ TimeMap.prototype.supplyChosenMementosBasedOnTemporalInterval = function (callba
       lastMonthRecorded = thisYYYYMM
       console.log(this.mementos[i].datetime + ' accepted')
       selectedIndexes.push(i)
-    }else {
+    } else {
       console.log(this.mementos[i].datetime + ' rejected (same month as previous selected)')
     }
   }
@@ -1094,7 +1095,7 @@ TimeMap.prototype.createScreenshotForMemento = function (memento, callback) {
       console.log('Error creating a screenshot for ' + uri)
       console.log(err)
       callback('Screenshot failed!')
-    }else {
+    } else {
       fs.chmodSync('./screenshots/' + filename, '755')
       im.convert(['./screenshots/' + filename, '-thumbnail', '200',
             './screenshots/' + (filename.replace('.png', '_200.png'))],
@@ -1144,7 +1145,9 @@ TimeMap.prototype.calculateHammingDistancesWithOnlineFiltering = function (callb
       }
 
       // console.log(t.mementos[m].uri+" hammed!")
-    }else if (m === 0) {console.log('m==0, continuing'); }
+    } else if (m === 0) {
+      console.log('m==0, continuing')
+    }
   }
 
   console.log((this.mementos.length - copyOfMementos.length) + ' mementos trimmed due to insufficient hamming, ' + this.mementos.length + ' remain.')
