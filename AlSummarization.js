@@ -488,6 +488,7 @@ Memento.prototype.setSimhash = function () {
         'path': mOptions.path,
         'headers': {'User-Agent': 'ArchiveThumbnails instance - Contact @machawk1'} 
     }, function (res) {
+      console.log('Status code: '+res.statusCode)
       // var hd = new memwatch.HeapDiff()
       
       res.setEncoding('utf8')
@@ -500,8 +501,15 @@ Memento.prototype.setSimhash = function () {
       }
 
       res.on('end', function (d) {
+        console.log('end')
         var md5hash = md5(thatmemento.originalURI) // URI-R cannot be passed in the raw
 
+        if (thatmemento.fayeClient === undefined) {
+            console.log('The faye client for the memento was never initialized!')
+            console.log(' > ' + thatmemento.uri)
+            reject('No Faye for ' + thatmemento.uri)
+            return
+        }
         thatmemento.fayeClient.publish('/' + md5hash, {
           'uriM': thatmemento.uri
         })
@@ -535,6 +543,7 @@ Memento.prototype.setSimhash = function () {
 
       res.on('error', function (err) {
         console.log('Error generating Simhash in Response')
+        console.log(err)
         reject(Error('Network Error'))
       })
     })
@@ -562,7 +571,10 @@ function getTimemapGodFunctionForAlSummarization (uri, response) {
     'host': timemapHost,
     'path': timemapPath,
     'port': 80,
-    'method': 'GET'
+    'method': 'GET',
+    'headers': {
+      'User-Agent': 'AlSummarization by @webscidl, contact @machawk1'
+    }
   }
 
   console.log('Path: ' + options.host + '/' + options.path)
@@ -571,7 +583,7 @@ function getTimemapGodFunctionForAlSummarization (uri, response) {
   var t
   var retStr = ''
   var metadata = ''
-  console.log('Starting many asynchronous operationsX...')
+  console.log('Starting many asynchronous operations...')
   async.series([
     // TODO: define how this is different from the getTimemap() parent function (i.e., some name clarification is needed)
     // TODO: abstract this method to its callback form. Currently, this is reaching and populating the timemap out of scope and can't be simply isolated (I tried)
@@ -804,6 +816,7 @@ TimeMap.prototype.calculateSimhashes = function (callback) {
     this.mementos[m].originalURI = this.originalURI  // The Promise needs the original URI for Faye publication. Scope creep!
 
     arrayOfSetSimhashFunctions.push(this.mementos[m].setSimhash())
+    //if (m>1){break}
     bar.tick(1)
   }
   var theTimemap = this
