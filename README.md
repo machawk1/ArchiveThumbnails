@@ -35,7 +35,7 @@ Clone the repository and change working directory (if not already) then build th
 ```
 $ git clone https://github.com/machawk1/ArchiveThumbnails.git
 $ cd ArchiveThumbnails
-$ docker build -t archthumb .
+$ docker image build -t archthumb .
 ```
 
 In the above command `archthumb` is the name of the image which can be anything, but the same needs to be used when running the container instance.
@@ -43,12 +43,24 @@ In the above command `archthumb` is the name of the image which can be anything,
 ### Running Docker Container
 
 ```
-$ docker run -d -p 15421:15421 -p 1338:1338 -p 15422:15422 alsummarization
+$ docker container run -d -p 15421:15421 -p 15422:15422 -p 1338:1338 archthumb
 ```
 
-In the above command the container is running in detached mode and can be accessed from outside on port `15421`. If you want to run the service on a different port, say `80` then change `-p 15421:15421` to `-p 80:15421`.
+In the above command the container is running in detached mode and can be accessed from outside on port `15421` at http://localhost:15421/. If you want to run the service on a different port, say `80` then change `-p 15421:15421` to `-p 80:15421`.
 
 Container is completely transparent from the outside and it will be accessed as if the service is running in the host machine itself.
+
+In case if you want to make changes in the `ArchiveThumbnails` code itself, you might want to run it in the development mode by mounting the code from the host machine inside the container so that changes are reflected immediately, without requiring an image rebuild. Here is a possible workflow:
+
+```
+$ git clone https://github.com/machawk1/ArchiveThumbnails.git
+$ cd ArchiveThumbnails
+$ docker image build -t archthumb .
+$ docker container run -it --rm -v "$PWD":/app archthumb npm install
+$ docker container run -it --rm -v "$PWD":/app -p 15421:15421 -p 15422:15422 -p 1338:1338 archthumb
+```
+
+Once the image is built and dependencies are installed locally under the `node_modules` directory of the local clone, only the last command would be needed for continuous development. Since the default container runs under the `root` user, there might be permission related issues on the `npm install` step. If so, then try to manually create the `node_modules` directory and change its permissions to world writable (`chmod -R a+w node_modules`) then run the command to install dependencies again.
 
 ### Running via Docker Compose
 
