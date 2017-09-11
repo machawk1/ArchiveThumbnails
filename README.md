@@ -48,6 +48,8 @@ $ docker container run -d -p 15421:15421 -p 15422:15422 -p 1338:1338 archthumb
 
 In the above command the container is running in detached mode and can be accessed from outside on port `15421` at http://localhost:15421/. If you want to run the service on a different port, say `80` then change `-p 15421:15421` to `-p 80:15421`.
 
+In order to persist generated thumbnails, mount a host directory as a volume inside the container by adding `-v /SOME/HOST/DIRECTORY:/app/screenshots` flag when running the container.
+
 Container is completely transparent from the outside and it will be accessed as if the service is running in the host machine itself.
 
 In case if you want to make changes in the `ArchiveThumbnails` code itself, you might want to run it in the development mode by mounting the code from the host machine inside the container so that changes are reflected immediately, without requiring an image rebuild. Here is a possible workflow:
