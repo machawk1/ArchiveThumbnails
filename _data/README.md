@@ -1,0 +1,3 @@
+# Data
+
+This directory contains data files derived from expertimentation performed using Mechanical Turk. The data is derived from Lulwah Alkwai's work, though the provenance is lost on which one. The script file, AlSummarization_batch.js, previously resided at the root of the repo for bulk generation of thumbnails for experimentation, so may not function the same within this directory, but is coupled to these data files.
